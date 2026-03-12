@@ -203,6 +203,7 @@
                 :decls [{:op :union
                          :name 'Result
                          :type-params []
+                         :invariants []
                          :variants [{:name 'Ok
                                      :fields [{:name 'value
                                                :type 'Int}]}

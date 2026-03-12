@@ -12,13 +12,15 @@
                   :decls [{:op :data
                            :name 'Stack
                            :type-params []
-                           :invariants []
+                           :invariants [{:op :call
+                                         :callee {:op :local :name 'valid-stack?}
+                                         :args []}]
                            :fields [{:name 'items
                                      :type '(List Int)}]}
                           {:op :union
                            :name 'Result
                            :type-params []
-                           :invariants []
+                           :invariants [true]
                            :variants [{:name 'Ok
                                        :fields [{:name 'value
                                                  :type 'Int}]}
@@ -49,11 +51,16 @@
                 :decls [{:op :data
                          :name 'Stack
                          :type-params []
+                         :invariants [{:op :call
+                                       :callee {:op :local
+                                                :name 'valid-stack?}
+                                       :args []}]
                          :fields [{:name 'items
                                    :type '(List Int)}]}
                         {:op :union
                          :name 'Result
                          :type-params []
+                         :invariants [true]
                          :variants [{:name 'Ok
                                      :fields [{:name 'value
                                                :type 'Int}]}

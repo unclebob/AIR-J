@@ -19,6 +19,7 @@
                                                     {:op :data
                                                      :name 'Counter
                                                      :type-params []
+                                                     :invariants [true]
                                                      :fields [{:name 'value
                                                                :type 'Int}]}]}}}]
       (should= {'add {:module 'alpha/math
@@ -31,6 +32,7 @@
                            :decl {:op :data
                                   :name 'Counter
                                   :type-params []
+                                  :invariants [true]
                                   :fields [{:name 'value
                                             :type 'Int}]}}}
                (sut/imported-decls module))))
