@@ -1,0 +1,242 @@
+(ns airj.exhaustiveness-checker
+  (:require [airj.expr-walker :as expr-walker]
+            [airj.patterns :as patterns]
+            [airj.type-checker :as type-checker]))
+
+(declare bind-pattern)
+(defn- fail!
+  [message data]
+  (throw (ex-info message data)))
+
+(defn- decl-map
+  [module]
+  (into {} (map (juxt :name identity) (:decls module))))
+
+(defn- fn-type
+  [params return-type effects]
+  {:op :fn-type
+   :params (vec params)
+   :return-type return-type
+   :effects (vec effects)})
+
+(defn- module-fn-env
+  [decls]
+  (into {}
+        (map (fn [decl]
+               [(:name decl)
+                (fn-type (map :type (:params decl))
+                         (:return-type decl)
+                         (:effects decl))])
+             (filter #(= :fn (:op %)) (vals decls)))))
+
+(defn- make-ctx
+  [decls]
+  {:locals (module-fn-env decls)
+   :mutable #{}})
+
+(defn- enum-pattern?
+  [pattern target-type decls]
+  (patterns/enum-pattern? pattern target-type decls))
+
+(defn- exhaustive-pattern?
+  [pattern target-type decls]
+  (or (= :wildcard-pattern (:op pattern))
+      (and (= :binder-pattern (:op pattern))
+           (not (enum-pattern? pattern target-type decls)))))
+
+(defn- bool-pattern-cover
+  [pattern]
+  (when (= :literal-pattern (:op pattern))
+    (:literal pattern)))
+
+(defn- enum-pattern-cover
+  [pattern target-type decls]
+  (when (enum-pattern? pattern target-type decls)
+    (:name pattern)))
+
+(defn- union-pattern-cover
+  [pattern]
+  (when (= :union-pattern (:op pattern))
+    (:name pattern)))
+
+(defn- pattern-cover
+  [pattern target-type decls]
+  (let [decl (patterns/decl-for-type decls target-type)]
+    (cond
+      (exhaustive-pattern? pattern target-type decls) :all
+      (= 'Bool target-type) (bool-pattern-cover pattern)
+      (= :enum (:op decl)) (enum-pattern-cover pattern target-type decls)
+      (= :union (:op decl)) (union-pattern-cover pattern)
+      :else nil)))
+
+(defn- bool-exhaustive?
+  [covers]
+  (and (contains? covers true)
+       (contains? covers false)))
+
+(defn- enum-exhaustive?
+  [decl covers]
+  (every? covers (:variants decl)))
+
+(defn- union-exhaustive?
+  [decl covers]
+  (every? covers (map :name (:variants decl))))
+
+(defn- supported-exhaustive-type?
+  [target-type decl]
+  (or (= 'Bool target-type)
+      (= :enum (:op decl))
+      (= :union (:op decl))))
+
+(defn- exhaustive-covers?
+  [target-type decl covers]
+  (or (contains? covers :all)
+      (and (= 'Bool target-type) (bool-exhaustive? covers))
+      (and (= :enum (:op decl)) (enum-exhaustive? decl covers))
+      (and (= :union (:op decl)) (union-exhaustive? decl covers))))
+
+(defn- check-match
+  [expr ctx decls walk]
+  (let [target-type (type-checker/infer-expr-type (:target expr) ctx decls)
+        covers (set (keep #(pattern-cover (:pattern %) target-type decls)
+                          (:cases expr)))
+        decl (patterns/decl-for-type decls target-type)]
+    (when (and (supported-exhaustive-type? target-type decl)
+               (not (exhaustive-covers? target-type decl covers)))
+      (fail! "Non-exhaustive match."
+             {:expr expr
+              :type target-type}))
+    (doseq [case (:cases expr)]
+      (walk (:body case)
+            (bind-pattern ctx (:pattern case) target-type decls)))))
+
+(defn- bind-literal-pattern
+  [ctx _pattern _target-type]
+  ctx)
+
+(defn- bind-binder-pattern
+  [ctx pattern target-type decls]
+  (if (enum-pattern? pattern target-type decls)
+    ctx
+    (assoc-in ctx [:locals (:name pattern)] target-type)))
+
+(defn bind-pattern
+  [ctx pattern target-type decls]
+  (patterns/bind-pattern ctx
+                         pattern
+                         target-type
+                         decls
+                         {:bind-binder bind-binder-pattern
+                          :bind-literal bind-literal-pattern
+                          :fail! fail!}))
+
+(defn- extend-let-ctx
+  [ctx bindings decls]
+  (reduce (fn [acc binding]
+            (assoc-in acc
+                      [:locals (:name binding)]
+                      (type-checker/infer-expr-type (:expr binding) acc decls)))
+          ctx
+          bindings))
+
+(defn- expr-checkers
+  [decls]
+  {:call (fn [expr ctx walk]
+           (walk (:callee expr) ctx)
+           (doseq [arg (:args expr)]
+             (walk arg ctx)))
+   :construct (fn [expr ctx walk]
+                (doseq [arg (:args expr)]
+                  (walk arg ctx)))
+   :variant (fn [expr ctx walk]
+              (doseq [arg (:args expr)]
+                (walk arg ctx)))
+   :record-get (fn [expr ctx walk]
+                 (walk (:target expr) ctx))
+   :if (fn [expr ctx walk]
+         (walk (:test expr) ctx)
+         (walk (:then expr) ctx)
+         (walk (:else expr) ctx))
+   :match (fn [expr ctx walk] (check-match expr ctx decls walk))
+   :let (fn [expr ctx walk]
+          (doseq [binding (:bindings expr)]
+            (walk (:expr binding) ctx))
+          (walk (:body expr)
+                (extend-let-ctx ctx (:bindings expr) decls)))
+   :seq (fn [expr ctx walk]
+          (reduce (fn [current-ctx part]
+                    (walk part current-ctx)
+                    (if (= :var (:op part))
+                      (assoc-in current-ctx
+                                [:locals (:name part)]
+                                (type-checker/infer-expr-type part current-ctx decls))
+                      current-ctx))
+                  ctx
+                  (:exprs expr))
+          nil)
+   :lambda (fn [expr ctx walk]
+             (let [lambda-ctx (reduce (fn [acc param]
+                                        (assoc-in acc [:locals (:name param)] (:type param)))
+                                      ctx
+                                      (:params expr))]
+               (walk (:body expr) lambda-ctx)))
+   :try (fn [expr ctx walk]
+          (walk (:body expr) ctx)
+          (doseq [catch (:catches expr)]
+            (walk (:body catch)
+                  (assoc-in ctx [:locals (:name catch)] (:type catch))))
+          (when-let [finally-expr (:finally expr)]
+            (walk finally-expr ctx)))
+   :var (fn [expr ctx walk]
+          (walk (:init expr) ctx))
+   :set (fn [expr ctx walk]
+          (walk (:expr expr) ctx))
+   :loop (fn [expr ctx walk]
+           (let [loop-ctx (extend-let-ctx ctx (:bindings expr) decls)]
+             (doseq [binding (:bindings expr)]
+               (walk (:expr binding) ctx))
+             (walk (:body expr) loop-ctx)))
+   :recur (fn [expr ctx walk]
+            (doseq [arg (:args expr)]
+              (walk arg ctx)))
+   :raise (fn [expr ctx walk]
+            (walk (:expr expr) ctx))
+   :java-new (fn [expr ctx walk]
+               (doseq [arg (:args expr)]
+                 (walk arg ctx)))
+   :java-call (fn [expr ctx walk]
+                (walk (:target expr) ctx)
+                (doseq [arg (:args expr)]
+                  (walk arg ctx)))
+   :java-static-call (fn [expr ctx walk]
+                       (doseq [arg (:args expr)]
+                         (walk arg ctx)))
+   :java-get-field (fn [expr ctx walk]
+                     (walk (:target expr) ctx))
+   :java-set-field (fn [expr ctx walk]
+                     (walk (:target expr) ctx)
+                     (walk (:expr expr) ctx))})
+
+(defn check-expr
+  [expr ctx decls]
+  (expr-walker/walk-expr expr ctx (expr-checkers decls)))
+
+(defn- check-fn-decl
+  [decl decls]
+  (let [ctx (reduce (fn [acc param]
+                      (assoc-in acc [:locals (:name param)] (:type param)))
+                    (make-ctx decls)
+                    (:params decl))]
+    (check-expr (:body decl) ctx decls)))
+
+(defn check-module
+  [module]
+  (let [decls (decl-map module)]
+    (doseq [decl (:decls module)]
+      (when (= :fn (:op decl))
+        (check-fn-decl decl decls)))
+    module))
+
+;; clj-mutate-manifest-begin
+;; {:version 1, :tested-at "2026-03-12T11:55:51.68316-05:00", :module-hash "-1533536087", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line 4, :hash "780152538"} {:id "form/1/declare", :kind "declare", :line 6, :end-line 6, :hash "569079974"} {:id "defn-/fail!", :kind "defn-", :line 7, :end-line 9, :hash "879938479"} {:id "defn-/decl-map", :kind "defn-", :line 11, :end-line 13, :hash "1732448350"} {:id "defn-/fn-type", :kind "defn-", :line 15, :end-line 20, :hash "1095575499"} {:id "defn-/module-fn-env", :kind "defn-", :line 22, :end-line 30, :hash "958693736"} {:id "defn-/make-ctx", :kind "defn-", :line 32, :end-line 35, :hash "-261742596"} {:id "defn-/enum-pattern?", :kind "defn-", :line 37, :end-line 39, :hash "-31853100"} {:id "defn-/exhaustive-pattern?", :kind "defn-", :line 41, :end-line 45, :hash "1946202862"} {:id "defn-/bool-pattern-cover", :kind "defn-", :line 47, :end-line 50, :hash "-1417694324"} {:id "defn-/enum-pattern-cover", :kind "defn-", :line 52, :end-line 55, :hash "643520114"} {:id "defn-/union-pattern-cover", :kind "defn-", :line 57, :end-line 60, :hash "-150644182"} {:id "defn-/pattern-cover", :kind "defn-", :line 62, :end-line 70, :hash "558010568"} {:id "defn-/bool-exhaustive?", :kind "defn-", :line 72, :end-line 75, :hash "1512031583"} {:id "defn-/enum-exhaustive?", :kind "defn-", :line 77, :end-line 79, :hash "482651886"} {:id "defn-/union-exhaustive?", :kind "defn-", :line 81, :end-line 83, :hash "-972502524"} {:id "defn-/supported-exhaustive-type?", :kind "defn-", :line 85, :end-line 89, :hash "1140424323"} {:id "defn-/exhaustive-covers?", :kind "defn-", :line 91, :end-line 96, :hash "-416121724"} {:id "defn-/check-match", :kind "defn-", :line 98, :end-line 111, :hash "-339355066"} {:id "defn-/bind-literal-pattern", :kind "defn-", :line 113, :end-line 115, :hash "-896453871"} {:id "defn-/bind-binder-pattern", :kind "defn-", :line 117, :end-line 121, :hash "868154269"} {:id "defn/bind-pattern", :kind "defn", :line 123, :end-line 131, :hash "-488411314"} {:id "defn-/extend-let-ctx", :kind "defn-", :line 133, :end-line 140, :hash "-1584068064"} {:id "defn-/expr-checkers", :kind "defn-", :line 142, :end-line 218, :hash "653579334"} {:id "defn/check-expr", :kind "defn", :line 220, :end-line 222, :hash "1259683610"} {:id "defn-/check-fn-decl", :kind "defn-", :line 224, :end-line 230, :hash "-640781828"} {:id "defn/check-module", :kind "defn", :line 232, :end-line 238, :hash "1272077568"}]}
+;; clj-mutate-manifest-end

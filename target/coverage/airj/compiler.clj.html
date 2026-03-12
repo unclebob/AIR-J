@@ -1,0 +1,602 @@
+<html>
+ <head>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <link rel="stylesheet" href="../coverage.css"/>  <title> airj/compiler.clj </title>
+ </head>
+ <body>
+<span class="covered" title="1 out of 1 forms covered">
+                001&nbsp;&nbsp;(ns&nbsp;airj.compiler
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                002&nbsp;&nbsp;&nbsp;&nbsp;(:require&nbsp;[airj.effect-checker&nbsp;:as&nbsp;effect-checker]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                003&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.exhaustiveness-checker&nbsp;:as&nbsp;exhaustiveness-checker]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                004&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.java-resolver&nbsp;:as&nbsp;java-resolver]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                005&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.linker&nbsp;:as&nbsp;linker]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                006&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.module-interface&nbsp;:as&nbsp;module-interface]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                007&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.project-files&nbsp;:as&nbsp;project-files]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                008&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.project-sources&nbsp;:as&nbsp;project-sources]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                009&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.jvm-emitter&nbsp;:as&nbsp;jvm-emitter]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                010&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.jvm-lowerer&nbsp;:as&nbsp;jvm-lowerer]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                011&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.normalizer&nbsp;:as&nbsp;normalizer]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                012&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.parser&nbsp;:as&nbsp;parser]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                013&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.resolver&nbsp;:as&nbsp;resolver]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                014&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.type-checker&nbsp;:as&nbsp;type-checker]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                015&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[clojure.java.io&nbsp;:as&nbsp;io])
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                016&nbsp;&nbsp;&nbsp;&nbsp;(:import&nbsp;(java.net&nbsp;URL&nbsp;URLClassLoader)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                017&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                018&nbsp;&nbsp;(declare&nbsp;write-bundle!)
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                019&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                020&nbsp;&nbsp;(defn&nbsp;compile-module
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                021&nbsp;&nbsp;&nbsp;&nbsp;([module]
+                </span><br/>
+<span class="not-covered" title="0 out of 4 forms covered">
+                022&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(compile-module&nbsp;module&nbsp;{}))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                023&nbsp;&nbsp;&nbsp;&nbsp;([module&nbsp;options]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                024&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[checked&nbsp;(-&gt;&nbsp;module
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                025&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;normalizer&#x2F;normalize-module
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                026&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(linker&#x2F;link-module&nbsp;options)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                027&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;resolver&#x2F;resolve-module
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                028&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;effect-checker&#x2F;check-module
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                029&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type-checker&#x2F;check-module
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                030&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;java-resolver&#x2F;check-module
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                031&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;exhaustiveness-checker&#x2F;check-module)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                032&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lowered&nbsp;(jvm-lowerer&#x2F;lower-module&nbsp;checked)]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                033&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(jvm-emitter&#x2F;emit-class-bytes&nbsp;lowered))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                034&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                035&nbsp;&nbsp;(defn&nbsp;checked-module
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                036&nbsp;&nbsp;&nbsp;&nbsp;([module]
+                </span><br/>
+<span class="not-covered" title="0 out of 4 forms covered">
+                037&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(checked-module&nbsp;module&nbsp;{}))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                038&nbsp;&nbsp;&nbsp;&nbsp;([module&nbsp;options]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                039&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(-&gt;&nbsp;module
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                040&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;normalizer&#x2F;normalize-module
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                041&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(linker&#x2F;link-module&nbsp;options)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                042&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;resolver&#x2F;resolve-module
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                043&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;effect-checker&#x2F;check-module
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                044&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type-checker&#x2F;check-module
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                045&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;java-resolver&#x2F;check-module
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                046&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;exhaustiveness-checker&#x2F;check-module)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                047&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                048&nbsp;&nbsp;(defn&nbsp;compile-source
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                049&nbsp;&nbsp;&nbsp;&nbsp;([source]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                050&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(compile-source&nbsp;source&nbsp;{}))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                051&nbsp;&nbsp;&nbsp;&nbsp;([source&nbsp;options]
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                052&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(-&gt;&nbsp;source
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                053&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parser&#x2F;parse-module
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                054&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(compile-module&nbsp;options))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                055&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                056&nbsp;&nbsp;(defn&nbsp;compile-project-source
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                057&nbsp;&nbsp;&nbsp;&nbsp;[module-sources&nbsp;root-module-name]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                058&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[sources&nbsp;(project-sources&#x2F;reachable-source-map&nbsp;module-sources&nbsp;root-module-name)]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                059&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(reduce&nbsp;(fn&nbsp;[bundle&nbsp;[module-name&nbsp;source]]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                060&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(merge&nbsp;bundle
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                061&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(compile-source&nbsp;source
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                062&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(project-sources&#x2F;compiler-options&nbsp;sources&nbsp;module-name))))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                063&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{}
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                064&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sources)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                065&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                066&nbsp;&nbsp;(defn&nbsp;checked-project-module
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                067&nbsp;&nbsp;&nbsp;&nbsp;[module-sources&nbsp;root-module-name]
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                068&nbsp;&nbsp;&nbsp;&nbsp;(checked-module&nbsp;(parser&#x2F;parse-module&nbsp;(project-sources&#x2F;root-source&nbsp;module-sources&nbsp;root-module-name))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                069&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(project-sources&#x2F;compiler-options&nbsp;module-sources&nbsp;root-module-name)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                070&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                071&nbsp;&nbsp;(defn&nbsp;compile-project-dir
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                072&nbsp;&nbsp;&nbsp;&nbsp;[project-dir&nbsp;root-module-name]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                073&nbsp;&nbsp;&nbsp;&nbsp;(compile-project-source&nbsp;(project-files&#x2F;reachable-source-map&nbsp;project-dir&nbsp;root-module-name)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                074&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;root-module-name))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                075&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                076&nbsp;&nbsp;(defn&nbsp;checked-project-dir-module
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                077&nbsp;&nbsp;&nbsp;&nbsp;[project-dir&nbsp;root-module-name]
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                078&nbsp;&nbsp;&nbsp;&nbsp;(checked-module&nbsp;(parser&#x2F;parse-module&nbsp;(project-files&#x2F;root-source&nbsp;project-dir&nbsp;root-module-name))
+                </span><br/>
+<span class="not-covered" title="0 out of 4 forms covered">
+                079&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(project-files&#x2F;compiler-options&nbsp;project-dir&nbsp;root-module-name)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                080&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                081&nbsp;&nbsp;(defn&nbsp;build-project-source!
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                082&nbsp;&nbsp;&nbsp;&nbsp;[module-sources&nbsp;root-module-name&nbsp;output-dir]
+                </span><br/>
+<span class="not-covered" title="0 out of 5 forms covered">
+                083&nbsp;&nbsp;&nbsp;&nbsp;(-&gt;&nbsp;(compile-project-source&nbsp;module-sources&nbsp;root-module-name)
+                </span><br/>
+<span class="not-covered" title="0 out of 2 forms covered">
+                084&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(write-bundle!&nbsp;output-dir)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                085&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                086&nbsp;&nbsp;(defn&nbsp;build-project-dir!
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                087&nbsp;&nbsp;&nbsp;&nbsp;[project-dir&nbsp;root-module-name&nbsp;output-dir]
+                </span><br/>
+<span class="not-covered" title="0 out of 5 forms covered">
+                088&nbsp;&nbsp;&nbsp;&nbsp;(-&gt;&nbsp;(compile-project-dir&nbsp;project-dir&nbsp;root-module-name)
+                </span><br/>
+<span class="not-covered" title="0 out of 2 forms covered">
+                089&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(write-bundle!&nbsp;output-dir)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                090&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                091&nbsp;&nbsp;(defn&nbsp;interface-source
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                092&nbsp;&nbsp;&nbsp;&nbsp;[source]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                093&nbsp;&nbsp;&nbsp;&nbsp;(-&gt;&nbsp;source
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                094&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parser&#x2F;parse-module
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                095&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;normalizer&#x2F;normalize-module
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                096&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;module-interface&#x2F;extract-interface))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                097&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                098&nbsp;&nbsp;(defn-&nbsp;class-file
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                099&nbsp;&nbsp;&nbsp;&nbsp;[output-dir&nbsp;internal-name]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                100&nbsp;&nbsp;&nbsp;&nbsp;(io&#x2F;file&nbsp;output-dir&nbsp;(str&nbsp;internal-name&nbsp;&quot;.class&quot;)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                101&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                102&nbsp;&nbsp;(defn&nbsp;write-bundle!
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                103&nbsp;&nbsp;&nbsp;&nbsp;[bundle&nbsp;output-dir]
+                </span><br/>
+<span class="partial" title="26 out of 31 forms covered">
+                104&nbsp;&nbsp;&nbsp;&nbsp;(doseq&nbsp;[[internal-name&nbsp;bytecode]&nbsp;bundle]
+                </span><br/>
+<span class="partial" title="5 out of 10 forms covered">
+                105&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[file&nbsp;(class-file&nbsp;output-dir&nbsp;internal-name)]
+                </span><br/>
+<span class="partial" title="3 out of 6 forms covered">
+                106&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(io&#x2F;make-parents&nbsp;file)
+                </span><br/>
+<span class="partial" title="7 out of 14 forms covered">
+                107&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(with-open&nbsp;[out&nbsp;(io&#x2F;output-stream&nbsp;file)]
+                </span><br/>
+<span class="partial" title="2 out of 4 forms covered">
+                108&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.write&nbsp;out&nbsp;bytecode))))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                109&nbsp;&nbsp;&nbsp;&nbsp;(into&nbsp;{}
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                110&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(map&nbsp;(fn&nbsp;[[internal-name&nbsp;_]]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                111&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[internal-name&nbsp;(.getPath&nbsp;(class-file&nbsp;output-dir&nbsp;internal-name))]))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                112&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bundle))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                113&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                114&nbsp;&nbsp;(defn&nbsp;build-source!
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                115&nbsp;&nbsp;&nbsp;&nbsp;([source&nbsp;output-dir]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                116&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(build-source!&nbsp;source&nbsp;output-dir&nbsp;{}))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                117&nbsp;&nbsp;&nbsp;&nbsp;([source&nbsp;output-dir&nbsp;options]
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                118&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(-&gt;&nbsp;source
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                119&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(compile-source&nbsp;options)
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                120&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(write-bundle!&nbsp;output-dir))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                121&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                122&nbsp;&nbsp;(defn-&nbsp;load-class-from-dir
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                123&nbsp;&nbsp;&nbsp;&nbsp;[output-dir&nbsp;class-name]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                124&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[url&nbsp;(.toURL&nbsp;(.toURI&nbsp;(io&#x2F;file&nbsp;output-dir)))
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                125&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;loader&nbsp;(URLClassLoader.&nbsp;(into-array&nbsp;URL&nbsp;[url]))]
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                126&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.loadClass&nbsp;loader&nbsp;class-name)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                127&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                128&nbsp;&nbsp;(defn-&nbsp;class-name
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                129&nbsp;&nbsp;&nbsp;&nbsp;[module]
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                130&nbsp;&nbsp;&nbsp;&nbsp;(-&gt;&nbsp;(:name&nbsp;module)&nbsp;str&nbsp;(.replace&nbsp;\&#x2F;&nbsp;\.)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                131&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                132&nbsp;&nbsp;(defn-&nbsp;airj-main-method
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                133&nbsp;&nbsp;&nbsp;&nbsp;[klass]
+                </span><br/>
+<span class="covered" title="11 out of 11 forms covered">
+                134&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;(try
+                </span><br/>
+<span class="covered" title="12 out of 12 forms covered">
+                135&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.getMethod&nbsp;klass&nbsp;&quot;airj_main&quot;&nbsp;(into-array&nbsp;Class&nbsp;[(class&nbsp;(into-array&nbsp;String&nbsp;[]))]))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                136&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(catch&nbsp;NoSuchMethodException&nbsp;_&nbsp;nil))
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                137&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(try
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                138&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.getMethod&nbsp;klass&nbsp;&quot;airj_main&quot;&nbsp;(into-array&nbsp;Class&nbsp;[]))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                139&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(catch&nbsp;NoSuchMethodException&nbsp;_&nbsp;nil))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                140&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(throw&nbsp;(ex-info&nbsp;&quot;Missing&nbsp;AIR-J&nbsp;main&nbsp;entrypoint.&quot;
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                141&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:class&nbsp;(.getName&nbsp;klass)}))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                142&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                143&nbsp;&nbsp;(defn&nbsp;run-source!
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                144&nbsp;&nbsp;&nbsp;&nbsp;([source]
+                </span><br/>
+<span class="not-covered" title="0 out of 5 forms covered">
+                145&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(run-source!&nbsp;source&nbsp;[]&nbsp;{}))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                146&nbsp;&nbsp;&nbsp;&nbsp;([source&nbsp;args]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                147&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(run-source!&nbsp;source&nbsp;args&nbsp;{}))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                148&nbsp;&nbsp;&nbsp;&nbsp;([source&nbsp;args&nbsp;options]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                149&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[module&nbsp;(parser&#x2F;parse-module&nbsp;source)
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                150&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;output-dir&nbsp;(.toString&nbsp;(java.nio.file.Files&#x2F;createTempDirectory
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                151&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;airj-run&quot;
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                152&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(make-array&nbsp;java.nio.file.attribute.FileAttribute&nbsp;0)))
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                153&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_&nbsp;(-&gt;&nbsp;module
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                154&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(compile-module&nbsp;options)
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                155&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(write-bundle!&nbsp;output-dir))
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                156&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;klass&nbsp;(load-class-from-dir&nbsp;output-dir&nbsp;(class-name&nbsp;module))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                157&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;method&nbsp;(airj-main-method&nbsp;klass)]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                158&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(if&nbsp;(=&nbsp;1&nbsp;(alength&nbsp;(.getParameterTypes&nbsp;method)))
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                159&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.invoke&nbsp;method&nbsp;nil&nbsp;(object-array&nbsp;[(into-array&nbsp;String&nbsp;args)]))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                160&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.invoke&nbsp;method&nbsp;nil&nbsp;(object-array&nbsp;[]))))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                161&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                162&nbsp;&nbsp;(defn&nbsp;run-project-source!
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                163&nbsp;&nbsp;&nbsp;&nbsp;([module-sources&nbsp;root-module-name]
+                </span><br/>
+<span class="not-covered" title="0 out of 5 forms covered">
+                164&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(run-project-source!&nbsp;module-sources&nbsp;root-module-name&nbsp;[]))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                165&nbsp;&nbsp;&nbsp;&nbsp;([module-sources&nbsp;root-module-name&nbsp;args]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                166&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[output-dir&nbsp;(.toString&nbsp;(java.nio.file.Files&#x2F;createTempDirectory
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                167&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;airj-run-project&quot;
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                168&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(make-array&nbsp;java.nio.file.attribute.FileAttribute&nbsp;0)))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                169&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;root-source&nbsp;(project-sources&#x2F;root-source&nbsp;module-sources&nbsp;root-module-name)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                170&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;module&nbsp;(parser&#x2F;parse-module&nbsp;root-source)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                171&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_&nbsp;(-&gt;&nbsp;(compile-project-source&nbsp;module-sources&nbsp;root-module-name)
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                172&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(write-bundle!&nbsp;output-dir))
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                173&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;klass&nbsp;(load-class-from-dir&nbsp;output-dir&nbsp;(class-name&nbsp;module))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                174&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;method&nbsp;(airj-main-method&nbsp;klass)]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                175&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(if&nbsp;(=&nbsp;1&nbsp;(alength&nbsp;(.getParameterTypes&nbsp;method)))
+                </span><br/>
+<span class="not-covered" title="0 out of 8 forms covered">
+                176&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.invoke&nbsp;method&nbsp;nil&nbsp;(object-array&nbsp;[(into-array&nbsp;String&nbsp;args)]))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                177&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.invoke&nbsp;method&nbsp;nil&nbsp;(object-array&nbsp;[]))))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                178&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                179&nbsp;&nbsp;(defn&nbsp;run-project-dir!
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                180&nbsp;&nbsp;&nbsp;&nbsp;([project-dir&nbsp;root-module-name]
+                </span><br/>
+<span class="not-covered" title="0 out of 5 forms covered">
+                181&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(run-project-dir!&nbsp;project-dir&nbsp;root-module-name&nbsp;[]))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                182&nbsp;&nbsp;&nbsp;&nbsp;([project-dir&nbsp;root-module-name&nbsp;args]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                183&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[output-dir&nbsp;(.toString&nbsp;(java.nio.file.Files&#x2F;createTempDirectory
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                184&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;airj-run-project-dir&quot;
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                185&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(make-array&nbsp;java.nio.file.attribute.FileAttribute&nbsp;0)))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                186&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;root-source&nbsp;(project-files&#x2F;root-source&nbsp;project-dir&nbsp;root-module-name)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                187&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;module&nbsp;(parser&#x2F;parse-module&nbsp;root-source)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                188&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_&nbsp;(-&gt;&nbsp;(compile-project-dir&nbsp;project-dir&nbsp;root-module-name)
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                189&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(write-bundle!&nbsp;output-dir))
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                190&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;klass&nbsp;(load-class-from-dir&nbsp;output-dir&nbsp;(class-name&nbsp;module))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                191&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;method&nbsp;(airj-main-method&nbsp;klass)]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                192&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(if&nbsp;(=&nbsp;1&nbsp;(alength&nbsp;(.getParameterTypes&nbsp;method)))
+                </span><br/>
+<span class="not-covered" title="0 out of 8 forms covered">
+                193&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.invoke&nbsp;method&nbsp;nil&nbsp;(object-array&nbsp;[(into-array&nbsp;String&nbsp;args)]))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                194&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.invoke&nbsp;method&nbsp;nil&nbsp;(object-array&nbsp;[]))))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                195&nbsp;&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                196&nbsp;&nbsp;;;&nbsp;clj-mutate-manifest-begin
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                197&nbsp;&nbsp;;;&nbsp;{:version&nbsp;1,&nbsp;:tested-at&nbsp;&quot;2026-03-12T14:23:56.131816-05:00&quot;,&nbsp;:module-hash&nbsp;&quot;375696674&quot;,&nbsp;:forms&nbsp;[{:id&nbsp;&quot;form&#x2F;0&#x2F;ns&quot;,&nbsp;:kind&nbsp;&quot;ns&quot;,&nbsp;:line&nbsp;1,&nbsp;:end-line&nbsp;16,&nbsp;:hash&nbsp;&quot;-1820704263&quot;}&nbsp;{:id&nbsp;&quot;form&#x2F;1&#x2F;declare&quot;,&nbsp;:kind&nbsp;&quot;declare&quot;,&nbsp;:line&nbsp;18,&nbsp;:end-line&nbsp;18,&nbsp;:hash&nbsp;&quot;2058848851&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;compile-module&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;20,&nbsp;:end-line&nbsp;33,&nbsp;:hash&nbsp;&quot;-429181673&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;checked-module&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;35,&nbsp;:end-line&nbsp;46,&nbsp;:hash&nbsp;&quot;-1523096844&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;compile-source&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;48,&nbsp;:end-line&nbsp;54,&nbsp;:hash&nbsp;&quot;-1796715147&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;compile-project-source&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;56,&nbsp;:end-line&nbsp;64,&nbsp;:hash&nbsp;&quot;22770127&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;checked-project-module&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;66,&nbsp;:end-line&nbsp;69,&nbsp;:hash&nbsp;&quot;1201666930&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;compile-project-dir&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;71,&nbsp;:end-line&nbsp;73,&nbsp;:hash&nbsp;&quot;1231329913&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;checked-project-dir-module&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;75,&nbsp;:end-line&nbsp;78,&nbsp;:hash&nbsp;&quot;213051726&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;build-project-source!&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;80,&nbsp;:end-line&nbsp;83,&nbsp;:hash&nbsp;&quot;434622430&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;build-project-dir!&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;85,&nbsp;:end-line&nbsp;88,&nbsp;:hash&nbsp;&quot;919358575&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;interface-source&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;90,&nbsp;:end-line&nbsp;95,&nbsp;:hash&nbsp;&quot;-277567554&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;class-file&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;97,&nbsp;:end-line&nbsp;99,&nbsp;:hash&nbsp;&quot;1900463827&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;write-bundle!&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;101,&nbsp;:end-line&nbsp;111,&nbsp;:hash&nbsp;&quot;-785230489&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;build-source!&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;113,&nbsp;:end-line&nbsp;119,&nbsp;:hash&nbsp;&quot;358574914&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;load-class-from-dir&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;121,&nbsp;:end-line&nbsp;125,&nbsp;:hash&nbsp;&quot;648982521&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;class-name&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;127,&nbsp;:end-line&nbsp;129,&nbsp;:hash&nbsp;&quot;-314160674&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;airj-main-method&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;131,&nbsp;:end-line&nbsp;140,&nbsp;:hash&nbsp;&quot;-130380503&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;run-source!&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;142,&nbsp;:end-line&nbsp;159,&nbsp;:hash&nbsp;&quot;-150944206&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;run-project-source!&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;161,&nbsp;:end-line&nbsp;176,&nbsp;:hash&nbsp;&quot;484953388&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;run-project-dir!&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;178,&nbsp;:end-line&nbsp;193,&nbsp;:hash&nbsp;&quot;-487228803&quot;}]}
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                198&nbsp;&nbsp;;;&nbsp;clj-mutate-manifest-end
+                </span><br/>
+ </body>
+</html>

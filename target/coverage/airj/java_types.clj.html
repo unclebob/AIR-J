@@ -1,0 +1,107 @@
+<html>
+ <head>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <link rel="stylesheet" href="../coverage.css"/>  <title> airj/java_types.clj </title>
+ </head>
+ <body>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                001&nbsp;&nbsp;;;&nbsp;mutation-tested:&nbsp;2026-03-11
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                002&nbsp;&nbsp;(ns&nbsp;airj.java-types)
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                003&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                004&nbsp;&nbsp;(def&nbsp;^:private&nbsp;primitive-types
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                005&nbsp;&nbsp;&nbsp;&nbsp;{&#x27;Bool&nbsp;Boolean&#x2F;TYPE
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                006&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x27;Int&nbsp;Integer&#x2F;TYPE
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                007&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x27;Unit&nbsp;Void&#x2F;TYPE})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                008&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                009&nbsp;&nbsp;(defn&nbsp;load-class
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                010&nbsp;&nbsp;&nbsp;&nbsp;[class-name]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                011&nbsp;&nbsp;&nbsp;&nbsp;(Class&#x2F;forName&nbsp;(str&nbsp;class-name)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                012&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                013&nbsp;&nbsp;(defn&nbsp;java-type-expr?
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                014&nbsp;&nbsp;&nbsp;&nbsp;[type-expr]
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                015&nbsp;&nbsp;&nbsp;&nbsp;(and&nbsp;(seq?&nbsp;type-expr)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                016&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(=&nbsp;&quot;Java&quot;&nbsp;(name&nbsp;(first&nbsp;type-expr)))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                017&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                018&nbsp;&nbsp;(defn&nbsp;resolve-type
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                019&nbsp;&nbsp;&nbsp;&nbsp;[type-expr]
+                </span><br/>
+<span class="partial" title="3 out of 5 forms covered">
+                020&nbsp;&nbsp;&nbsp;&nbsp;(cond
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                021&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(contains?&nbsp;primitive-types&nbsp;type-expr)&nbsp;(get&nbsp;primitive-types&nbsp;type-expr)
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                022&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(=&nbsp;&#x27;String&nbsp;type-expr)&nbsp;java.lang.String
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                023&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(java-type-expr?&nbsp;type-expr)&nbsp;(load-class&nbsp;(second&nbsp;type-expr))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                024&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:else&nbsp;nil))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                025&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                026&nbsp;&nbsp;(defn&nbsp;assignable-type-expr?
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                027&nbsp;&nbsp;&nbsp;&nbsp;[expected-type&nbsp;actual-type]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                028&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[expected&nbsp;(resolve-type&nbsp;expected-type)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                029&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;actual&nbsp;(resolve-type&nbsp;actual-type)]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                030&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(cond
+                </span><br/>
+<span class="partial" title="11 out of 15 forms covered">
+                031&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;(nil?&nbsp;expected)&nbsp;(nil?&nbsp;actual))&nbsp;(=&nbsp;expected-type&nbsp;actual-type)
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                032&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;(.isPrimitive&nbsp;expected)&nbsp;(.isPrimitive&nbsp;actual))&nbsp;(=&nbsp;expected&nbsp;actual)
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                033&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:else&nbsp;(.isAssignableFrom&nbsp;expected&nbsp;actual))))
+                </span><br/>
+ </body>
+</html>

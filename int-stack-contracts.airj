@@ -1,0 +1,124 @@
+(module example/int-stack-contracts
+  (imports
+    (airj core/bool and not)
+    (airj core/int add eq sub)
+    (airj core/list cons count empty head is-empty tail)
+    (airj core/result Err Ok))
+  (export
+    PopResult
+    Stack
+    empty-stack
+    is-empty-stack
+    peek
+    pop
+    push
+    size)
+  (data Stack
+    (field items (List Int))
+    (meta
+      (invariants
+        ((call (local not)
+           (call (local eq)
+             (call (local count) (record-get (local self) items))
+             -1))))))
+  (union PopResult
+    (variant Empty)
+    (variant Popped
+      (field value Int)
+      (field rest Stack)))
+  (fn empty-stack
+    (params ())
+    (returns Stack)
+    (effects ())
+    (meta
+      (ensures
+        ((call (local is-empty-stack) (local result)))))
+    (construct Stack
+      (call (local empty))))
+  (fn is-empty-stack
+    (params (stack Stack))
+    (returns Bool)
+    (effects ())
+    (meta
+      (ensures
+        ((call (local eq)
+           (local result)
+           (call (local is-empty) (record-get (local stack) items))))))
+    (call (local is-empty) (record-get (local stack) items)))
+  (fn size
+    (params (stack Stack))
+    (returns Int)
+    (effects ())
+    (meta
+      (ensures
+        ((call (local eq)
+           (local result)
+           (call (local count) (record-get (local stack) items))))))
+    (call (local count) (record-get (local stack) items)))
+  (fn push
+    (params (stack Stack) (value Int))
+    (returns Stack)
+    (effects ())
+    (meta
+      (ensures
+        ((call (local eq)
+           (call (local size) (local result))
+           (call (local add) (call (local size) (local stack)) 1)))
+        ((call (local eq)
+           (call (local head) (record-get (local result) items))
+           (local value)))))
+    (construct Stack
+      (call
+        (local cons)
+        (local value)
+        (record-get (local stack) items))))
+  (fn peek
+    (params (stack Stack))
+    (returns (Result Int String))
+    (effects ())
+    (meta
+      (ensures
+        ((if
+           (call (local is-empty-stack) (local stack))
+           (call (local eq) (local result) (call (local Err) "empty-stack"))
+           true))
+        ((if
+           (call (local is-empty-stack) (local stack))
+           true
+           (call
+             (local eq)
+             (local result)
+             (call (local Ok)
+               (call (local head) (record-get (local stack) items))))))))
+    (if
+      (call (local is-empty) (record-get (local stack) items))
+      (call (local Err) "empty-stack")
+      (call (local Ok) (call (local head) (record-get (local stack) items)))))
+  (fn pop
+    (params (stack Stack))
+    (returns PopResult)
+    (effects ())
+    (meta
+      (ensures
+        ((if
+           (call (local is-empty-stack) (local stack))
+           (call (local eq) (local result) (variant PopResult Empty))
+           true))
+        ((if
+           (call (local is-empty-stack) (local stack))
+           true
+           (match (local result)
+             (case (Popped value rest)
+               (call (local and)
+                 (call (local eq) (local value) (call (local head) (record-get (local stack) items)))
+                 (call (local eq)
+                   (call (local size) (local rest))
+                   (call (local sub) (call (local size) (local stack)) 1))))
+             (case Empty false))))))
+    (if
+      (call (local is-empty) (record-get (local stack) items))
+      (variant PopResult Empty)
+      (variant PopResult Popped
+        (call (local head) (record-get (local stack) items))
+        (construct Stack
+          (call (local tail) (record-get (local stack) items)))))))

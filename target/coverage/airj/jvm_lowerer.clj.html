@@ -1,0 +1,239 @@
+<html>
+ <head>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <link rel="stylesheet" href="../coverage.css"/>  <title> airj/jvm_lowerer.clj </title>
+ </head>
+ <body>
+<span class="covered" title="1 out of 1 forms covered">
+                001&nbsp;&nbsp;(ns&nbsp;airj.jvm-lowerer
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                002&nbsp;&nbsp;&nbsp;&nbsp;(:require&nbsp;[airj.imported-interfaces&nbsp;:as&nbsp;imported-interfaces]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                003&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.jvm-lowerer-expr&nbsp;:as&nbsp;expr]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                004&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.jvm-lowerer-types&nbsp;:as&nbsp;types]))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                005&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                006&nbsp;&nbsp;(defn-&nbsp;lower-field
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                007&nbsp;&nbsp;&nbsp;&nbsp;[field&nbsp;ctx]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                008&nbsp;&nbsp;&nbsp;&nbsp;{:name&nbsp;(:name&nbsp;field)
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                009&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-type&nbsp;(types&#x2F;lower-type&nbsp;(:type&nbsp;field)&nbsp;ctx)})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                010&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                011&nbsp;&nbsp;(defn-&nbsp;lower-record
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                012&nbsp;&nbsp;&nbsp;&nbsp;[ctx&nbsp;decl]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                013&nbsp;&nbsp;&nbsp;&nbsp;{:name&nbsp;(:name&nbsp;decl)
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                014&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:class-name&nbsp;(types&#x2F;nested-class-name&nbsp;(:module-name&nbsp;ctx)&nbsp;(:name&nbsp;decl))
+                </span><br/>
+<span class="covered" title="10 out of 10 forms covered">
+                015&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:fields&nbsp;(mapv&nbsp;#(lower-field&nbsp;%&nbsp;ctx)&nbsp;(:fields&nbsp;decl))})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                016&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                017&nbsp;&nbsp;(defn-&nbsp;lower-enum
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                018&nbsp;&nbsp;&nbsp;&nbsp;[ctx&nbsp;decl]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                019&nbsp;&nbsp;&nbsp;&nbsp;{:name&nbsp;(:name&nbsp;decl)
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                020&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:class-name&nbsp;(types&#x2F;nested-class-name&nbsp;(:module-name&nbsp;ctx)&nbsp;(:name&nbsp;decl))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                021&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:variants&nbsp;(vec&nbsp;(:variants&nbsp;decl))})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                022&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                023&nbsp;&nbsp;(defn-&nbsp;lower-union-variant
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                024&nbsp;&nbsp;&nbsp;&nbsp;[ctx&nbsp;union-name&nbsp;variant]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                025&nbsp;&nbsp;&nbsp;&nbsp;{:name&nbsp;(:name&nbsp;variant)
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                026&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:class-name&nbsp;(types&#x2F;union-variant-class-name&nbsp;(:module-name&nbsp;ctx)&nbsp;union-name&nbsp;(:name&nbsp;variant))
+                </span><br/>
+<span class="covered" title="10 out of 10 forms covered">
+                027&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:fields&nbsp;(mapv&nbsp;#(lower-field&nbsp;%&nbsp;ctx)&nbsp;(:fields&nbsp;variant))})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                028&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                029&nbsp;&nbsp;(defn-&nbsp;lower-union
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                030&nbsp;&nbsp;&nbsp;&nbsp;[ctx&nbsp;decl]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                031&nbsp;&nbsp;&nbsp;&nbsp;{:name&nbsp;(:name&nbsp;decl)
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                032&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:base-class&nbsp;(types&#x2F;nested-class-name&nbsp;(:module-name&nbsp;ctx)&nbsp;(:name&nbsp;decl))
+                </span><br/>
+<span class="covered" title="13 out of 13 forms covered">
+                033&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:variants&nbsp;(mapv&nbsp;#(lower-union-variant&nbsp;ctx&nbsp;(:name&nbsp;decl)&nbsp;%)&nbsp;(:variants&nbsp;decl))})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                034&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                035&nbsp;&nbsp;(defn-&nbsp;lower-decls
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                036&nbsp;&nbsp;&nbsp;&nbsp;[decls&nbsp;op&nbsp;lower-fn]
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                037&nbsp;&nbsp;&nbsp;&nbsp;(-&gt;&gt;&nbsp;decls
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                038&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(filter&nbsp;#(=&nbsp;op&nbsp;(:op&nbsp;%)))
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                039&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(mapv&nbsp;lower-fn)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                040&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                041&nbsp;&nbsp;(defn&nbsp;lower-module
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                042&nbsp;&nbsp;&nbsp;&nbsp;[module]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                043&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[decls&nbsp;(types&#x2F;decl-map&nbsp;module)
+                </span><br/>
+<span class="covered" title="10 out of 10 forms covered">
+                044&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx&nbsp;{:module-name&nbsp;(:name&nbsp;module)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                045&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:decls&nbsp;decls
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                046&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:imported-decls&nbsp;(imported-interfaces&#x2F;imported-decls&nbsp;module)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                047&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:closure-counter&nbsp;(atom&nbsp;0)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                048&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:closures&nbsp;(atom&nbsp;[])
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                049&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:closure-interfaces&nbsp;(atom&nbsp;{})}
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                050&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lower-method*&nbsp;(fn&nbsp;[decl]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                051&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[method-ctx&nbsp;(assoc&nbsp;ctx
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                052&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:locals&nbsp;(into&nbsp;{}
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                053&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(map&nbsp;(fn&nbsp;[param]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                054&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[(:name&nbsp;param)&nbsp;(:type&nbsp;param)]))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                055&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:params&nbsp;decl)))]
+                </span><br/>
+<span class="covered" title="10 out of 10 forms covered">
+                056&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:name&nbsp;(:name&nbsp;decl)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                057&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:owner&nbsp;(types&#x2F;internal-name&nbsp;(:module-name&nbsp;ctx))
+                </span><br/>
+<span class="covered" title="10 out of 10 forms covered">
+                058&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:params&nbsp;(mapv&nbsp;#(expr&#x2F;lower-param&nbsp;%&nbsp;method-ctx)&nbsp;(:params&nbsp;decl))
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                059&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:return-type&nbsp;(types&#x2F;lower-type&nbsp;(:return-type&nbsp;decl)&nbsp;method-ctx)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                060&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:effects&nbsp;(vec&nbsp;(:effects&nbsp;decl))
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                061&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:body&nbsp;(expr&#x2F;lower-expr&nbsp;(:body&nbsp;decl)&nbsp;method-ctx)}))]
+                </span><br/>
+<span class="covered" title="19 out of 19 forms covered">
+                062&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(cond-&gt;&nbsp;{:op&nbsp;:jvm-module
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                063&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:module-name&nbsp;(:name&nbsp;module)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                064&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:internal-name&nbsp;(types&#x2F;internal-name&nbsp;(:name&nbsp;module))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                065&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:exports&nbsp;(vec&nbsp;(:exports&nbsp;module))
+                </span><br/>
+<span class="covered" title="11 out of 11 forms covered">
+                066&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:records&nbsp;(lower-decls&nbsp;(:decls&nbsp;module)&nbsp;:data&nbsp;#(lower-record&nbsp;ctx&nbsp;%))
+                </span><br/>
+<span class="covered" title="11 out of 11 forms covered">
+                067&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:enums&nbsp;(lower-decls&nbsp;(:decls&nbsp;module)&nbsp;:enum&nbsp;#(lower-enum&nbsp;ctx&nbsp;%))
+                </span><br/>
+<span class="covered" title="11 out of 11 forms covered">
+                068&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:unions&nbsp;(lower-decls&nbsp;(:decls&nbsp;module)&nbsp;:union&nbsp;#(lower-union&nbsp;ctx&nbsp;%))
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                069&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:methods&nbsp;(lower-decls&nbsp;(:decls&nbsp;module)&nbsp;:fn&nbsp;lower-method*)}
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                070&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(seq&nbsp;@(:closure-interfaces&nbsp;ctx))
+                </span><br/>
+<span class="covered" title="15 out of 15 forms covered">
+                071&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(assoc&nbsp;:closure-interfaces&nbsp;(-&gt;&gt;&nbsp;@(:closure-interfaces&nbsp;ctx)&nbsp;vals&nbsp;(sort-by&nbsp;:class-name)&nbsp;vec))
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                072&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(seq&nbsp;@(:closures&nbsp;ctx))
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                073&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(assoc&nbsp;:closures&nbsp;(vec&nbsp;@(:closures&nbsp;ctx))))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                074&nbsp;&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                075&nbsp;&nbsp;;;&nbsp;clj-mutate-manifest-begin
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                076&nbsp;&nbsp;;;&nbsp;{:version&nbsp;1,&nbsp;:tested-at&nbsp;&quot;2026-03-12T13:36:39.130199-05:00&quot;,&nbsp;:module-hash&nbsp;&quot;-1143569854&quot;,&nbsp;:forms&nbsp;[{:id&nbsp;&quot;form&#x2F;0&#x2F;ns&quot;,&nbsp;:kind&nbsp;&quot;ns&quot;,&nbsp;:line&nbsp;1,&nbsp;:end-line&nbsp;4,&nbsp;:hash&nbsp;&quot;-1410994628&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;lower-field&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;6,&nbsp;:end-line&nbsp;9,&nbsp;:hash&nbsp;&quot;-959639482&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;lower-record&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;11,&nbsp;:end-line&nbsp;15,&nbsp;:hash&nbsp;&quot;892928500&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;lower-enum&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;17,&nbsp;:end-line&nbsp;21,&nbsp;:hash&nbsp;&quot;507139670&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;lower-union-variant&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;23,&nbsp;:end-line&nbsp;27,&nbsp;:hash&nbsp;&quot;-503436825&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;lower-union&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;29,&nbsp;:end-line&nbsp;33,&nbsp;:hash&nbsp;&quot;-1311118607&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;lower-decls&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;35,&nbsp;:end-line&nbsp;39,&nbsp;:hash&nbsp;&quot;625096245&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;lower-module&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;41,&nbsp;:end-line&nbsp;73,&nbsp;:hash&nbsp;&quot;227944578&quot;}]}
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                077&nbsp;&nbsp;;;&nbsp;clj-mutate-manifest-end
+                </span><br/>
+ </body>
+</html>

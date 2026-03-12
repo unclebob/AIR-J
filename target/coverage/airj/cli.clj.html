@@ -1,0 +1,860 @@
+<html>
+ <head>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <link rel="stylesheet" href="../coverage.css"/>  <title> airj/cli.clj </title>
+ </head>
+ <body>
+<span class="covered" title="1 out of 1 forms covered">
+                001&nbsp;&nbsp;(ns&nbsp;airj.cli
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                002&nbsp;&nbsp;&nbsp;&nbsp;(:require&nbsp;[airj.compiler&nbsp;:as&nbsp;compiler]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                003&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.effect-checker&nbsp;:as&nbsp;effect-checker]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                004&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.exhaustiveness-checker&nbsp;:as&nbsp;exhaustiveness-checker]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                005&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.java-resolver&nbsp;:as&nbsp;java-resolver]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                006&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.jvm-lowerer&nbsp;:as&nbsp;jvm-lowerer]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                007&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.normalizer&nbsp;:as&nbsp;normalizer]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                008&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.parser&nbsp;:as&nbsp;parser]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                009&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.resolver&nbsp;:as&nbsp;resolver]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                010&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.type-checker&nbsp;:as&nbsp;type-checker]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                011&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[clojure.edn&nbsp;:as&nbsp;edn]))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                012&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                013&nbsp;&nbsp;(defn-&nbsp;parse-command
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                014&nbsp;&nbsp;&nbsp;&nbsp;[source]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                015&nbsp;&nbsp;&nbsp;&nbsp;(pr-str&nbsp;(parser&#x2F;parse-module&nbsp;source)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                016&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                017&nbsp;&nbsp;(defn-&nbsp;normalize-command
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                018&nbsp;&nbsp;&nbsp;&nbsp;[source]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                019&nbsp;&nbsp;&nbsp;&nbsp;(-&gt;&nbsp;source
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                020&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parser&#x2F;parse-module
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                021&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;normalizer&#x2F;normalize-module
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                022&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pr-str))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                023&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                024&nbsp;&nbsp;(defn-&nbsp;check-command
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                025&nbsp;&nbsp;&nbsp;&nbsp;[source&nbsp;options]
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                026&nbsp;&nbsp;&nbsp;&nbsp;(-&gt;&nbsp;source
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                027&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parser&#x2F;parse-module
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                028&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(compiler&#x2F;checked-module&nbsp;options)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                029&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pr-str))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                030&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                031&nbsp;&nbsp;(defn-&nbsp;lower-command
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                032&nbsp;&nbsp;&nbsp;&nbsp;[source&nbsp;options]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                033&nbsp;&nbsp;&nbsp;&nbsp;(-&gt;&nbsp;source
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                034&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parser&#x2F;parse-module
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                035&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(compiler&#x2F;checked-module&nbsp;options)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                036&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;jvm-lowerer&#x2F;lower-module
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                037&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pr-str))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                038&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                039&nbsp;&nbsp;(defn-&nbsp;interface-command
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                040&nbsp;&nbsp;&nbsp;&nbsp;[source]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                041&nbsp;&nbsp;&nbsp;&nbsp;(-&gt;&nbsp;source
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                042&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;compiler&#x2F;interface-source
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                043&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pr-str))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                044&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                045&nbsp;&nbsp;(defn-&nbsp;build-command
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                046&nbsp;&nbsp;&nbsp;&nbsp;[source&nbsp;output-dir&nbsp;options]
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                047&nbsp;&nbsp;&nbsp;&nbsp;(-&gt;&nbsp;source
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                048&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(compiler&#x2F;build-source!&nbsp;output-dir&nbsp;options)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                049&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pr-str))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                050&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                051&nbsp;&nbsp;(defn-&nbsp;run-command
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                052&nbsp;&nbsp;&nbsp;&nbsp;[source&nbsp;args&nbsp;options]
+                </span><br/>
+<span class="covered" title="14 out of 14 forms covered">
+                053&nbsp;&nbsp;&nbsp;&nbsp;(if-some&nbsp;[result&nbsp;(compiler&#x2F;run-source!&nbsp;source&nbsp;args&nbsp;options)]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                054&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(pr-str&nbsp;result)
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                055&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;&quot;))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                056&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                057&nbsp;&nbsp;(defn-&nbsp;read-source
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                058&nbsp;&nbsp;&nbsp;&nbsp;[source-option&nbsp;stdin]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                059&nbsp;&nbsp;&nbsp;&nbsp;(if&nbsp;(=&nbsp;&quot;--stdin&quot;&nbsp;source-option)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                060&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;stdin
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                061&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(slurp&nbsp;source-option)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                062&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                063&nbsp;&nbsp;(defn-&nbsp;read-interfaces
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                064&nbsp;&nbsp;&nbsp;&nbsp;[path]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                065&nbsp;&nbsp;&nbsp;&nbsp;(-&gt;&nbsp;path
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                066&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;slurp
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                067&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;edn&#x2F;read-string))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                068&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                069&nbsp;&nbsp;(defn-&nbsp;read-interface-sources
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                070&nbsp;&nbsp;&nbsp;&nbsp;[path]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                071&nbsp;&nbsp;&nbsp;&nbsp;(-&gt;&nbsp;path
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                072&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;slurp
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                073&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;edn&#x2F;read-string))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                074&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                075&nbsp;&nbsp;(defn-&nbsp;read-project-sources
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                076&nbsp;&nbsp;&nbsp;&nbsp;[path]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                077&nbsp;&nbsp;&nbsp;&nbsp;(-&gt;&nbsp;path
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                078&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;slurp
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                079&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;edn&#x2F;read-string))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                080&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                081&nbsp;&nbsp;(defn-&nbsp;read-project-dir
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                082&nbsp;&nbsp;&nbsp;&nbsp;[path]
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                083&nbsp;&nbsp;&nbsp;&nbsp;path)
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                084&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                085&nbsp;&nbsp;(defn-&nbsp;parse-options
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                086&nbsp;&nbsp;&nbsp;&nbsp;[args]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                087&nbsp;&nbsp;&nbsp;&nbsp;(cond
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                088&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(=&nbsp;&quot;--interfaces-edn&quot;&nbsp;(first&nbsp;args))
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                089&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[{:interfaces&nbsp;(read-interfaces&nbsp;(second&nbsp;args))}
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                090&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(nnext&nbsp;args)]
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                091&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                092&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(=&nbsp;&quot;--interface-sources-edn&quot;&nbsp;(first&nbsp;args))
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                093&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[{:interface-sources&nbsp;(read-interface-sources&nbsp;(second&nbsp;args))}
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                094&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(nnext&nbsp;args)]
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                095&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                096&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(=&nbsp;&quot;--project-sources-edn&quot;&nbsp;(first&nbsp;args))
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                097&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[{:project-sources&nbsp;(read-project-sources&nbsp;(second&nbsp;args))}
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                098&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(nnext&nbsp;args)]
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                099&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                100&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(=&nbsp;&quot;--project-dir&quot;&nbsp;(first&nbsp;args))
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                101&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[{:project-dir&nbsp;(read-project-dir&nbsp;(second&nbsp;args))}
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                102&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(nnext&nbsp;args)]
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                103&nbsp;&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                104&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:else
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                105&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[{}&nbsp;args]))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                106&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                107&nbsp;&nbsp;(def&nbsp;^:private&nbsp;source-commands
+                </span><br/>
+<span class="covered" title="10 out of 10 forms covered">
+                108&nbsp;&nbsp;&nbsp;&nbsp;{&quot;parse&quot;&nbsp;(fn&nbsp;[source&nbsp;_]&nbsp;(parse-command&nbsp;source))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                109&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;normalize&quot;&nbsp;(fn&nbsp;[source&nbsp;_]&nbsp;(normalize-command&nbsp;source))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                110&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;check&quot;&nbsp;check-command
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                111&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;interface&quot;&nbsp;(fn&nbsp;[source&nbsp;_]&nbsp;(interface-command&nbsp;source))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                112&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;lower&quot;&nbsp;lower-command})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                113&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                114&nbsp;&nbsp;(def&nbsp;^:private&nbsp;project-commands
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                115&nbsp;&nbsp;&nbsp;&nbsp;{&quot;check&quot;&nbsp;(fn&nbsp;[project-sources&nbsp;root-module-name&nbsp;_]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                116&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(-&gt;&nbsp;(compiler&#x2F;checked-project-module&nbsp;project-sources&nbsp;root-module-name)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                117&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pr-str))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                118&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;lower&quot;&nbsp;(fn&nbsp;[project-sources&nbsp;root-module-name&nbsp;_]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                119&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(-&gt;&nbsp;(compiler&#x2F;checked-project-module&nbsp;project-sources&nbsp;root-module-name)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                120&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;jvm-lowerer&#x2F;lower-module
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                121&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pr-str))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                122&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;build&quot;&nbsp;(fn&nbsp;[project-sources&nbsp;root-module-name&nbsp;args]
+                </span><br/>
+<span class="not-covered" title="0 out of 4 forms covered">
+                123&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(-&gt;&nbsp;(compiler&#x2F;build-project-source!&nbsp;project-sources
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                124&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;root-module-name
+                </span><br/>
+<span class="not-covered" title="0 out of 8 forms covered">
+                125&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;(first&nbsp;args)&nbsp;&quot;target&#x2F;classes&quot;))
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                126&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pr-str))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                127&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;run&quot;&nbsp;(fn&nbsp;[project-sources&nbsp;root-module-name&nbsp;args]
+                </span><br/>
+<span class="partial" title="11 out of 12 forms covered">
+                128&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(if-some&nbsp;[result&nbsp;(compiler&#x2F;run-project-source!&nbsp;project-sources
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                129&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;root-module-name
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                130&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;args)]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                131&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(pr-str&nbsp;result)
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                132&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;&quot;))})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                133&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                134&nbsp;&nbsp;(def&nbsp;^:private&nbsp;project-dir-commands
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                135&nbsp;&nbsp;&nbsp;&nbsp;{&quot;check&quot;&nbsp;(fn&nbsp;[project-dir&nbsp;root-module-name&nbsp;_]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                136&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(-&gt;&nbsp;(compiler&#x2F;checked-project-dir-module&nbsp;project-dir&nbsp;root-module-name)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                137&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pr-str))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                138&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;lower&quot;&nbsp;(fn&nbsp;[project-dir&nbsp;root-module-name&nbsp;_]
+                </span><br/>
+<span class="not-covered" title="0 out of 6 forms covered">
+                139&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(-&gt;&nbsp;(compiler&#x2F;checked-project-dir-module&nbsp;project-dir&nbsp;root-module-name)
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                140&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;jvm-lowerer&#x2F;lower-module
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                141&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pr-str))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                142&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;build&quot;&nbsp;(fn&nbsp;[project-dir&nbsp;root-module-name&nbsp;args]
+                </span><br/>
+<span class="not-covered" title="0 out of 4 forms covered">
+                143&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(-&gt;&nbsp;(compiler&#x2F;build-project-dir!&nbsp;project-dir
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                144&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;root-module-name
+                </span><br/>
+<span class="not-covered" title="0 out of 8 forms covered">
+                145&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;(first&nbsp;args)&nbsp;&quot;target&#x2F;classes&quot;))
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                146&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pr-str))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                147&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;run&quot;&nbsp;(fn&nbsp;[project-dir&nbsp;root-module-name&nbsp;args]
+                </span><br/>
+<span class="partial" title="13 out of 14 forms covered">
+                148&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(if-some&nbsp;[result&nbsp;(compiler&#x2F;run-project-dir!&nbsp;project-dir&nbsp;root-module-name&nbsp;args)]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                149&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(pr-str&nbsp;result)
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                150&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;&quot;))})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                151&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                152&nbsp;&nbsp;(defn-&nbsp;source-command-result
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                153&nbsp;&nbsp;&nbsp;&nbsp;[command&nbsp;source&nbsp;options]
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                154&nbsp;&nbsp;&nbsp;&nbsp;(if-let&nbsp;[handler&nbsp;(get&nbsp;source-commands&nbsp;command)]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                155&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(handler&nbsp;source&nbsp;options)
+                </span><br/>
+<span class="not-covered" title="0 out of 4 forms covered">
+                156&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(throw&nbsp;(ex-info&nbsp;&quot;Unsupported&nbsp;command.&quot;
+                </span><br/>
+<span class="not-covered" title="0 out of 4 forms covered">
+                157&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:args&nbsp;[command]}))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                158&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                159&nbsp;&nbsp;(defn-&nbsp;project-command-result
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                160&nbsp;&nbsp;&nbsp;&nbsp;[command&nbsp;project-sources&nbsp;root-module-name&nbsp;args]
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                161&nbsp;&nbsp;&nbsp;&nbsp;(if-let&nbsp;[handler&nbsp;(get&nbsp;project-commands&nbsp;command)]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                162&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(handler&nbsp;project-sources&nbsp;root-module-name&nbsp;args)
+                </span><br/>
+<span class="not-covered" title="0 out of 4 forms covered">
+                163&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(throw&nbsp;(ex-info&nbsp;&quot;Unsupported&nbsp;command.&quot;
+                </span><br/>
+<span class="not-covered" title="0 out of 5 forms covered">
+                164&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:args&nbsp;[command&nbsp;root-module-name]}))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                165&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                166&nbsp;&nbsp;(defn-&nbsp;project-command-args
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                167&nbsp;&nbsp;&nbsp;&nbsp;[command&nbsp;remaining-args]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                168&nbsp;&nbsp;&nbsp;&nbsp;(case&nbsp;command
+                </span><br/>
+<span class="not-covered" title="0 out of 4 forms covered">
+                169&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;build&quot;&nbsp;[(second&nbsp;remaining-args)]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                170&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;run&quot;&nbsp;(vec&nbsp;(rest&nbsp;remaining-args))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                171&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[]))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                172&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                173&nbsp;&nbsp;(defn-&nbsp;project-root-module
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                174&nbsp;&nbsp;&nbsp;&nbsp;[remaining-args]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                175&nbsp;&nbsp;&nbsp;&nbsp;(symbol&nbsp;(first&nbsp;remaining-args)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                176&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                177&nbsp;&nbsp;(defn-&nbsp;with-project-context
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                178&nbsp;&nbsp;&nbsp;&nbsp;[command&nbsp;root-module-name&nbsp;thunk]
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                179&nbsp;&nbsp;&nbsp;&nbsp;(try
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                180&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(thunk)
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                181&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(catch&nbsp;clojure.lang.ExceptionInfo&nbsp;e
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                182&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(throw&nbsp;(ex-info&nbsp;&quot;Project&nbsp;command&nbsp;failed.&quot;
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                183&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(assoc&nbsp;(ex-data&nbsp;e)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                184&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:command&nbsp;command
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                185&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:root-module&nbsp;root-module-name)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                186&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;e)))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                187&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                188&nbsp;&nbsp;(defn-&nbsp;project-result
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                189&nbsp;&nbsp;&nbsp;&nbsp;[command&nbsp;options&nbsp;remaining-args]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                190&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[root-module-name&nbsp;(project-root-module&nbsp;remaining-args)]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                191&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(with-project-context&nbsp;command
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                192&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;root-module-name
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                193&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#(project-command-result&nbsp;command
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                194&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:project-sources&nbsp;options)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                195&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;root-module-name
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                196&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(project-command-args&nbsp;command&nbsp;remaining-args)))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                197&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                198&nbsp;&nbsp;(defn-&nbsp;project-dir-result
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                199&nbsp;&nbsp;&nbsp;&nbsp;[command&nbsp;options&nbsp;remaining-args]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                200&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[project-dir&nbsp;(:project-dir&nbsp;options)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                201&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;root-module-name&nbsp;(project-root-module&nbsp;remaining-args)
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                202&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;args&nbsp;(project-command-args&nbsp;command&nbsp;remaining-args)]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                203&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(with-project-context&nbsp;command
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                204&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;root-module-name
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                205&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#(if-let&nbsp;[handler&nbsp;(get&nbsp;project-dir-commands&nbsp;command)]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                206&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(handler&nbsp;project-dir&nbsp;root-module-name&nbsp;args)
+                </span><br/>
+<span class="not-covered" title="0 out of 4 forms covered">
+                207&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(throw&nbsp;(ex-info&nbsp;&quot;Unsupported&nbsp;command.&quot;
+                </span><br/>
+<span class="not-covered" title="0 out of 5 forms covered">
+                208&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:args&nbsp;[command&nbsp;root-module-name]}))))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                209&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                210&nbsp;&nbsp;(defn-&nbsp;source-result
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                211&nbsp;&nbsp;&nbsp;&nbsp;[command&nbsp;options&nbsp;remaining-args&nbsp;stdin]
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                212&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[[source-option&nbsp;output-dir]&nbsp;remaining-args]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                213&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(case&nbsp;command
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                214&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;build&quot;&nbsp;(build-command&nbsp;(read-source&nbsp;source-option&nbsp;stdin)
+                </span><br/>
+<span class="partial" title="5 out of 6 forms covered">
+                215&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;output-dir&nbsp;&quot;target&#x2F;classes&quot;)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                216&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;options)
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                217&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;run&quot;&nbsp;(run-command&nbsp;(read-source&nbsp;source-option&nbsp;stdin)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                218&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(rest&nbsp;remaining-args)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                219&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;options)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                220&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(source-command-result&nbsp;command
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                221&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(read-source&nbsp;source-option&nbsp;stdin)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                222&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;options))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                223&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                224&nbsp;&nbsp;(defn-&nbsp;command-result
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                225&nbsp;&nbsp;&nbsp;&nbsp;[command&nbsp;args&nbsp;stdin]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                226&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[[options&nbsp;remaining-args]&nbsp;(parse-options&nbsp;args)]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                227&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(cond
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                228&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:project-sources&nbsp;options)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                229&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(project-result&nbsp;command&nbsp;options&nbsp;remaining-args)
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                230&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                231&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:project-dir&nbsp;options)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                232&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(project-dir-result&nbsp;command&nbsp;options&nbsp;remaining-args)
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                233&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                234&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(contains?&nbsp;source-commands&nbsp;command)
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                235&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(source-result&nbsp;command&nbsp;options&nbsp;remaining-args&nbsp;stdin)
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                236&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                237&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(#{&quot;build&quot;&nbsp;&quot;run&quot;}&nbsp;command)
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                238&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(source-result&nbsp;command&nbsp;options&nbsp;remaining-args&nbsp;stdin)
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                239&nbsp;&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                240&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:else
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                241&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(throw&nbsp;(ex-info&nbsp;&quot;Unsupported&nbsp;command.&quot;
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                242&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:args&nbsp;(cons&nbsp;command&nbsp;args)})))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                243&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                244&nbsp;&nbsp;(defn&nbsp;run
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                245&nbsp;&nbsp;&nbsp;&nbsp;[args&nbsp;stdin]
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                246&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[[command&nbsp;&amp;&nbsp;command-args]&nbsp;args]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                247&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(command-result&nbsp;command&nbsp;command-args&nbsp;stdin)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                248&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                249&nbsp;&nbsp;(defn-&nbsp;format-project-error
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                250&nbsp;&nbsp;&nbsp;&nbsp;[data]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                251&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[prefix&nbsp;(str&nbsp;&quot;Project&nbsp;command&nbsp;failed:&nbsp;&quot;
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                252&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:command&nbsp;data)
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                253&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;&nbsp;&quot;
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                254&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:root-module&nbsp;data))]
+                </span><br/>
+<span class="partial" title="2 out of 3 forms covered">
+                255&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(cond
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                256&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:cycle&nbsp;data)
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                257&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(str&nbsp;prefix&nbsp;&quot;\nImport&nbsp;cycle:&nbsp;&quot;&nbsp;(pr-str&nbsp;(:cycle&nbsp;data)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                258&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                259&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:module&nbsp;data)
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                260&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(str&nbsp;prefix&nbsp;&quot;\nMissing&nbsp;module:&nbsp;&quot;&nbsp;(:module&nbsp;data))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                261&nbsp;&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                262&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:else
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                263&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;prefix)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                264&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                265&nbsp;&nbsp;(defn-&nbsp;format-cli-error
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                266&nbsp;&nbsp;&nbsp;&nbsp;[error]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                267&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[data&nbsp;(ex-data&nbsp;error)]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                268&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(if&nbsp;(=&nbsp;&quot;Project&nbsp;command&nbsp;failed.&quot;&nbsp;(.getMessage&nbsp;error))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                269&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(format-project-error&nbsp;data)
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                270&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.getMessage&nbsp;error))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                271&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                272&nbsp;&nbsp;(defn&nbsp;-main
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                273&nbsp;&nbsp;&nbsp;&nbsp;[&amp;&nbsp;args]
+                </span><br/>
+<span class="partial" title="2 out of 3 forms covered">
+                274&nbsp;&nbsp;&nbsp;&nbsp;(try
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                275&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(println&nbsp;(run&nbsp;args&nbsp;(slurp&nbsp;*in*)))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                276&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                277&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(catch&nbsp;clojure.lang.ExceptionInfo&nbsp;e
+                </span><br/>
+<span class="covered" title="10 out of 10 forms covered">
+                278&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(binding&nbsp;[*out*&nbsp;*err*]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                279&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(println&nbsp;(format-cli-error&nbsp;e)))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                280&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                281&nbsp;&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                282&nbsp;&nbsp;;;&nbsp;clj-mutate-manifest-begin
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                283&nbsp;&nbsp;;;&nbsp;{:version&nbsp;1,&nbsp;:tested-at&nbsp;&quot;2026-03-12T15:06:34.562701-05:00&quot;,&nbsp;:module-hash&nbsp;&quot;1731696912&quot;,&nbsp;:forms&nbsp;[{:id&nbsp;&quot;form&#x2F;0&#x2F;ns&quot;,&nbsp;:kind&nbsp;&quot;ns&quot;,&nbsp;:line&nbsp;1,&nbsp;:end-line&nbsp;11,&nbsp;:hash&nbsp;&quot;1645197149&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-command&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;13,&nbsp;:end-line&nbsp;15,&nbsp;:hash&nbsp;&quot;1121072814&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;normalize-command&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;17,&nbsp;:end-line&nbsp;22,&nbsp;:hash&nbsp;&quot;1007829560&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;check-command&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;24,&nbsp;:end-line&nbsp;29,&nbsp;:hash&nbsp;&quot;1273151433&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;lower-command&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;31,&nbsp;:end-line&nbsp;37,&nbsp;:hash&nbsp;&quot;2093538237&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;interface-command&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;39,&nbsp;:end-line&nbsp;43,&nbsp;:hash&nbsp;&quot;-347479495&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;build-command&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;45,&nbsp;:end-line&nbsp;49,&nbsp;:hash&nbsp;&quot;607607015&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;run-command&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;51,&nbsp;:end-line&nbsp;55,&nbsp;:hash&nbsp;&quot;1684929123&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;read-source&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;57,&nbsp;:end-line&nbsp;61,&nbsp;:hash&nbsp;&quot;-1955156800&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;read-interfaces&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;63,&nbsp;:end-line&nbsp;67,&nbsp;:hash&nbsp;&quot;-125656322&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;read-interface-sources&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;69,&nbsp;:end-line&nbsp;73,&nbsp;:hash&nbsp;&quot;-19164240&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;read-project-sources&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;75,&nbsp;:end-line&nbsp;79,&nbsp;:hash&nbsp;&quot;-1257545745&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;read-project-dir&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;81,&nbsp;:end-line&nbsp;83,&nbsp;:hash&nbsp;&quot;1367042759&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-options&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;85,&nbsp;:end-line&nbsp;105,&nbsp;:hash&nbsp;&quot;1505099938&quot;}&nbsp;{:id&nbsp;&quot;def&#x2F;source-commands&quot;,&nbsp;:kind&nbsp;&quot;def&quot;,&nbsp;:line&nbsp;107,&nbsp;:end-line&nbsp;112,&nbsp;:hash&nbsp;&quot;1484354291&quot;}&nbsp;{:id&nbsp;&quot;def&#x2F;project-commands&quot;,&nbsp;:kind&nbsp;&quot;def&quot;,&nbsp;:line&nbsp;114,&nbsp;:end-line&nbsp;132,&nbsp;:hash&nbsp;&quot;1813700741&quot;}&nbsp;{:id&nbsp;&quot;def&#x2F;project-dir-commands&quot;,&nbsp;:kind&nbsp;&quot;def&quot;,&nbsp;:line&nbsp;134,&nbsp;:end-line&nbsp;150,&nbsp;:hash&nbsp;&quot;-1565116535&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;source-command-result&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;152,&nbsp;:end-line&nbsp;157,&nbsp;:hash&nbsp;&quot;-42709737&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;project-command-result&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;159,&nbsp;:end-line&nbsp;164,&nbsp;:hash&nbsp;&quot;236225118&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;project-command-args&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;166,&nbsp;:end-line&nbsp;171,&nbsp;:hash&nbsp;&quot;1835019243&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;project-root-module&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;173,&nbsp;:end-line&nbsp;175,&nbsp;:hash&nbsp;&quot;1262629310&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;with-project-context&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;177,&nbsp;:end-line&nbsp;186,&nbsp;:hash&nbsp;&quot;1257870681&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;project-result&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;188,&nbsp;:end-line&nbsp;196,&nbsp;:hash&nbsp;&quot;-662015587&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;project-dir-result&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;198,&nbsp;:end-line&nbsp;208,&nbsp;:hash&nbsp;&quot;1549623767&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;source-result&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;210,&nbsp;:end-line&nbsp;222,&nbsp;:hash&nbsp;&quot;253873564&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;command-result&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;224,&nbsp;:end-line&nbsp;242,&nbsp;:hash&nbsp;&quot;-1433014116&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;run&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;244,&nbsp;:end-line&nbsp;247,&nbsp;:hash&nbsp;&quot;-360055027&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;format-project-error&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;249,&nbsp;:end-line&nbsp;263,&nbsp;:hash&nbsp;&quot;-828228180&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;format-cli-error&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;265,&nbsp;:end-line&nbsp;270,&nbsp;:hash&nbsp;&quot;949320705&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;-main&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;272,&nbsp;:end-line&nbsp;280,&nbsp;:hash&nbsp;&quot;-1361568830&quot;}]}
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                284&nbsp;&nbsp;;;&nbsp;clj-mutate-manifest-end
+                </span><br/>
+ </body>
+</html>

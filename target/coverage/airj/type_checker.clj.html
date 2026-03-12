@@ -1,0 +1,1475 @@
+<html>
+ <head>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <link rel="stylesheet" href="../coverage.css"/>  <title> airj/type_checker.clj </title>
+ </head>
+ <body>
+<span class="covered" title="1 out of 1 forms covered">
+                001&nbsp;&nbsp;(ns&nbsp;airj.type-checker
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                002&nbsp;&nbsp;&nbsp;&nbsp;(:require&nbsp;[airj.imported-interfaces&nbsp;:as&nbsp;imported-interfaces]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                003&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.java-types&nbsp;:as&nbsp;java-types]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                004&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.patterns&nbsp;:as&nbsp;patterns]))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                005&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                006&nbsp;&nbsp;(declare&nbsp;infer-expr)
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                007&nbsp;&nbsp;(declare&nbsp;infer-expr-type)
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                008&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                009&nbsp;&nbsp;(defn-&nbsp;fail!
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                010&nbsp;&nbsp;&nbsp;&nbsp;[message&nbsp;data]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                011&nbsp;&nbsp;&nbsp;&nbsp;(throw&nbsp;(ex-info&nbsp;message&nbsp;data)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                012&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                013&nbsp;&nbsp;(defn-&nbsp;decl-map
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                014&nbsp;&nbsp;&nbsp;&nbsp;[module]
+                </span><br/>
+<span class="covered" title="12 out of 12 forms covered">
+                015&nbsp;&nbsp;&nbsp;&nbsp;(into&nbsp;{}&nbsp;(map&nbsp;(juxt&nbsp;:name&nbsp;identity)&nbsp;(:decls&nbsp;module))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                016&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                017&nbsp;&nbsp;(defn-&nbsp;fn-type
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                018&nbsp;&nbsp;&nbsp;&nbsp;[params&nbsp;return-type&nbsp;effects]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                019&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:fn-type
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                020&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:params&nbsp;(vec&nbsp;params)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                021&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:return-type&nbsp;return-type
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                022&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:effects&nbsp;(vec&nbsp;effects)})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                023&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                024&nbsp;&nbsp;(defn-&nbsp;bottom-type
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                025&nbsp;&nbsp;&nbsp;&nbsp;[kind]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                026&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:bottom-type
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                027&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:kind&nbsp;kind})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                028&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                029&nbsp;&nbsp;(defn-&nbsp;bottom-type?
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                030&nbsp;&nbsp;&nbsp;&nbsp;[type-expr]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                031&nbsp;&nbsp;&nbsp;&nbsp;(=&nbsp;:bottom-type&nbsp;(:op&nbsp;type-expr)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                032&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                033&nbsp;&nbsp;(defn-&nbsp;result
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                034&nbsp;&nbsp;&nbsp;&nbsp;[type-expr&nbsp;ctx]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                035&nbsp;&nbsp;&nbsp;&nbsp;{:type&nbsp;type-expr
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                036&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:ctx&nbsp;ctx})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                037&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                038&nbsp;&nbsp;(defn-&nbsp;local-type
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                039&nbsp;&nbsp;&nbsp;&nbsp;[ctx&nbsp;name]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                040&nbsp;&nbsp;&nbsp;&nbsp;(get-in&nbsp;ctx&nbsp;[:locals&nbsp;name]))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                041&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                042&nbsp;&nbsp;(defn-&nbsp;mutable-local?
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                043&nbsp;&nbsp;&nbsp;&nbsp;[ctx&nbsp;name]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                044&nbsp;&nbsp;&nbsp;&nbsp;(contains?&nbsp;(:mutable&nbsp;ctx)&nbsp;name))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                045&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                046&nbsp;&nbsp;(defn-&nbsp;bind-local
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                047&nbsp;&nbsp;&nbsp;&nbsp;[ctx&nbsp;name&nbsp;type-expr]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                048&nbsp;&nbsp;&nbsp;&nbsp;(assoc-in&nbsp;ctx&nbsp;[:locals&nbsp;name]&nbsp;type-expr))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                049&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                050&nbsp;&nbsp;(defn-&nbsp;bind-mutable
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                051&nbsp;&nbsp;&nbsp;&nbsp;[ctx&nbsp;name&nbsp;type-expr]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                052&nbsp;&nbsp;&nbsp;&nbsp;(-&gt;&nbsp;ctx
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                053&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(bind-local&nbsp;name&nbsp;type-expr)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                054&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(update&nbsp;:mutable&nbsp;conj&nbsp;name)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                055&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                056&nbsp;&nbsp;(defn-&nbsp;with-loop-types
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                057&nbsp;&nbsp;&nbsp;&nbsp;[ctx&nbsp;loop-types]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                058&nbsp;&nbsp;&nbsp;&nbsp;(assoc&nbsp;ctx&nbsp;:loop-types&nbsp;(vec&nbsp;loop-types)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                059&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                060&nbsp;&nbsp;(defn-&nbsp;without-loop-types
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                061&nbsp;&nbsp;&nbsp;&nbsp;[ctx]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                062&nbsp;&nbsp;&nbsp;&nbsp;(dissoc&nbsp;ctx&nbsp;:loop-types))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                063&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                064&nbsp;&nbsp;(defn-&nbsp;fn-decl-type
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                065&nbsp;&nbsp;&nbsp;&nbsp;[decl]
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                066&nbsp;&nbsp;&nbsp;&nbsp;(fn-type&nbsp;(map&nbsp;:type&nbsp;(:params&nbsp;decl))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                067&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:return-type&nbsp;decl)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                068&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:effects&nbsp;decl)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                069&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                070&nbsp;&nbsp;(defn-&nbsp;module-fn-env
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                071&nbsp;&nbsp;&nbsp;&nbsp;[module&nbsp;decls]
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                072&nbsp;&nbsp;&nbsp;&nbsp;(merge
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                073&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(into&nbsp;{}
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                074&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(map&nbsp;(fn&nbsp;[decl]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                075&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[(:name&nbsp;decl)&nbsp;(fn-decl-type&nbsp;decl)])
+                </span><br/>
+<span class="covered" title="11 out of 11 forms covered">
+                076&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(filter&nbsp;#(=&nbsp;:fn&nbsp;(:op&nbsp;%))&nbsp;(vals&nbsp;decls))))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                077&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(into&nbsp;{}
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                078&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(keep&nbsp;(fn&nbsp;[[symbol&nbsp;{:keys&nbsp;[decl]}]]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                079&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when&nbsp;(=&nbsp;:fn&nbsp;(:op&nbsp;decl))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                080&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[symbol&nbsp;(fn-decl-type&nbsp;decl)])))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                081&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(imported-interfaces&#x2F;imported-decls&nbsp;module))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                082&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                083&nbsp;&nbsp;(defn-&nbsp;make-ctx
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                084&nbsp;&nbsp;&nbsp;&nbsp;[locals]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                085&nbsp;&nbsp;&nbsp;&nbsp;{:locals&nbsp;locals
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                086&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:mutable&nbsp;#{}})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                087&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                088&nbsp;&nbsp;(defn-&nbsp;literal-type
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                089&nbsp;&nbsp;&nbsp;&nbsp;[expr]
+                </span><br/>
+<span class="partial" title="9 out of 10 forms covered">
+                090&nbsp;&nbsp;&nbsp;&nbsp;(cond
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                091&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(true?&nbsp;expr)&nbsp;&#x27;Bool
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                092&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(false?&nbsp;expr)&nbsp;&#x27;Bool
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                093&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(integer?&nbsp;expr)&nbsp;&#x27;Int
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                094&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(string?&nbsp;expr)&nbsp;&#x27;String
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                095&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:else&nbsp;nil))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                096&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                097&nbsp;&nbsp;(defn-&nbsp;compatible-types?
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                098&nbsp;&nbsp;&nbsp;&nbsp;[expected&nbsp;actual]
+                </span><br/>
+<span class="covered" title="12 out of 12 forms covered">
+                099&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;(=&nbsp;expected&nbsp;actual)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                100&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(bottom-type?&nbsp;expected)
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                101&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(bottom-type?&nbsp;actual)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                102&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                103&nbsp;&nbsp;(defn-&nbsp;ensure-type=
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                104&nbsp;&nbsp;&nbsp;&nbsp;[expected&nbsp;actual&nbsp;context]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                105&nbsp;&nbsp;&nbsp;&nbsp;(when-not&nbsp;(compatible-types?&nbsp;expected&nbsp;actual)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                106&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fail!&nbsp;&quot;Type&nbsp;mismatch.&quot;
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                107&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(assoc&nbsp;context&nbsp;:expected&nbsp;expected&nbsp;:actual&nbsp;actual))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                108&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                109&nbsp;&nbsp;(defn-&nbsp;ensure-arity=
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                110&nbsp;&nbsp;&nbsp;&nbsp;[expected&nbsp;actual&nbsp;context]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                111&nbsp;&nbsp;&nbsp;&nbsp;(when-not&nbsp;(=&nbsp;expected&nbsp;actual)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                112&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fail!&nbsp;&quot;Arity&nbsp;mismatch.&quot;
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                113&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(assoc&nbsp;context&nbsp;:expected&nbsp;expected&nbsp;:actual&nbsp;actual))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                114&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                115&nbsp;&nbsp;(defn-&nbsp;join-types
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                116&nbsp;&nbsp;&nbsp;&nbsp;[left&nbsp;right&nbsp;context]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                117&nbsp;&nbsp;&nbsp;&nbsp;(ensure-type=&nbsp;left&nbsp;right&nbsp;context)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                118&nbsp;&nbsp;&nbsp;&nbsp;(cond
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                119&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(bottom-type?&nbsp;left)&nbsp;right
+                </span><br/>
+<span class="partial" title="3 out of 4 forms covered">
+                120&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(bottom-type?&nbsp;right)&nbsp;left
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                121&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:else&nbsp;left))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                122&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                123&nbsp;&nbsp;(defn-&nbsp;enum-pattern?
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                124&nbsp;&nbsp;&nbsp;&nbsp;[pattern&nbsp;target-type&nbsp;decls]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                125&nbsp;&nbsp;&nbsp;&nbsp;(patterns&#x2F;enum-pattern?&nbsp;pattern&nbsp;target-type&nbsp;decls))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                126&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                127&nbsp;&nbsp;(defn-&nbsp;bind-literal-pattern
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                128&nbsp;&nbsp;&nbsp;&nbsp;[ctx&nbsp;pattern&nbsp;target-type]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                129&nbsp;&nbsp;&nbsp;&nbsp;(ensure-type=&nbsp;target-type
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                130&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(literal-type&nbsp;(:literal&nbsp;pattern))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                131&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:pattern&nbsp;pattern
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                132&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:type&nbsp;target-type})
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                133&nbsp;&nbsp;&nbsp;&nbsp;ctx)
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                134&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                135&nbsp;&nbsp;(defn-&nbsp;bind-binder-pattern
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                136&nbsp;&nbsp;&nbsp;&nbsp;[ctx&nbsp;pattern&nbsp;target-type&nbsp;decls]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                137&nbsp;&nbsp;&nbsp;&nbsp;(if&nbsp;(enum-pattern?&nbsp;pattern&nbsp;target-type&nbsp;decls)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                138&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                139&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(bind-local&nbsp;ctx&nbsp;(:name&nbsp;pattern)&nbsp;target-type)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                140&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                141&nbsp;&nbsp;(defn-&nbsp;bind-pattern
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                142&nbsp;&nbsp;&nbsp;&nbsp;[ctx&nbsp;pattern&nbsp;target-type&nbsp;decls]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                143&nbsp;&nbsp;&nbsp;&nbsp;(patterns&#x2F;bind-pattern&nbsp;ctx
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                144&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pattern
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                145&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;target-type
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                146&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;decls
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                147&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:bind-binder&nbsp;bind-binder-pattern
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                148&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:bind-literal&nbsp;bind-literal-pattern
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                149&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:fail!&nbsp;fail!}))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                150&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                151&nbsp;&nbsp;(defn-&nbsp;infer-local
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                152&nbsp;&nbsp;&nbsp;&nbsp;[expr&nbsp;ctx]
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                153&nbsp;&nbsp;&nbsp;&nbsp;(result
+                </span><br/>
+<span class="covered" title="12 out of 12 forms covered">
+                154&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;(local-type&nbsp;ctx&nbsp;(:name&nbsp;expr))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                155&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fail!&nbsp;&quot;Unknown&nbsp;local&nbsp;type.&quot;
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                156&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:name&nbsp;(:name&nbsp;expr)}))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                157&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                158&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                159&nbsp;&nbsp;(defn-&nbsp;infer-record-get
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                160&nbsp;&nbsp;&nbsp;&nbsp;[expr&nbsp;ctx&nbsp;decls]
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                161&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[target-type&nbsp;(infer-expr-type&nbsp;(:target&nbsp;expr)&nbsp;ctx&nbsp;decls)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                162&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;target-decl&nbsp;(get&nbsp;decls&nbsp;target-type)
+                </span><br/>
+<span class="covered" title="11 out of 11 forms covered">
+                163&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;result-type&nbsp;(and&nbsp;target-decl&nbsp;(patterns&#x2F;field-type&nbsp;target-decl&nbsp;(:field&nbsp;expr)))]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                164&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when-not&nbsp;target-decl
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                165&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fail!&nbsp;&quot;Expected&nbsp;record&nbsp;type.&quot;
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                166&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:type&nbsp;target-type}))
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                167&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(result&nbsp;(or&nbsp;result-type
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                168&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fail!&nbsp;&quot;Unknown&nbsp;field.&quot;
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                169&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:type&nbsp;target-type
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                170&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:field&nbsp;(:field&nbsp;expr)}))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                171&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                172&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                173&nbsp;&nbsp;(defn-&nbsp;infer-construct
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                174&nbsp;&nbsp;&nbsp;&nbsp;[expr&nbsp;ctx&nbsp;decls]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                175&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[decl&nbsp;(get&nbsp;decls&nbsp;(:type&nbsp;expr))]
+                </span><br/>
+<span class="partial" title="3 out of 4 forms covered">
+                176&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when-not&nbsp;decl
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                177&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fail!&nbsp;&quot;Unknown&nbsp;constructed&nbsp;type.&quot;
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                178&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:type&nbsp;(:type&nbsp;expr)}))
+                </span><br/>
+<span class="not-covered" title="0 out of 6 forms covered">
+                179&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ensure-arity=&nbsp;(count&nbsp;(:fields&nbsp;decl))
+                </span><br/>
+<span class="not-covered" title="0 out of 4 forms covered">
+                180&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(count&nbsp;(:args&nbsp;expr))
+                </span><br/>
+<span class="not-covered" title="0 out of 5 forms covered">
+                181&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:type&nbsp;(:type&nbsp;expr)})
+                </span><br/>
+<span class="not-covered" title="0 out of 39 forms covered">
+                182&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(doseq&nbsp;[[field&nbsp;arg]&nbsp;(map&nbsp;vector&nbsp;(:fields&nbsp;decl)&nbsp;(:args&nbsp;expr))]
+                </span><br/>
+<span class="not-covered" title="0 out of 10 forms covered">
+                183&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ensure-type=&nbsp;(:type&nbsp;field)
+                </span><br/>
+<span class="not-covered" title="0 out of 10 forms covered">
+                184&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(infer-expr-type&nbsp;arg&nbsp;ctx&nbsp;decls)
+                </span><br/>
+<span class="not-covered" title="0 out of 12 forms covered">
+                185&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:type&nbsp;(:type&nbsp;expr)
+                </span><br/>
+<span class="not-covered" title="0 out of 6 forms covered">
+                186&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:field&nbsp;(:name&nbsp;field)}))
+                </span><br/>
+<span class="not-covered" title="0 out of 6 forms covered">
+                187&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(result&nbsp;(:type&nbsp;expr)&nbsp;ctx)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                188&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                189&nbsp;&nbsp;(defn-&nbsp;infer-variant
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                190&nbsp;&nbsp;&nbsp;&nbsp;[expr&nbsp;ctx&nbsp;decls]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                191&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[decl&nbsp;(get&nbsp;decls&nbsp;(:type&nbsp;expr))]
+                </span><br/>
+<span class="partial" title="3 out of 4 forms covered">
+                192&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when-not&nbsp;decl
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                193&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fail!&nbsp;&quot;Unknown&nbsp;constructed&nbsp;type.&quot;
+                </span><br/>
+<span class="not-covered" title="0 out of 5 forms covered">
+                194&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:type&nbsp;(:type&nbsp;expr)}))
+                </span><br/>
+<span class="partial" title="7 out of 8 forms covered">
+                195&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when-not&nbsp;(=&nbsp;:union&nbsp;(:op&nbsp;decl))
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                196&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fail!&nbsp;&quot;Expected&nbsp;union&nbsp;type.&quot;
+                </span><br/>
+<span class="not-covered" title="0 out of 5 forms covered">
+                197&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:type&nbsp;(:type&nbsp;expr)}))
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                198&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[variant&nbsp;(patterns&#x2F;union-variant&nbsp;decl&nbsp;(:name&nbsp;expr))]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                199&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when-not&nbsp;variant
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                200&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fail!&nbsp;&quot;Unknown&nbsp;variant.&quot;
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                201&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:type&nbsp;(:type&nbsp;expr)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                202&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:variant&nbsp;(:name&nbsp;expr)}))
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                203&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ensure-arity=&nbsp;(count&nbsp;(:fields&nbsp;variant))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                204&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(count&nbsp;(:args&nbsp;expr))
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                205&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:type&nbsp;(:type&nbsp;expr)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                206&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:variant&nbsp;(:name&nbsp;expr)})
+                </span><br/>
+<span class="partial" title="34 out of 39 forms covered">
+                207&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(doseq&nbsp;[[field&nbsp;arg]&nbsp;(map&nbsp;vector&nbsp;(:fields&nbsp;variant)&nbsp;(:args&nbsp;expr))]
+                </span><br/>
+<span class="partial" title="5 out of 10 forms covered">
+                208&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ensure-type=&nbsp;(:type&nbsp;field)
+                </span><br/>
+<span class="partial" title="5 out of 10 forms covered">
+                209&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(infer-expr-type&nbsp;arg&nbsp;ctx&nbsp;decls)
+                </span><br/>
+<span class="partial" title="7 out of 14 forms covered">
+                210&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:type&nbsp;(:type&nbsp;expr)
+                </span><br/>
+<span class="partial" title="3 out of 6 forms covered">
+                211&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:variant&nbsp;(:name&nbsp;expr)
+                </span><br/>
+<span class="partial" title="3 out of 6 forms covered">
+                212&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:field&nbsp;(:name&nbsp;field)}))
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                213&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(result&nbsp;(:type&nbsp;expr)&nbsp;ctx))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                214&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                215&nbsp;&nbsp;(defn-&nbsp;infer-if
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                216&nbsp;&nbsp;&nbsp;&nbsp;[expr&nbsp;ctx&nbsp;decls]
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                217&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[test-type&nbsp;(infer-expr-type&nbsp;(:test&nbsp;expr)&nbsp;ctx&nbsp;decls)
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                218&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;then-type&nbsp;(infer-expr-type&nbsp;(:then&nbsp;expr)&nbsp;ctx&nbsp;decls)
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                219&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else-type&nbsp;(infer-expr-type&nbsp;(:else&nbsp;expr)&nbsp;ctx&nbsp;decls)]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                220&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when-not&nbsp;(=&nbsp;&#x27;Bool&nbsp;test-type)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                221&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fail!&nbsp;&quot;Expected&nbsp;Bool.&quot;
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                222&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:actual&nbsp;test-type}))
+                </span><br/>
+<span class="covered" title="10 out of 10 forms covered">
+                223&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(result&nbsp;(join-types&nbsp;then-type&nbsp;else-type&nbsp;{:op&nbsp;:if})&nbsp;ctx)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                224&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                225&nbsp;&nbsp;(defn-&nbsp;infer-match
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                226&nbsp;&nbsp;&nbsp;&nbsp;[expr&nbsp;ctx&nbsp;decls]
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                227&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[target-type&nbsp;(infer-expr-type&nbsp;(:target&nbsp;expr)&nbsp;ctx&nbsp;decls)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                228&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case-types&nbsp;(mapv&nbsp;(fn&nbsp;[case]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                229&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[case-ctx&nbsp;(bind-pattern&nbsp;ctx
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                230&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:pattern&nbsp;case)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                231&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;target-type
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                232&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;decls)]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                233&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(infer-expr-type&nbsp;(:body&nbsp;case)&nbsp;case-ctx&nbsp;decls)))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                234&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:cases&nbsp;expr))]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                235&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(result&nbsp;(reduce&nbsp;(fn&nbsp;[current&nbsp;case-type]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                236&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(join-types&nbsp;current&nbsp;case-type&nbsp;{:expr&nbsp;expr}))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                237&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(first&nbsp;case-types)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                238&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(rest&nbsp;case-types))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                239&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                240&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                241&nbsp;&nbsp;(defn-&nbsp;infer-call
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                242&nbsp;&nbsp;&nbsp;&nbsp;[expr&nbsp;ctx&nbsp;decls]
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                243&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[callee-type&nbsp;(infer-expr-type&nbsp;(:callee&nbsp;expr)&nbsp;ctx&nbsp;decls)]
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                244&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when-not&nbsp;(=&nbsp;:fn-type&nbsp;(:op&nbsp;callee-type))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                245&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fail!&nbsp;&quot;Expected&nbsp;function&nbsp;type.&quot;
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                246&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:actual&nbsp;callee-type}))
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                247&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ensure-arity=&nbsp;(count&nbsp;(:params&nbsp;callee-type))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                248&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(count&nbsp;(:args&nbsp;expr))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                249&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:callee&nbsp;(:callee&nbsp;expr)})
+                </span><br/>
+<span class="partial" title="34 out of 39 forms covered">
+                250&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(doseq&nbsp;[[expected-type&nbsp;arg]&nbsp;(map&nbsp;vector&nbsp;(:params&nbsp;callee-type)&nbsp;(:args&nbsp;expr))]
+                </span><br/>
+<span class="partial" title="3 out of 6 forms covered">
+                251&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ensure-type=&nbsp;expected-type
+                </span><br/>
+<span class="partial" title="5 out of 10 forms covered">
+                252&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(infer-expr-type&nbsp;arg&nbsp;ctx&nbsp;decls)
+                </span><br/>
+<span class="partial" title="6 out of 12 forms covered">
+                253&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:callee&nbsp;(:callee&nbsp;expr)
+                </span><br/>
+<span class="partial" title="1 out of 2 forms covered">
+                254&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:arg&nbsp;arg}))
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                255&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(result&nbsp;(:return-type&nbsp;callee-type)&nbsp;ctx)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                256&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                257&nbsp;&nbsp;(defn-&nbsp;infer-lambda
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                258&nbsp;&nbsp;&nbsp;&nbsp;[expr&nbsp;ctx&nbsp;decls]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                259&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[lambda-ctx&nbsp;(reduce&nbsp;(fn&nbsp;[acc&nbsp;param]
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                260&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(bind-local&nbsp;acc&nbsp;(:name&nbsp;param)&nbsp;(:type&nbsp;param)))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                261&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                262&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:params&nbsp;expr))
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                263&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;body-type&nbsp;(infer-expr-type&nbsp;(:body&nbsp;expr)&nbsp;lambda-ctx&nbsp;decls)]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                264&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ensure-type=&nbsp;(:return-type&nbsp;expr)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                265&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;body-type
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                266&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:lambda&nbsp;expr})
+                </span><br/>
+<span class="covered" title="10 out of 10 forms covered">
+                267&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(result&nbsp;(fn-type&nbsp;(map&nbsp;:type&nbsp;(:params&nbsp;expr))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                268&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:return-type&nbsp;expr)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                269&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:effects&nbsp;expr))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                270&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                271&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                272&nbsp;&nbsp;(defn-&nbsp;infer-binding
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                273&nbsp;&nbsp;&nbsp;&nbsp;[ctx&nbsp;binding&nbsp;decls]
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                274&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[{:keys&nbsp;[type&nbsp;ctx]}&nbsp;(infer-expr&nbsp;(:expr&nbsp;binding)&nbsp;ctx&nbsp;decls)]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                275&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:type&nbsp;type
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                276&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:ctx&nbsp;(bind-local&nbsp;ctx&nbsp;(:name&nbsp;binding)&nbsp;type)}))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                277&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                278&nbsp;&nbsp;(defn-&nbsp;infer-let
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                279&nbsp;&nbsp;&nbsp;&nbsp;[expr&nbsp;ctx&nbsp;decls]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                280&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[binding-ctx&nbsp;(reduce&nbsp;(fn&nbsp;[acc&nbsp;binding]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                281&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:ctx&nbsp;(infer-binding&nbsp;acc&nbsp;binding&nbsp;decls)))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                282&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                283&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:bindings&nbsp;expr))]
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                284&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(result&nbsp;(infer-expr-type&nbsp;(:body&nbsp;expr)&nbsp;binding-ctx&nbsp;decls)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                285&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                286&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                287&nbsp;&nbsp;(defn-&nbsp;infer-seq
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                288&nbsp;&nbsp;&nbsp;&nbsp;[expr&nbsp;ctx&nbsp;decls]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                289&nbsp;&nbsp;&nbsp;&nbsp;(reduce&nbsp;(fn&nbsp;[_current&nbsp;expr-part]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                290&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(infer-expr&nbsp;expr-part&nbsp;(:ctx&nbsp;_current)&nbsp;decls))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                291&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(result&nbsp;&#x27;Unit&nbsp;ctx)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                292&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:exprs&nbsp;expr)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                293&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                294&nbsp;&nbsp;(defn-&nbsp;infer-var
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                295&nbsp;&nbsp;&nbsp;&nbsp;[expr&nbsp;ctx&nbsp;decls]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                296&nbsp;&nbsp;&nbsp;&nbsp;(ensure-type=&nbsp;(:type&nbsp;expr)
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                297&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(infer-expr-type&nbsp;(:init&nbsp;expr)&nbsp;ctx&nbsp;decls)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                298&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:name&nbsp;(:name&nbsp;expr)})
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                299&nbsp;&nbsp;&nbsp;&nbsp;(result&nbsp;(:type&nbsp;expr)
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                300&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(bind-mutable&nbsp;ctx&nbsp;(:name&nbsp;expr)&nbsp;(:type&nbsp;expr))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                301&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                302&nbsp;&nbsp;(defn-&nbsp;infer-set
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                303&nbsp;&nbsp;&nbsp;&nbsp;[expr&nbsp;ctx&nbsp;decls]
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                304&nbsp;&nbsp;&nbsp;&nbsp;(when-not&nbsp;(mutable-local?&nbsp;ctx&nbsp;(:name&nbsp;expr))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                305&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fail!&nbsp;&quot;Expected&nbsp;mutable&nbsp;binding.&quot;
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                306&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:name&nbsp;(:name&nbsp;expr)}))
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                307&nbsp;&nbsp;&nbsp;&nbsp;(ensure-type=&nbsp;(local-type&nbsp;ctx&nbsp;(:name&nbsp;expr))
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                308&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(infer-expr-type&nbsp;(:expr&nbsp;expr)&nbsp;ctx&nbsp;decls)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                309&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:name&nbsp;(:name&nbsp;expr)})
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                310&nbsp;&nbsp;&nbsp;&nbsp;(result&nbsp;&#x27;Unit&nbsp;ctx))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                311&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                312&nbsp;&nbsp;(defn-&nbsp;infer-loop
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                313&nbsp;&nbsp;&nbsp;&nbsp;[expr&nbsp;ctx&nbsp;decls]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                314&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[binding-results&nbsp;(reduce&nbsp;(fn&nbsp;[acc&nbsp;binding]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                315&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[binding-type&nbsp;(infer-expr-type&nbsp;(:expr&nbsp;binding)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                316&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:ctx&nbsp;acc)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                317&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;decls)]
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                318&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:ctx&nbsp;(bind-local&nbsp;(:ctx&nbsp;acc)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                319&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:name&nbsp;binding)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                320&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;binding-type)
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                321&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:types&nbsp;(conj&nbsp;(:types&nbsp;acc)&nbsp;binding-type)}))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                322&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:ctx&nbsp;ctx
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                323&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:types&nbsp;[]}
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                324&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:bindings&nbsp;expr))
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                325&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;loop-ctx&nbsp;(with-loop-types&nbsp;(:ctx&nbsp;binding-results)&nbsp;(:types&nbsp;binding-results))
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                326&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;body-type&nbsp;(infer-expr-type&nbsp;(:body&nbsp;expr)&nbsp;loop-ctx&nbsp;decls)]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                327&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(result&nbsp;body-type&nbsp;ctx)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                328&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                329&nbsp;&nbsp;(defn-&nbsp;infer-recur
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                330&nbsp;&nbsp;&nbsp;&nbsp;[expr&nbsp;ctx&nbsp;decls]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                331&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[loop-types&nbsp;(:loop-types&nbsp;ctx)]
+                </span><br/>
+<span class="partial" title="3 out of 4 forms covered">
+                332&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when-not&nbsp;loop-types
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                333&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fail!&nbsp;&quot;Recur&nbsp;used&nbsp;outside&nbsp;loop.&quot;
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                334&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:expr&nbsp;expr}))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                335&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ensure-arity=&nbsp;(count&nbsp;loop-types)
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                336&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(count&nbsp;(:args&nbsp;expr))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                337&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:expr&nbsp;expr})
+                </span><br/>
+<span class="partial" title="32 out of 37 forms covered">
+                338&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(doseq&nbsp;[[expected-type&nbsp;arg]&nbsp;(map&nbsp;vector&nbsp;loop-types&nbsp;(:args&nbsp;expr))]
+                </span><br/>
+<span class="partial" title="3 out of 6 forms covered">
+                339&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ensure-type=&nbsp;expected-type
+                </span><br/>
+<span class="partial" title="7 out of 14 forms covered">
+                340&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(infer-expr-type&nbsp;arg&nbsp;(without-loop-types&nbsp;ctx)&nbsp;decls)
+                </span><br/>
+<span class="partial" title="4 out of 8 forms covered">
+                341&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:expr&nbsp;expr
+                </span><br/>
+<span class="partial" title="1 out of 2 forms covered">
+                342&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:arg&nbsp;arg}))
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                343&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(result&nbsp;(bottom-type&nbsp;:recur)&nbsp;ctx)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                344&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                345&nbsp;&nbsp;(defn-&nbsp;infer-try
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                346&nbsp;&nbsp;&nbsp;&nbsp;[expr&nbsp;ctx&nbsp;decls]
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                347&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[body-type&nbsp;(infer-expr-type&nbsp;(:body&nbsp;expr)&nbsp;ctx&nbsp;decls)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                348&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;catch-types&nbsp;(mapv&nbsp;(fn&nbsp;[catch]
+                </span><br/>
+<span class="covered" title="10 out of 10 forms covered">
+                349&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[catch-ctx&nbsp;(bind-local&nbsp;ctx&nbsp;(:name&nbsp;catch)&nbsp;(:type&nbsp;catch))]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                350&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(infer-expr-type&nbsp;(:body&nbsp;catch)&nbsp;catch-ctx&nbsp;decls)))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                351&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:catches&nbsp;expr))]
+                </span><br/>
+<span class="partial" title="26 out of 31 forms covered">
+                352&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(doseq&nbsp;[catch-type&nbsp;catch-types]
+                </span><br/>
+<span class="partial" title="7 out of 14 forms covered">
+                353&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ensure-type=&nbsp;body-type&nbsp;catch-type&nbsp;{:expr&nbsp;expr}))
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                354&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when-let&nbsp;[finally-expr&nbsp;(:finally&nbsp;expr)]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                355&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(infer-expr-type&nbsp;finally-expr&nbsp;ctx&nbsp;decls))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                356&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(result&nbsp;(reduce&nbsp;(fn&nbsp;[current&nbsp;catch-type]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                357&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(join-types&nbsp;current&nbsp;catch-type&nbsp;{:expr&nbsp;expr}))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                358&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;body-type
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                359&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;catch-types)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                360&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                361&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                362&nbsp;&nbsp;(defn-&nbsp;infer-raise
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                363&nbsp;&nbsp;&nbsp;&nbsp;[expr&nbsp;ctx&nbsp;decls]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                364&nbsp;&nbsp;&nbsp;&nbsp;(infer-expr-type&nbsp;(:expr&nbsp;expr)&nbsp;ctx&nbsp;decls)
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                365&nbsp;&nbsp;&nbsp;&nbsp;(result&nbsp;(bottom-type&nbsp;:raise)&nbsp;ctx))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                366&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                367&nbsp;&nbsp;(defn-&nbsp;infer-java-new
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                368&nbsp;&nbsp;&nbsp;&nbsp;[expr&nbsp;ctx&nbsp;decls]
+                </span><br/>
+<span class="partial" title="28 out of 33 forms covered">
+                369&nbsp;&nbsp;&nbsp;&nbsp;(doseq&nbsp;[arg&nbsp;(:args&nbsp;expr)]
+                </span><br/>
+<span class="partial" title="5 out of 10 forms covered">
+                370&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(infer-expr-type&nbsp;arg&nbsp;ctx&nbsp;decls))
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                371&nbsp;&nbsp;&nbsp;&nbsp;(result&nbsp;(list&nbsp;&#x27;Java&nbsp;(:class-name&nbsp;expr))&nbsp;ctx))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                372&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                373&nbsp;&nbsp;(defn-&nbsp;infer-java-call
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                374&nbsp;&nbsp;&nbsp;&nbsp;[expr&nbsp;ctx&nbsp;decls]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                375&nbsp;&nbsp;&nbsp;&nbsp;(infer-expr-type&nbsp;(:target&nbsp;expr)&nbsp;ctx&nbsp;decls)
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                376&nbsp;&nbsp;&nbsp;&nbsp;(ensure-arity=&nbsp;(count&nbsp;(get-in&nbsp;expr&nbsp;[:signature&nbsp;:params]))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                377&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(count&nbsp;(:args&nbsp;expr))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                378&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:expr&nbsp;expr})
+                </span><br/>
+<span class="partial" title="37 out of 42 forms covered">
+                379&nbsp;&nbsp;&nbsp;&nbsp;(doseq&nbsp;[[expected-type&nbsp;arg]&nbsp;(map&nbsp;vector&nbsp;(get-in&nbsp;expr&nbsp;[:signature&nbsp;:params])&nbsp;(:args&nbsp;expr))]
+                </span><br/>
+<span class="partial" title="6 out of 12 forms covered">
+                380&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[actual-type&nbsp;(infer-expr-type&nbsp;arg&nbsp;ctx&nbsp;decls)]
+                </span><br/>
+<span class="partial" title="6 out of 14 forms covered">
+                381&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when-not&nbsp;(java-types&#x2F;assignable-type-expr?&nbsp;expected-type&nbsp;actual-type)
+                </span><br/>
+<span class="not-covered" title="0 out of 6 forms covered">
+                382&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fail!&nbsp;&quot;Type&nbsp;mismatch.&quot;
+                </span><br/>
+<span class="not-covered" title="0 out of 12 forms covered">
+                383&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:expr&nbsp;expr
+                </span><br/>
+<span class="not-covered" title="0 out of 2 forms covered">
+                384&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:arg&nbsp;arg
+                </span><br/>
+<span class="not-covered" title="0 out of 2 forms covered">
+                385&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:expected&nbsp;expected-type
+                </span><br/>
+<span class="not-covered" title="0 out of 2 forms covered">
+                386&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:actual&nbsp;actual-type}))))
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                387&nbsp;&nbsp;&nbsp;&nbsp;(result&nbsp;(get-in&nbsp;expr&nbsp;[:signature&nbsp;:return-type])&nbsp;ctx))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                388&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                389&nbsp;&nbsp;(defn-&nbsp;infer-java-static-call
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                390&nbsp;&nbsp;&nbsp;&nbsp;[expr&nbsp;ctx&nbsp;decls]
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                391&nbsp;&nbsp;&nbsp;&nbsp;(ensure-arity=&nbsp;(count&nbsp;(get-in&nbsp;expr&nbsp;[:signature&nbsp;:params]))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                392&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(count&nbsp;(:args&nbsp;expr))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                393&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:expr&nbsp;expr})
+                </span><br/>
+<span class="partial" title="37 out of 42 forms covered">
+                394&nbsp;&nbsp;&nbsp;&nbsp;(doseq&nbsp;[[expected-type&nbsp;arg]&nbsp;(map&nbsp;vector&nbsp;(get-in&nbsp;expr&nbsp;[:signature&nbsp;:params])&nbsp;(:args&nbsp;expr))]
+                </span><br/>
+<span class="partial" title="6 out of 12 forms covered">
+                395&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[actual-type&nbsp;(infer-expr-type&nbsp;arg&nbsp;ctx&nbsp;decls)]
+                </span><br/>
+<span class="partial" title="6 out of 14 forms covered">
+                396&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when-not&nbsp;(java-types&#x2F;assignable-type-expr?&nbsp;expected-type&nbsp;actual-type)
+                </span><br/>
+<span class="not-covered" title="0 out of 6 forms covered">
+                397&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fail!&nbsp;&quot;Type&nbsp;mismatch.&quot;
+                </span><br/>
+<span class="not-covered" title="0 out of 12 forms covered">
+                398&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:expr&nbsp;expr
+                </span><br/>
+<span class="not-covered" title="0 out of 2 forms covered">
+                399&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:arg&nbsp;arg
+                </span><br/>
+<span class="not-covered" title="0 out of 2 forms covered">
+                400&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:expected&nbsp;expected-type
+                </span><br/>
+<span class="not-covered" title="0 out of 2 forms covered">
+                401&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:actual&nbsp;actual-type}))))
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                402&nbsp;&nbsp;&nbsp;&nbsp;(result&nbsp;(get-in&nbsp;expr&nbsp;[:signature&nbsp;:return-type])&nbsp;ctx))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                403&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                404&nbsp;&nbsp;(defn-&nbsp;infer-java-get-field
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                405&nbsp;&nbsp;&nbsp;&nbsp;[expr&nbsp;ctx&nbsp;decls]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                406&nbsp;&nbsp;&nbsp;&nbsp;(infer-expr-type&nbsp;(:target&nbsp;expr)&nbsp;ctx&nbsp;decls)
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                407&nbsp;&nbsp;&nbsp;&nbsp;(result&nbsp;(:field-type&nbsp;expr)&nbsp;ctx))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                408&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                409&nbsp;&nbsp;(defn-&nbsp;infer-java-set-field
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                410&nbsp;&nbsp;&nbsp;&nbsp;[expr&nbsp;ctx&nbsp;decls]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                411&nbsp;&nbsp;&nbsp;&nbsp;(infer-expr-type&nbsp;(:target&nbsp;expr)&nbsp;ctx&nbsp;decls)
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                412&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[actual-type&nbsp;(infer-expr-type&nbsp;(:expr&nbsp;expr)&nbsp;ctx&nbsp;decls)]
+                </span><br/>
+<span class="partial" title="8 out of 9 forms covered">
+                413&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when-not&nbsp;(java-types&#x2F;assignable-type-expr?&nbsp;(:field-type&nbsp;expr)&nbsp;actual-type)
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                414&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fail!&nbsp;&quot;Type&nbsp;mismatch.&quot;
+                </span><br/>
+<span class="not-covered" title="0 out of 5 forms covered">
+                415&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:expr&nbsp;expr
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                416&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:expected&nbsp;(:field-type&nbsp;expr)
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                417&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:actual&nbsp;actual-type})))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                418&nbsp;&nbsp;&nbsp;&nbsp;(result&nbsp;&#x27;Unit&nbsp;ctx))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                419&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                420&nbsp;&nbsp;(def&nbsp;^:private&nbsp;expr-inferers
+                </span><br/>
+<span class="covered" title="27 out of 27 forms covered">
+                421&nbsp;&nbsp;&nbsp;&nbsp;{:local&nbsp;(fn&nbsp;[expr&nbsp;ctx&nbsp;_decls]&nbsp;(infer-local&nbsp;expr&nbsp;ctx))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                422&nbsp;&nbsp;&nbsp;&nbsp;:call&nbsp;infer-call
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                423&nbsp;&nbsp;&nbsp;&nbsp;:record-get&nbsp;infer-record-get
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                424&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:construct&nbsp;infer-construct
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                425&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:variant&nbsp;infer-variant
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                426&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:if&nbsp;infer-if
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                427&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:match&nbsp;infer-match
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                428&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:lambda&nbsp;infer-lambda
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                429&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:let&nbsp;infer-let
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                430&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:seq&nbsp;infer-seq
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                431&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:var&nbsp;infer-var
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                432&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:set&nbsp;infer-set
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                433&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:loop&nbsp;infer-loop
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                434&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:recur&nbsp;infer-recur
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                435&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:try&nbsp;infer-try
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                436&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:raise&nbsp;infer-raise
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                437&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:java-new&nbsp;infer-java-new
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                438&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:java-call&nbsp;infer-java-call
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                439&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:java-static-call&nbsp;infer-java-static-call
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                440&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:java-get-field&nbsp;infer-java-get-field
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                441&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:java-set-field&nbsp;infer-java-set-field})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                442&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                443&nbsp;&nbsp;(defn&nbsp;infer-expr
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                444&nbsp;&nbsp;&nbsp;&nbsp;[expr&nbsp;ctx&nbsp;decls]
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                445&nbsp;&nbsp;&nbsp;&nbsp;(if-let&nbsp;[type-expr&nbsp;(literal-type&nbsp;expr)]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                446&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(result&nbsp;type-expr&nbsp;ctx)
+                </span><br/>
+<span class="covered" title="10 out of 10 forms covered">
+                447&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(if-let&nbsp;[inferer&nbsp;(get&nbsp;expr-inferers&nbsp;(:op&nbsp;expr))]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                448&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(inferer&nbsp;expr&nbsp;ctx&nbsp;decls)
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                449&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fail!&nbsp;&quot;Unsupported&nbsp;type&nbsp;inference.&quot;
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                450&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:expr&nbsp;expr}))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                451&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                452&nbsp;&nbsp;(defn&nbsp;infer-expr-type
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                453&nbsp;&nbsp;&nbsp;&nbsp;[expr&nbsp;ctx&nbsp;decls]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                454&nbsp;&nbsp;&nbsp;&nbsp;(:type&nbsp;(infer-expr&nbsp;expr&nbsp;ctx&nbsp;decls)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                455&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                456&nbsp;&nbsp;(defn-&nbsp;check-bool-contract
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                457&nbsp;&nbsp;&nbsp;&nbsp;[contract&nbsp;ctx&nbsp;decls&nbsp;context]
+                </span><br/>
+<span class="covered" title="10 out of 10 forms covered">
+                458&nbsp;&nbsp;&nbsp;&nbsp;(when-not&nbsp;(=&nbsp;&#x27;Bool&nbsp;(infer-expr-type&nbsp;contract&nbsp;ctx&nbsp;decls))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                459&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fail!&nbsp;&quot;Expected&nbsp;Bool.&quot;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                460&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;context)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                461&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                462&nbsp;&nbsp;(defn-&nbsp;check-fn-decl
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                463&nbsp;&nbsp;&nbsp;&nbsp;[decl&nbsp;module&nbsp;decls]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                464&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[ctx&nbsp;(reduce&nbsp;(fn&nbsp;[acc&nbsp;param]
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                465&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(bind-local&nbsp;acc&nbsp;(:name&nbsp;param)&nbsp;(:type&nbsp;param)))
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                466&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(make-ctx&nbsp;(module-fn-env&nbsp;module&nbsp;decls))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                467&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:params&nbsp;decl))
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                468&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;body-type&nbsp;(infer-expr-type&nbsp;(:body&nbsp;decl)&nbsp;ctx&nbsp;decls)]
+                </span><br/>
+<span class="partial" title="33 out of 38 forms covered">
+                469&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(doseq&nbsp;[contract&nbsp;(concat&nbsp;(:requires&nbsp;decl)&nbsp;(:ensures&nbsp;decl))]
+                </span><br/>
+<span class="partial" title="3 out of 6 forms covered">
+                470&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(check-bool-contract&nbsp;contract
+                </span><br/>
+<span class="partial" title="1 out of 2 forms covered">
+                471&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx
+                </span><br/>
+<span class="partial" title="1 out of 2 forms covered">
+                472&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;decls
+                </span><br/>
+<span class="partial" title="6 out of 12 forms covered">
+                473&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:fn&nbsp;(:name&nbsp;decl)
+                </span><br/>
+<span class="partial" title="1 out of 2 forms covered">
+                474&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:contract&nbsp;contract}))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                475&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ensure-type=&nbsp;(:return-type&nbsp;decl)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                476&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;body-type
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                477&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:fn&nbsp;(:name&nbsp;decl)})))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                478&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                479&nbsp;&nbsp;(defn&nbsp;check-module
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                480&nbsp;&nbsp;&nbsp;&nbsp;[module]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                481&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[decls&nbsp;(decl-map&nbsp;module)]
+                </span><br/>
+<span class="partial" title="28 out of 33 forms covered">
+                482&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(doseq&nbsp;[decl&nbsp;(:decls&nbsp;module)]
+                </span><br/>
+<span class="partial" title="7 out of 14 forms covered">
+                483&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when&nbsp;(=&nbsp;:fn&nbsp;(:op&nbsp;decl))
+                </span><br/>
+<span class="partial" title="5 out of 10 forms covered">
+                484&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(check-fn-decl&nbsp;decl&nbsp;module&nbsp;decls)))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                485&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;module))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                486&nbsp;&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                487&nbsp;&nbsp;;;&nbsp;clj-mutate-manifest-begin
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                488&nbsp;&nbsp;;;&nbsp;{:version&nbsp;1,&nbsp;:tested-at&nbsp;&quot;2026-03-12T12:50:11.358299-05:00&quot;,&nbsp;:module-hash&nbsp;&quot;-781656244&quot;,&nbsp;:forms&nbsp;[{:id&nbsp;&quot;form&#x2F;0&#x2F;ns&quot;,&nbsp;:kind&nbsp;&quot;ns&quot;,&nbsp;:line&nbsp;1,&nbsp;:end-line&nbsp;4,&nbsp;:hash&nbsp;&quot;1214713234&quot;}&nbsp;{:id&nbsp;&quot;form&#x2F;1&#x2F;declare&quot;,&nbsp;:kind&nbsp;&quot;declare&quot;,&nbsp;:line&nbsp;6,&nbsp;:end-line&nbsp;6,&nbsp;:hash&nbsp;&quot;-750848269&quot;}&nbsp;{:id&nbsp;&quot;form&#x2F;2&#x2F;declare&quot;,&nbsp;:kind&nbsp;&quot;declare&quot;,&nbsp;:line&nbsp;7,&nbsp;:end-line&nbsp;7,&nbsp;:hash&nbsp;&quot;83426057&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;fail!&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;9,&nbsp;:end-line&nbsp;11,&nbsp;:hash&nbsp;&quot;879938479&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;decl-map&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;13,&nbsp;:end-line&nbsp;15,&nbsp;:hash&nbsp;&quot;1732448350&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;fn-type&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;17,&nbsp;:end-line&nbsp;22,&nbsp;:hash&nbsp;&quot;1095575499&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;bottom-type&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;24,&nbsp;:end-line&nbsp;27,&nbsp;:hash&nbsp;&quot;475588588&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;bottom-type?&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;29,&nbsp;:end-line&nbsp;31,&nbsp;:hash&nbsp;&quot;1715044112&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;result&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;33,&nbsp;:end-line&nbsp;36,&nbsp;:hash&nbsp;&quot;-1781274230&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;local-type&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;38,&nbsp;:end-line&nbsp;40,&nbsp;:hash&nbsp;&quot;-1632824710&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;mutable-local?&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;42,&nbsp;:end-line&nbsp;44,&nbsp;:hash&nbsp;&quot;1438220795&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;bind-local&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;46,&nbsp;:end-line&nbsp;48,&nbsp;:hash&nbsp;&quot;1658319653&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;bind-mutable&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;50,&nbsp;:end-line&nbsp;54,&nbsp;:hash&nbsp;&quot;-1396184064&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;with-loop-types&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;56,&nbsp;:end-line&nbsp;58,&nbsp;:hash&nbsp;&quot;208229580&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;without-loop-types&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;60,&nbsp;:end-line&nbsp;62,&nbsp;:hash&nbsp;&quot;932574932&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;fn-decl-type&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;64,&nbsp;:end-line&nbsp;68,&nbsp;:hash&nbsp;&quot;1335497367&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;module-fn-env&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;70,&nbsp;:end-line&nbsp;81,&nbsp;:hash&nbsp;&quot;1611969824&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;make-ctx&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;83,&nbsp;:end-line&nbsp;86,&nbsp;:hash&nbsp;&quot;-1593732056&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;literal-type&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;88,&nbsp;:end-line&nbsp;95,&nbsp;:hash&nbsp;&quot;1446793260&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;compatible-types?&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;97,&nbsp;:end-line&nbsp;101,&nbsp;:hash&nbsp;&quot;1551296287&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;ensure-type=&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;103,&nbsp;:end-line&nbsp;107,&nbsp;:hash&nbsp;&quot;1746399400&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;ensure-arity=&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;109,&nbsp;:end-line&nbsp;113,&nbsp;:hash&nbsp;&quot;266695403&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;join-types&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;115,&nbsp;:end-line&nbsp;121,&nbsp;:hash&nbsp;&quot;-1353034608&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;enum-pattern?&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;123,&nbsp;:end-line&nbsp;125,&nbsp;:hash&nbsp;&quot;-31853100&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;bind-literal-pattern&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;127,&nbsp;:end-line&nbsp;133,&nbsp;:hash&nbsp;&quot;-2136209369&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;bind-binder-pattern&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;135,&nbsp;:end-line&nbsp;139,&nbsp;:hash&nbsp;&quot;1161467246&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;bind-pattern&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;141,&nbsp;:end-line&nbsp;149,&nbsp;:hash&nbsp;&quot;-1814155925&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;infer-local&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;151,&nbsp;:end-line&nbsp;157,&nbsp;:hash&nbsp;&quot;195910838&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;infer-record-get&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;159,&nbsp;:end-line&nbsp;171,&nbsp;:hash&nbsp;&quot;-1783299120&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;infer-construct&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;173,&nbsp;:end-line&nbsp;187,&nbsp;:hash&nbsp;&quot;805710868&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;infer-variant&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;189,&nbsp;:end-line&nbsp;213,&nbsp;:hash&nbsp;&quot;-1586441720&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;infer-if&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;215,&nbsp;:end-line&nbsp;223,&nbsp;:hash&nbsp;&quot;-2003732048&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;infer-match&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;225,&nbsp;:end-line&nbsp;239,&nbsp;:hash&nbsp;&quot;262906490&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;infer-call&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;241,&nbsp;:end-line&nbsp;255,&nbsp;:hash&nbsp;&quot;-1175533470&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;infer-lambda&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;257,&nbsp;:end-line&nbsp;270,&nbsp;:hash&nbsp;&quot;-582701779&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;infer-binding&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;272,&nbsp;:end-line&nbsp;276,&nbsp;:hash&nbsp;&quot;737212167&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;infer-let&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;278,&nbsp;:end-line&nbsp;285,&nbsp;:hash&nbsp;&quot;-310092863&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;infer-seq&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;287,&nbsp;:end-line&nbsp;292,&nbsp;:hash&nbsp;&quot;-2028016492&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;infer-var&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;294,&nbsp;:end-line&nbsp;300,&nbsp;:hash&nbsp;&quot;325909027&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;infer-set&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;302,&nbsp;:end-line&nbsp;310,&nbsp;:hash&nbsp;&quot;1875378186&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;infer-loop&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;312,&nbsp;:end-line&nbsp;327,&nbsp;:hash&nbsp;&quot;867251552&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;infer-recur&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;329,&nbsp;:end-line&nbsp;343,&nbsp;:hash&nbsp;&quot;-1380623872&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;infer-try&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;345,&nbsp;:end-line&nbsp;360,&nbsp;:hash&nbsp;&quot;-481723416&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;infer-raise&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;362,&nbsp;:end-line&nbsp;365,&nbsp;:hash&nbsp;&quot;708997410&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;infer-java-new&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;367,&nbsp;:end-line&nbsp;371,&nbsp;:hash&nbsp;&quot;-676160678&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;infer-java-call&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;373,&nbsp;:end-line&nbsp;387,&nbsp;:hash&nbsp;&quot;1132722729&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;infer-java-static-call&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;389,&nbsp;:end-line&nbsp;402,&nbsp;:hash&nbsp;&quot;-1746811078&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;infer-java-get-field&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;404,&nbsp;:end-line&nbsp;407,&nbsp;:hash&nbsp;&quot;-146759388&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;infer-java-set-field&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;409,&nbsp;:end-line&nbsp;418,&nbsp;:hash&nbsp;&quot;407102745&quot;}&nbsp;{:id&nbsp;&quot;def&#x2F;expr-inferers&quot;,&nbsp;:kind&nbsp;&quot;def&quot;,&nbsp;:line&nbsp;420,&nbsp;:end-line&nbsp;441,&nbsp;:hash&nbsp;&quot;-911475674&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;infer-expr&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;443,&nbsp;:end-line&nbsp;450,&nbsp;:hash&nbsp;&quot;-1459178635&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;infer-expr-type&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;452,&nbsp;:end-line&nbsp;454,&nbsp;:hash&nbsp;&quot;1740972133&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;check-bool-contract&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;456,&nbsp;:end-line&nbsp;460,&nbsp;:hash&nbsp;&quot;1265459629&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;check-fn-decl&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;462,&nbsp;:end-line&nbsp;477,&nbsp;:hash&nbsp;&quot;-1386237267&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;check-module&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;479,&nbsp;:end-line&nbsp;485,&nbsp;:hash&nbsp;&quot;-230511135&quot;}]}
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                489&nbsp;&nbsp;;;&nbsp;clj-mutate-manifest-end
+                </span><br/>
+ </body>
+</html>

@@ -1,0 +1,71 @@
+<html>
+ <head>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <link rel="stylesheet" href="../coverage.css"/>  <title> airj/linker.clj </title>
+ </head>
+ <body>
+<span class="covered" title="1 out of 1 forms covered">
+                001&nbsp;&nbsp;(ns&nbsp;airj.linker
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                002&nbsp;&nbsp;&nbsp;&nbsp;(:require&nbsp;[airj.interface-sources&nbsp;:as&nbsp;interface-sources]))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                003&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                004&nbsp;&nbsp;(defn-&nbsp;resolved-interfaces
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                005&nbsp;&nbsp;&nbsp;&nbsp;[{:keys&nbsp;[interface-sources&nbsp;interfaces]}]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                006&nbsp;&nbsp;&nbsp;&nbsp;(merge&nbsp;(when&nbsp;interface-sources
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                007&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(interface-sources&#x2F;sources-&gt;interfaces&nbsp;interface-sources))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                008&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;interfaces))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                009&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                010&nbsp;&nbsp;(defn&nbsp;link-module
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                011&nbsp;&nbsp;&nbsp;&nbsp;([module]
+                </span><br/>
+<span class="not-covered" title="0 out of 4 forms covered">
+                012&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(link-module&nbsp;module&nbsp;{}))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                013&nbsp;&nbsp;&nbsp;&nbsp;([module&nbsp;options]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                014&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[interfaces&nbsp;(resolved-interfaces&nbsp;options)]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                015&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(cond-&gt;&nbsp;module
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                016&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;interfaces
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                017&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(assoc&nbsp;:interfaces&nbsp;interfaces)))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                018&nbsp;&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                019&nbsp;&nbsp;;;&nbsp;clj-mutate-manifest-begin
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                020&nbsp;&nbsp;;;&nbsp;{:version&nbsp;1,&nbsp;:tested-at&nbsp;&quot;2026-03-12T13:53:13.883425-05:00&quot;,&nbsp;:module-hash&nbsp;&quot;-660075879&quot;,&nbsp;:forms&nbsp;[{:id&nbsp;&quot;form&#x2F;0&#x2F;ns&quot;,&nbsp;:kind&nbsp;&quot;ns&quot;,&nbsp;:line&nbsp;1,&nbsp;:end-line&nbsp;2,&nbsp;:hash&nbsp;&quot;-1017775687&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;resolved-interfaces&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;4,&nbsp;:end-line&nbsp;8,&nbsp;:hash&nbsp;&quot;-697885719&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;link-module&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;10,&nbsp;:end-line&nbsp;17,&nbsp;:hash&nbsp;&quot;-1590671615&quot;}]}
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                021&nbsp;&nbsp;;;&nbsp;clj-mutate-manifest-end
+                </span><br/>
+ </body>
+</html>

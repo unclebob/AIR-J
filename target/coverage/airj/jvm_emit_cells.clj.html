@@ -1,0 +1,191 @@
+<html>
+ <head>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <link rel="stylesheet" href="../coverage.css"/>  <title> airj/jvm_emit_cells.clj </title>
+ </head>
+ <body>
+<span class="covered" title="1 out of 1 forms covered">
+                001&nbsp;&nbsp;(ns&nbsp;airj.jvm-emit-cells
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                002&nbsp;&nbsp;&nbsp;&nbsp;(:import&nbsp;(clojure.asm&nbsp;MethodVisitor&nbsp;Opcodes)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                003&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                004&nbsp;&nbsp;(def&nbsp;^:private&nbsp;primitive-newarray-opcodes
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                005&nbsp;&nbsp;&nbsp;&nbsp;{:int&nbsp;Opcodes&#x2F;T_INT
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                006&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:boolean&nbsp;Opcodes&#x2F;T_BOOLEAN})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                007&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                008&nbsp;&nbsp;(def&nbsp;^:private&nbsp;array-load-opcodes
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                009&nbsp;&nbsp;&nbsp;&nbsp;{:int&nbsp;Opcodes&#x2F;IALOAD
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                010&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:boolean&nbsp;Opcodes&#x2F;BALOAD})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                011&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                012&nbsp;&nbsp;(def&nbsp;^:private&nbsp;array-store-opcodes
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                013&nbsp;&nbsp;&nbsp;&nbsp;{:int&nbsp;Opcodes&#x2F;IASTORE
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                014&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:boolean&nbsp;Opcodes&#x2F;BASTORE})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                015&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                016&nbsp;&nbsp;(defn-&nbsp;array-load-opcode
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                017&nbsp;&nbsp;&nbsp;&nbsp;[value-jvm-type]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                018&nbsp;&nbsp;&nbsp;&nbsp;(get&nbsp;array-load-opcodes&nbsp;value-jvm-type&nbsp;Opcodes&#x2F;AALOAD))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                019&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                020&nbsp;&nbsp;(defn-&nbsp;array-store-opcode
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                021&nbsp;&nbsp;&nbsp;&nbsp;[value-jvm-type]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                022&nbsp;&nbsp;&nbsp;&nbsp;(get&nbsp;array-store-opcodes&nbsp;value-jvm-type&nbsp;Opcodes&#x2F;AASTORE))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                023&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                024&nbsp;&nbsp;(defn-&nbsp;newarray-opcode
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                025&nbsp;&nbsp;&nbsp;&nbsp;[value-jvm-type]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                026&nbsp;&nbsp;&nbsp;&nbsp;(get&nbsp;primitive-newarray-opcodes&nbsp;value-jvm-type))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                027&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                028&nbsp;&nbsp;(defn&nbsp;emit-cell-new
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                029&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;env&nbsp;{:keys&nbsp;[emit-expr]}]
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                030&nbsp;&nbsp;&nbsp;&nbsp;(.visitInsn&nbsp;mv&nbsp;Opcodes&#x2F;ICONST_1)
+                </span><br/>
+<span class="covered" title="10 out of 10 forms covered">
+                031&nbsp;&nbsp;&nbsp;&nbsp;(if-let&nbsp;[opcode&nbsp;(newarray-opcode&nbsp;(:value-jvm-type&nbsp;expr))]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                032&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitIntInsn&nbsp;mv&nbsp;Opcodes&#x2F;NEWARRAY&nbsp;opcode)
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                033&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitTypeInsn&nbsp;mv
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                034&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Opcodes&#x2F;ANEWARRAY
+                </span><br/>
+<span class="not-covered" title="0 out of 12 forms covered">
+                035&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(if&nbsp;(and&nbsp;(string?&nbsp;(:value-jvm-type&nbsp;expr))
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                036&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.startsWith&nbsp;^String&nbsp;(:value-jvm-type&nbsp;expr)&nbsp;&quot;[&quot;))
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                037&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:value-jvm-type&nbsp;expr)
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                038&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:value-jvm-type&nbsp;expr))))
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                039&nbsp;&nbsp;&nbsp;&nbsp;(.visitInsn&nbsp;mv&nbsp;Opcodes&#x2F;DUP)
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                040&nbsp;&nbsp;&nbsp;&nbsp;(.visitInsn&nbsp;mv&nbsp;Opcodes&#x2F;ICONST_0)
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                041&nbsp;&nbsp;&nbsp;&nbsp;(emit-expr&nbsp;mv&nbsp;(:init&nbsp;expr)&nbsp;env)
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                042&nbsp;&nbsp;&nbsp;&nbsp;(.visitInsn&nbsp;mv&nbsp;(array-store-opcode&nbsp;(:value-jvm-type&nbsp;expr))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                043&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                044&nbsp;&nbsp;(defn&nbsp;emit-cell-get
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                045&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;env]
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                046&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[{:keys&nbsp;[slot]}&nbsp;(get-in&nbsp;env&nbsp;[:slots&nbsp;(:name&nbsp;expr)])]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                047&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitVarInsn&nbsp;mv&nbsp;Opcodes&#x2F;ALOAD&nbsp;slot)
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                048&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitInsn&nbsp;mv&nbsp;Opcodes&#x2F;ICONST_0)
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                049&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitInsn&nbsp;mv&nbsp;(array-load-opcode&nbsp;(:jvm-type&nbsp;expr)))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                050&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                051&nbsp;&nbsp;(defn&nbsp;emit-cell-set
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                052&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;env&nbsp;{:keys&nbsp;[emit-expr]}]
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                053&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[{:keys&nbsp;[slot]}&nbsp;(get-in&nbsp;env&nbsp;[:slots&nbsp;(:name&nbsp;expr)])]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                054&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitVarInsn&nbsp;mv&nbsp;Opcodes&#x2F;ALOAD&nbsp;slot)
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                055&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitInsn&nbsp;mv&nbsp;Opcodes&#x2F;ICONST_0)
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                056&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-expr&nbsp;mv&nbsp;(:expr&nbsp;expr)&nbsp;env)
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                057&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitInsn&nbsp;mv&nbsp;(array-store-opcode&nbsp;(:value-jvm-type&nbsp;expr)))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                058&nbsp;&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                059&nbsp;&nbsp;;;&nbsp;clj-mutate-manifest-begin
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                060&nbsp;&nbsp;;;&nbsp;{:version&nbsp;1,&nbsp;:tested-at&nbsp;&quot;2026-03-12T11:59:11.961459-05:00&quot;,&nbsp;:module-hash&nbsp;&quot;-481784414&quot;,&nbsp;:forms&nbsp;[{:id&nbsp;&quot;form&#x2F;0&#x2F;ns&quot;,&nbsp;:kind&nbsp;&quot;ns&quot;,&nbsp;:line&nbsp;1,&nbsp;:end-line&nbsp;2,&nbsp;:hash&nbsp;&quot;247380547&quot;}&nbsp;{:id&nbsp;&quot;def&#x2F;primitive-newarray-opcodes&quot;,&nbsp;:kind&nbsp;&quot;def&quot;,&nbsp;:line&nbsp;4,&nbsp;:end-line&nbsp;6,&nbsp;:hash&nbsp;&quot;-1673864911&quot;}&nbsp;{:id&nbsp;&quot;def&#x2F;array-load-opcodes&quot;,&nbsp;:kind&nbsp;&quot;def&quot;,&nbsp;:line&nbsp;8,&nbsp;:end-line&nbsp;10,&nbsp;:hash&nbsp;&quot;-1931661073&quot;}&nbsp;{:id&nbsp;&quot;def&#x2F;array-store-opcodes&quot;,&nbsp;:kind&nbsp;&quot;def&quot;,&nbsp;:line&nbsp;12,&nbsp;:end-line&nbsp;14,&nbsp;:hash&nbsp;&quot;-2090231035&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;array-load-opcode&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;16,&nbsp;:end-line&nbsp;18,&nbsp;:hash&nbsp;&quot;-1597442426&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;array-store-opcode&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;20,&nbsp;:end-line&nbsp;22,&nbsp;:hash&nbsp;&quot;830235746&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;newarray-opcode&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;24,&nbsp;:end-line&nbsp;26,&nbsp;:hash&nbsp;&quot;-366247229&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;emit-cell-new&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;28,&nbsp;:end-line&nbsp;42,&nbsp;:hash&nbsp;&quot;226234000&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;emit-cell-get&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;44,&nbsp;:end-line&nbsp;49,&nbsp;:hash&nbsp;&quot;-136463429&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;emit-cell-set&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;51,&nbsp;:end-line&nbsp;57,&nbsp;:hash&nbsp;&quot;-739709251&quot;}]}
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                061&nbsp;&nbsp;;;&nbsp;clj-mutate-manifest-end
+                </span><br/>
+ </body>
+</html>

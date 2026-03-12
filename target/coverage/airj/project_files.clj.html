@@ -1,0 +1,116 @@
+<html>
+ <head>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <link rel="stylesheet" href="../coverage.css"/>  <title> airj/project_files.clj </title>
+ </head>
+ <body>
+<span class="covered" title="1 out of 1 forms covered">
+                001&nbsp;&nbsp;(ns&nbsp;airj.project-files
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                002&nbsp;&nbsp;&nbsp;&nbsp;(:require&nbsp;[airj.project-graph&nbsp;:as&nbsp;project-graph]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                003&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.project-sources&nbsp;:as&nbsp;project-sources]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                004&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[clojure.java.io&nbsp;:as&nbsp;io]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                005&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[clojure.string&nbsp;:as&nbsp;str]))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                006&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                007&nbsp;&nbsp;(defn-&nbsp;airj-file?
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                008&nbsp;&nbsp;&nbsp;&nbsp;[file]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                009&nbsp;&nbsp;&nbsp;&nbsp;(and&nbsp;(.isFile&nbsp;file)
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                010&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(str&#x2F;ends-with?&nbsp;(.getName&nbsp;file)&nbsp;&quot;.airj&quot;)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                011&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                012&nbsp;&nbsp;(defn&nbsp;source-map
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                013&nbsp;&nbsp;&nbsp;&nbsp;[project-dir]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                014&nbsp;&nbsp;&nbsp;&nbsp;(-&gt;&gt;&nbsp;(file-seq&nbsp;(io&#x2F;file&nbsp;project-dir))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                015&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(filter&nbsp;airj-file?)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                016&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(map&nbsp;(fn&nbsp;[file]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                017&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[nil&nbsp;(slurp&nbsp;file)]))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                018&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;project-sources&#x2F;source-map))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                019&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                020&nbsp;&nbsp;(defn&nbsp;reachable-source-map
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                021&nbsp;&nbsp;&nbsp;&nbsp;[project-dir&nbsp;root-module-name]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                022&nbsp;&nbsp;&nbsp;&nbsp;(project-graph&#x2F;reachable-source-map&nbsp;(source-map&nbsp;project-dir)&nbsp;root-module-name))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                023&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                024&nbsp;&nbsp;(defn&nbsp;root-source
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                025&nbsp;&nbsp;&nbsp;&nbsp;[project-dir&nbsp;root-module-name]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                026&nbsp;&nbsp;&nbsp;&nbsp;(project-sources&#x2F;root-source&nbsp;(reachable-source-map&nbsp;project-dir&nbsp;root-module-name)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                027&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;root-module-name))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                028&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                029&nbsp;&nbsp;(defn&nbsp;compiler-options
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                030&nbsp;&nbsp;&nbsp;&nbsp;[project-dir&nbsp;root-module-name]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                031&nbsp;&nbsp;&nbsp;&nbsp;(project-sources&#x2F;compiler-options&nbsp;(reachable-source-map&nbsp;project-dir&nbsp;root-module-name)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                032&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;root-module-name))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                033&nbsp;&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                034&nbsp;&nbsp;;;&nbsp;clj-mutate-manifest-begin
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                035&nbsp;&nbsp;;;&nbsp;{:version&nbsp;1,&nbsp;:tested-at&nbsp;&quot;2026-03-12T14:45:17.673041-05:00&quot;,&nbsp;:module-hash&nbsp;&quot;758015794&quot;,&nbsp;:forms&nbsp;[{:id&nbsp;&quot;form&#x2F;0&#x2F;ns&quot;,&nbsp;:kind&nbsp;&quot;ns&quot;,&nbsp;:line&nbsp;1,&nbsp;:end-line&nbsp;6,&nbsp;:hash&nbsp;&quot;322477864&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;airj-file?&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;8,&nbsp;:end-line&nbsp;11,&nbsp;:hash&nbsp;&quot;995441606&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;source-map&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;13,&nbsp;:end-line&nbsp;19,&nbsp;:hash&nbsp;&quot;985501821&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;direct-airj-imports&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;21,&nbsp;:end-line&nbsp;28,&nbsp;:hash&nbsp;&quot;-960332268&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;module-source&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;30,&nbsp;:end-line&nbsp;34,&nbsp;:hash&nbsp;&quot;476968309&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;fail-on-cycle!&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;36,&nbsp;:end-line&nbsp;41,&nbsp;:hash&nbsp;&quot;-134953179&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;visit-module&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;43,&nbsp;:end-line&nbsp;61,&nbsp;:hash&nbsp;&quot;-2024500094&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;reachable-source-map&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;63,&nbsp;:end-line&nbsp;66,&nbsp;:hash&nbsp;&quot;247740861&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;root-source&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;68,&nbsp;:end-line&nbsp;71,&nbsp;:hash&nbsp;&quot;-993581846&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;compiler-options&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;73,&nbsp;:end-line&nbsp;76,&nbsp;:hash&nbsp;&quot;-1127137074&quot;}]}
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                036&nbsp;&nbsp;;;&nbsp;clj-mutate-manifest-end
+                </span><br/>
+ </body>
+</html>

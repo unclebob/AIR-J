@@ -1,0 +1,1286 @@
+<html>
+ <head>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <link rel="stylesheet" href="../coverage.css"/>  <title> airj/parser.clj </title>
+ </head>
+ <body>
+<span class="covered" title="1 out of 1 forms covered">
+                001&nbsp;&nbsp;(ns&nbsp;airj.parser
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                002&nbsp;&nbsp;&nbsp;&nbsp;(:require&nbsp;[clojure.edn&nbsp;:as&nbsp;edn]))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                003&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                004&nbsp;&nbsp;(declare&nbsp;parse-expr)
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                005&nbsp;&nbsp;(declare&nbsp;parse-pattern)
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                006&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                007&nbsp;&nbsp;(defn-&nbsp;parse-import
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                008&nbsp;&nbsp;&nbsp;&nbsp;[[tag&nbsp;target&nbsp;&amp;&nbsp;symbols&nbsp;:as&nbsp;form]]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                009&nbsp;&nbsp;&nbsp;&nbsp;(case&nbsp;tag
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                010&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;airj&nbsp;{:op&nbsp;:airj-import
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                011&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:module&nbsp;target
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                012&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:symbols&nbsp;(vec&nbsp;symbols)}
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                013&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;java&nbsp;(do
+                </span><br/>
+<span class="partial" title="4 out of 5 forms covered">
+                014&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when&nbsp;(seq&nbsp;symbols)
+                </span><br/>
+<span class="not-covered" title="0 out of 4 forms covered">
+                015&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(throw&nbsp;(ex-info&nbsp;&quot;Unexpected&nbsp;java&nbsp;import&nbsp;form.&quot;
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                016&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:form&nbsp;form})))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                017&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:java-import
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                018&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:class-name&nbsp;target})
+                </span><br/>
+<span class="not-covered" title="0 out of 4 forms covered">
+                019&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(throw&nbsp;(ex-info&nbsp;&quot;Unsupported&nbsp;import.&quot;
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                020&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:form&nbsp;form}))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                021&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                022&nbsp;&nbsp;(defn-&nbsp;expect-tag
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                023&nbsp;&nbsp;&nbsp;&nbsp;[expected&nbsp;form]
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                024&nbsp;&nbsp;&nbsp;&nbsp;(when-not&nbsp;(=&nbsp;expected&nbsp;(first&nbsp;form))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                025&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(throw&nbsp;(ex-info&nbsp;&quot;Unexpected&nbsp;form&nbsp;tag.&quot;
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                026&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:expected&nbsp;expected
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                027&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:actual&nbsp;(first&nbsp;form)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                028&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:form&nbsp;form}))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                029&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                030&nbsp;&nbsp;(defn-&nbsp;parse-imports
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                031&nbsp;&nbsp;&nbsp;&nbsp;[form]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                032&nbsp;&nbsp;&nbsp;&nbsp;(expect-tag&nbsp;&#x27;imports&nbsp;form)
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                033&nbsp;&nbsp;&nbsp;&nbsp;(mapv&nbsp;parse-import&nbsp;(rest&nbsp;form)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                034&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                035&nbsp;&nbsp;(defn-&nbsp;parse-exports
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                036&nbsp;&nbsp;&nbsp;&nbsp;[form]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                037&nbsp;&nbsp;&nbsp;&nbsp;(expect-tag&nbsp;&#x27;export&nbsp;form)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                038&nbsp;&nbsp;&nbsp;&nbsp;(vec&nbsp;(rest&nbsp;form)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                039&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                040&nbsp;&nbsp;(defn-&nbsp;parse-param
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                041&nbsp;&nbsp;&nbsp;&nbsp;[[name&nbsp;type-expr]]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                042&nbsp;&nbsp;&nbsp;&nbsp;{:name&nbsp;name
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                043&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:type&nbsp;type-expr})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                044&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                045&nbsp;&nbsp;(defn-&nbsp;parse-field
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                046&nbsp;&nbsp;&nbsp;&nbsp;[[tag&nbsp;name&nbsp;type-expr]]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                047&nbsp;&nbsp;&nbsp;&nbsp;(expect-tag&nbsp;&#x27;field&nbsp;[tag])
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                048&nbsp;&nbsp;&nbsp;&nbsp;{:name&nbsp;name
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                049&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:type&nbsp;type-expr})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                050&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                051&nbsp;&nbsp;(defn-&nbsp;parse-effects
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                052&nbsp;&nbsp;&nbsp;&nbsp;[form]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                053&nbsp;&nbsp;&nbsp;&nbsp;(expect-tag&nbsp;&#x27;effects&nbsp;form)
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                054&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[entries&nbsp;(rest&nbsp;form)]
+                </span><br/>
+<span class="partial" title="2 out of 3 forms covered">
+                055&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(cond
+                </span><br/>
+<span class="partial" title="11 out of 13 forms covered">
+                056&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(and&nbsp;(=&nbsp;1&nbsp;(count&nbsp;entries))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                057&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(sequential?&nbsp;(first&nbsp;entries))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                058&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(empty?&nbsp;(first&nbsp;entries)))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                059&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[]
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                060&nbsp;&nbsp;
+                </span><br/>
+<span class="partial" title="8 out of 9 forms covered">
+                061&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(and&nbsp;(=&nbsp;1&nbsp;(count&nbsp;entries))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                062&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(sequential?&nbsp;(first&nbsp;entries)))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                063&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(vec&nbsp;(first&nbsp;entries))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                064&nbsp;&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                065&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:else
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                066&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(vec&nbsp;entries))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                067&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                068&nbsp;&nbsp;(defn-&nbsp;parse-contract-clause
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                069&nbsp;&nbsp;&nbsp;&nbsp;[tag&nbsp;form]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                070&nbsp;&nbsp;&nbsp;&nbsp;(expect-tag&nbsp;tag&nbsp;form)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                071&nbsp;&nbsp;&nbsp;&nbsp;(vec&nbsp;(rest&nbsp;form)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                072&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                073&nbsp;&nbsp;(defn-&nbsp;parse-invariants
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                074&nbsp;&nbsp;&nbsp;&nbsp;[forms]
+                </span><br/>
+<span class="partial" title="8 out of 9 forms covered">
+                075&nbsp;&nbsp;&nbsp;&nbsp;(if&nbsp;(and&nbsp;(seq&nbsp;forms)
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                076&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(=&nbsp;&#x27;invariants&nbsp;(ffirst&nbsp;forms)))
+                </span><br/>
+<span class="covered" title="11 out of 11 forms covered">
+                077&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[(vec&nbsp;(rest&nbsp;(first&nbsp;forms)))&nbsp;(rest&nbsp;forms)]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                078&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[[]&nbsp;forms]))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                079&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                080&nbsp;&nbsp;(defn-&nbsp;parse-type-params
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                081&nbsp;&nbsp;&nbsp;&nbsp;[forms]
+                </span><br/>
+<span class="partial" title="8 out of 9 forms covered">
+                082&nbsp;&nbsp;&nbsp;&nbsp;(if&nbsp;(and&nbsp;(seq&nbsp;forms)
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                083&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(=&nbsp;&#x27;type-params&nbsp;(ffirst&nbsp;forms)))
+                </span><br/>
+<span class="not-covered" title="0 out of 11 forms covered">
+                084&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[(vec&nbsp;(rest&nbsp;(first&nbsp;forms)))&nbsp;(rest&nbsp;forms)]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                085&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[[]&nbsp;forms]))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                086&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                087&nbsp;&nbsp;(defn-&nbsp;parse-data-decl
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                088&nbsp;&nbsp;&nbsp;&nbsp;[[_&nbsp;name&nbsp;&amp;&nbsp;forms]]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                089&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[[type-params&nbsp;forms]&nbsp;(parse-type-params&nbsp;forms)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                090&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[invariants&nbsp;forms]&nbsp;(parse-invariants&nbsp;forms)]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                091&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:data
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                092&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:name&nbsp;name
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                093&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:type-params&nbsp;type-params
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                094&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:invariants&nbsp;invariants
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                095&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:fields&nbsp;(mapv&nbsp;parse-field&nbsp;forms)}))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                096&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                097&nbsp;&nbsp;(defn-&nbsp;parse-enum-decl
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                098&nbsp;&nbsp;&nbsp;&nbsp;[[_&nbsp;name&nbsp;&amp;&nbsp;variants]]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                099&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:enum
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                100&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:name&nbsp;name
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                101&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:variants&nbsp;(vec&nbsp;variants)})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                102&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                103&nbsp;&nbsp;(defn-&nbsp;parse-variant-decl
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                104&nbsp;&nbsp;&nbsp;&nbsp;[[tag&nbsp;name&nbsp;&amp;&nbsp;forms]]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                105&nbsp;&nbsp;&nbsp;&nbsp;(expect-tag&nbsp;&#x27;variant&nbsp;[tag])
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                106&nbsp;&nbsp;&nbsp;&nbsp;{:name&nbsp;name
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                107&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:fields&nbsp;(mapv&nbsp;parse-field&nbsp;forms)})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                108&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                109&nbsp;&nbsp;(defn-&nbsp;parse-case
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                110&nbsp;&nbsp;&nbsp;&nbsp;[[tag&nbsp;pattern&nbsp;body]]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                111&nbsp;&nbsp;&nbsp;&nbsp;(expect-tag&nbsp;&#x27;case&nbsp;[tag])
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                112&nbsp;&nbsp;&nbsp;&nbsp;{:pattern&nbsp;(parse-pattern&nbsp;pattern)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                113&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:body&nbsp;(parse-expr&nbsp;body)})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                114&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                115&nbsp;&nbsp;(defn-&nbsp;parse-call-expr
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                116&nbsp;&nbsp;&nbsp;&nbsp;[form]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                117&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:call
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                118&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:callee&nbsp;(parse-expr&nbsp;(second&nbsp;form))
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                119&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:args&nbsp;(mapv&nbsp;parse-expr&nbsp;(drop&nbsp;2&nbsp;form))})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                120&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                121&nbsp;&nbsp;(defn-&nbsp;parse-construct-expr
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                122&nbsp;&nbsp;&nbsp;&nbsp;[form]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                123&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:construct
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                124&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:type&nbsp;(second&nbsp;form)
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                125&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:args&nbsp;(mapv&nbsp;parse-expr&nbsp;(drop&nbsp;2&nbsp;form))})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                126&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                127&nbsp;&nbsp;(defn-&nbsp;parse-variant-expr
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                128&nbsp;&nbsp;&nbsp;&nbsp;[form]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                129&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:variant
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                130&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:type&nbsp;(second&nbsp;form)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                131&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:name&nbsp;(nth&nbsp;form&nbsp;2)
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                132&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:args&nbsp;(mapv&nbsp;parse-expr&nbsp;(drop&nbsp;3&nbsp;form))})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                133&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                134&nbsp;&nbsp;(defn-&nbsp;parse-record-get-expr
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                135&nbsp;&nbsp;&nbsp;&nbsp;[form]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                136&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:record-get
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                137&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:target&nbsp;(parse-expr&nbsp;(second&nbsp;form))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                138&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:field&nbsp;(nth&nbsp;form&nbsp;2)})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                139&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                140&nbsp;&nbsp;(defn-&nbsp;parse-if-expr
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                141&nbsp;&nbsp;&nbsp;&nbsp;[form]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                142&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:if
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                143&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:test&nbsp;(parse-expr&nbsp;(second&nbsp;form))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                144&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:then&nbsp;(parse-expr&nbsp;(nth&nbsp;form&nbsp;2))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                145&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:else&nbsp;(parse-expr&nbsp;(nth&nbsp;form&nbsp;3))})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                146&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                147&nbsp;&nbsp;(defn-&nbsp;parse-match-expr
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                148&nbsp;&nbsp;&nbsp;&nbsp;[form]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                149&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:match
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                150&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:target&nbsp;(parse-expr&nbsp;(second&nbsp;form))
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                151&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:cases&nbsp;(mapv&nbsp;parse-case&nbsp;(drop&nbsp;2&nbsp;form))})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                152&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                153&nbsp;&nbsp;(defn-&nbsp;parse-binding
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                154&nbsp;&nbsp;&nbsp;&nbsp;[[name&nbsp;expr]]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                155&nbsp;&nbsp;&nbsp;&nbsp;{:name&nbsp;name
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                156&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:expr&nbsp;(parse-expr&nbsp;expr)})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                157&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                158&nbsp;&nbsp;(defn-&nbsp;parse-let-expr
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                159&nbsp;&nbsp;&nbsp;&nbsp;[form]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                160&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:let
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                161&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:bindings&nbsp;(mapv&nbsp;parse-binding&nbsp;(second&nbsp;form))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                162&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:body&nbsp;(parse-expr&nbsp;(nth&nbsp;form&nbsp;2))})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                163&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                164&nbsp;&nbsp;(defn-&nbsp;parse-seq-expr
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                165&nbsp;&nbsp;&nbsp;&nbsp;[form]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                166&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:seq
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                167&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:exprs&nbsp;(mapv&nbsp;parse-expr&nbsp;(rest&nbsp;form))})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                168&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                169&nbsp;&nbsp;(defn-&nbsp;parse-lambda-expr
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                170&nbsp;&nbsp;&nbsp;&nbsp;[[_&nbsp;params-form&nbsp;returns-form&nbsp;effects-form&nbsp;body-form]]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                171&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:lambda
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                172&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:params&nbsp;(mapv&nbsp;parse-param&nbsp;(rest&nbsp;params-form))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                173&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:return-type&nbsp;(second&nbsp;returns-form)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                174&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:effects&nbsp;(parse-effects&nbsp;effects-form)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                175&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:body&nbsp;(parse-expr&nbsp;body-form)})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                176&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                177&nbsp;&nbsp;(defn-&nbsp;parse-catch-clause
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                178&nbsp;&nbsp;&nbsp;&nbsp;[[tag&nbsp;type-expr&nbsp;name&nbsp;body]]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                179&nbsp;&nbsp;&nbsp;&nbsp;(expect-tag&nbsp;&#x27;catch&nbsp;[tag])
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                180&nbsp;&nbsp;&nbsp;&nbsp;{:type&nbsp;type-expr
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                181&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:name&nbsp;name
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                182&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:body&nbsp;(parse-expr&nbsp;body)})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                183&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                184&nbsp;&nbsp;(defn-&nbsp;parse-finally-clause
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                185&nbsp;&nbsp;&nbsp;&nbsp;[[tag&nbsp;expr]]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                186&nbsp;&nbsp;&nbsp;&nbsp;(expect-tag&nbsp;&#x27;finally&nbsp;[tag])
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                187&nbsp;&nbsp;&nbsp;&nbsp;(parse-expr&nbsp;expr))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                188&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                189&nbsp;&nbsp;(defn-&nbsp;parse-try-expr
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                190&nbsp;&nbsp;&nbsp;&nbsp;[form]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                191&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[parts&nbsp;(drop&nbsp;2&nbsp;form)
+                </span><br/>
+<span class="partial" title="15 out of 16 forms covered">
+                192&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;catches&nbsp;(filter&nbsp;#(and&nbsp;(seq?&nbsp;%)&nbsp;(=&nbsp;&#x27;catch&nbsp;(first&nbsp;%)))&nbsp;parts)
+                </span><br/>
+<span class="partial" title="17 out of 18 forms covered">
+                193&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;finally-form&nbsp;(first&nbsp;(filter&nbsp;#(and&nbsp;(seq?&nbsp;%)&nbsp;(=&nbsp;&#x27;finally&nbsp;(first&nbsp;%)))&nbsp;parts))]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                194&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:try
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                195&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:body&nbsp;(parse-expr&nbsp;(second&nbsp;form))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                196&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:catches&nbsp;(mapv&nbsp;parse-catch-clause&nbsp;catches)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                197&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:finally&nbsp;(when&nbsp;finally-form
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                198&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(parse-finally-clause&nbsp;finally-form))}))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                199&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                200&nbsp;&nbsp;(defn-&nbsp;parse-var-expr
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                201&nbsp;&nbsp;&nbsp;&nbsp;[[_&nbsp;name&nbsp;type-expr&nbsp;init]]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                202&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:var
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                203&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:name&nbsp;name
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                204&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:type&nbsp;type-expr
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                205&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:init&nbsp;(parse-expr&nbsp;init)})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                206&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                207&nbsp;&nbsp;(defn-&nbsp;parse-set-expr
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                208&nbsp;&nbsp;&nbsp;&nbsp;[[_&nbsp;name&nbsp;expr]]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                209&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:set
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                210&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:name&nbsp;name
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                211&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:expr&nbsp;(parse-expr&nbsp;expr)})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                212&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                213&nbsp;&nbsp;(defn-&nbsp;parse-loop-expr
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                214&nbsp;&nbsp;&nbsp;&nbsp;[form]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                215&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:loop
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                216&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:bindings&nbsp;(mapv&nbsp;parse-binding&nbsp;(second&nbsp;form))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                217&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:body&nbsp;(parse-expr&nbsp;(nth&nbsp;form&nbsp;2))})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                218&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                219&nbsp;&nbsp;(defn-&nbsp;parse-recur-expr
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                220&nbsp;&nbsp;&nbsp;&nbsp;[form]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                221&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:recur
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                222&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:args&nbsp;(mapv&nbsp;parse-expr&nbsp;(rest&nbsp;form))})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                223&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                224&nbsp;&nbsp;(defn-&nbsp;parse-raise-expr
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                225&nbsp;&nbsp;&nbsp;&nbsp;[form]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                226&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:raise
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                227&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:expr&nbsp;(parse-expr&nbsp;(second&nbsp;form))})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                228&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                229&nbsp;&nbsp;(defn-&nbsp;parse-type-args
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                230&nbsp;&nbsp;&nbsp;&nbsp;[form]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                231&nbsp;&nbsp;&nbsp;&nbsp;(expect-tag&nbsp;&#x27;type-args&nbsp;form)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                232&nbsp;&nbsp;&nbsp;&nbsp;(vec&nbsp;(rest&nbsp;form)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                233&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                234&nbsp;&nbsp;(defn-&nbsp;parse-signature
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                235&nbsp;&nbsp;&nbsp;&nbsp;[[tag&nbsp;params&nbsp;return-type]]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                236&nbsp;&nbsp;&nbsp;&nbsp;(expect-tag&nbsp;&#x27;signature&nbsp;[tag])
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                237&nbsp;&nbsp;&nbsp;&nbsp;{:params&nbsp;(vec&nbsp;params)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                238&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:return-type&nbsp;return-type})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                239&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                240&nbsp;&nbsp;(defn-&nbsp;parse-java-new-expr
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                241&nbsp;&nbsp;&nbsp;&nbsp;[form]
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                242&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[[_&nbsp;class-name&nbsp;&amp;&nbsp;more]&nbsp;form
+                </span><br/>
+<span class="partial" title="12 out of 13 forms covered">
+                243&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[type-args&nbsp;args]&nbsp;(if&nbsp;(and&nbsp;(seq&nbsp;more)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                244&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(seq?&nbsp;(first&nbsp;more))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                245&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(=&nbsp;&#x27;type-args&nbsp;(ffirst&nbsp;more)))
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                246&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[(parse-type-args&nbsp;(first&nbsp;more))&nbsp;(rest&nbsp;more)]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                247&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[[]&nbsp;more])]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                248&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:java-new
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                249&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:class-name&nbsp;class-name
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                250&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:type-args&nbsp;type-args
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                251&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:args&nbsp;(mapv&nbsp;parse-expr&nbsp;args)}))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                252&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                253&nbsp;&nbsp;(defn-&nbsp;parse-java-call-expr
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                254&nbsp;&nbsp;&nbsp;&nbsp;[[_&nbsp;target&nbsp;member-id&nbsp;signature-form&nbsp;&amp;&nbsp;args]]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                255&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:java-call
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                256&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:target&nbsp;(parse-expr&nbsp;target)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                257&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:member-id&nbsp;member-id
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                258&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:signature&nbsp;(parse-signature&nbsp;signature-form)
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                259&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:args&nbsp;(mapv&nbsp;parse-expr&nbsp;args)})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                260&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                261&nbsp;&nbsp;(defn-&nbsp;parse-java-static-call-expr
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                262&nbsp;&nbsp;&nbsp;&nbsp;[[_&nbsp;class-name&nbsp;member-id&nbsp;signature-form&nbsp;&amp;&nbsp;args]]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                263&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:java-static-call
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                264&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:class-name&nbsp;class-name
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                265&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:member-id&nbsp;member-id
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                266&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:signature&nbsp;(parse-signature&nbsp;signature-form)
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                267&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:args&nbsp;(mapv&nbsp;parse-expr&nbsp;args)})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                268&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                269&nbsp;&nbsp;(defn-&nbsp;parse-java-get-field-expr
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                270&nbsp;&nbsp;&nbsp;&nbsp;[[_&nbsp;target&nbsp;field-name&nbsp;field-type]]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                271&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:java-get-field
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                272&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:target&nbsp;(parse-expr&nbsp;target)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                273&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:field-name&nbsp;field-name
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                274&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:field-type&nbsp;field-type})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                275&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                276&nbsp;&nbsp;(defn-&nbsp;parse-java-set-field-expr
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                277&nbsp;&nbsp;&nbsp;&nbsp;[[_&nbsp;target&nbsp;field-name&nbsp;field-type&nbsp;expr]]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                278&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:java-set-field
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                279&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:target&nbsp;(parse-expr&nbsp;target)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                280&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:field-name&nbsp;field-name
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                281&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:field-type&nbsp;field-type
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                282&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:expr&nbsp;(parse-expr&nbsp;expr)})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                283&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                284&nbsp;&nbsp;(def&nbsp;^:private&nbsp;expr-handlers
+                </span><br/>
+<span class="covered" title="23 out of 23 forms covered">
+                285&nbsp;&nbsp;&nbsp;&nbsp;{&#x27;call&nbsp;parse-call-expr
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                286&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x27;construct&nbsp;parse-construct-expr
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                287&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x27;variant&nbsp;parse-variant-expr
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                288&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x27;record-get&nbsp;parse-record-get-expr
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                289&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x27;if&nbsp;parse-if-expr
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                290&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x27;match&nbsp;parse-match-expr
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                291&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x27;let&nbsp;parse-let-expr
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                292&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x27;seq&nbsp;parse-seq-expr
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                293&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x27;lambda&nbsp;parse-lambda-expr
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                294&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x27;try&nbsp;parse-try-expr
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                295&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x27;var&nbsp;parse-var-expr
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                296&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x27;set&nbsp;parse-set-expr
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                297&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x27;loop&nbsp;parse-loop-expr
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                298&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x27;recur&nbsp;parse-recur-expr
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                299&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x27;raise&nbsp;parse-raise-expr
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                300&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x27;java&#x2F;new&nbsp;parse-java-new-expr
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                301&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x27;java&#x2F;call&nbsp;parse-java-call-expr
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                302&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x27;java&#x2F;static-call&nbsp;parse-java-static-call-expr
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                303&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x27;java&#x2F;get-field&nbsp;parse-java-get-field-expr
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                304&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x27;java&#x2F;set-field&nbsp;parse-java-set-field-expr
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                305&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x27;local&nbsp;(fn&nbsp;[form]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                306&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:local
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                307&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:name&nbsp;(second&nbsp;form)})})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                308&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                309&nbsp;&nbsp;(defn-&nbsp;literal-pattern?
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                310&nbsp;&nbsp;&nbsp;&nbsp;[form]
+                </span><br/>
+<span class="partial" title="15 out of 16 forms covered">
+                311&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;(true?&nbsp;form)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                312&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(false?&nbsp;form)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                313&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(integer?&nbsp;form)
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                314&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(string?&nbsp;form)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                315&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                316&nbsp;&nbsp;(defn-&nbsp;wildcard-pattern?
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                317&nbsp;&nbsp;&nbsp;&nbsp;[form]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                318&nbsp;&nbsp;&nbsp;&nbsp;(=&nbsp;&#x27;_&nbsp;form))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                319&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                320&nbsp;&nbsp;(defn-&nbsp;record-pattern-form?
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                321&nbsp;&nbsp;&nbsp;&nbsp;[form]
+                </span><br/>
+<span class="partial" title="11 out of 12 forms covered">
+                322&nbsp;&nbsp;&nbsp;&nbsp;(and&nbsp;(seq?&nbsp;form)&nbsp;(=&nbsp;&#x27;record&nbsp;(first&nbsp;form))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                323&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                324&nbsp;&nbsp;(defn-&nbsp;union-pattern-form?
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                325&nbsp;&nbsp;&nbsp;&nbsp;[form]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                326&nbsp;&nbsp;&nbsp;&nbsp;(seq?&nbsp;form))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                327&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                328&nbsp;&nbsp;(defn-&nbsp;parse-literal-pattern
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                329&nbsp;&nbsp;&nbsp;&nbsp;[form]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                330&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:literal-pattern
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                331&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:literal&nbsp;form})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                332&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                333&nbsp;&nbsp;(defn-&nbsp;parse-wildcard-pattern
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                334&nbsp;&nbsp;&nbsp;&nbsp;[_form]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                335&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:wildcard-pattern})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                336&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                337&nbsp;&nbsp;(defn-&nbsp;parse-binder-pattern
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                338&nbsp;&nbsp;&nbsp;&nbsp;[form]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                339&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:binder-pattern
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                340&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:name&nbsp;form})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                341&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                342&nbsp;&nbsp;(defn-&nbsp;parse-record-pattern
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                343&nbsp;&nbsp;&nbsp;&nbsp;[form]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                344&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:record-pattern
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                345&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:type&nbsp;(second&nbsp;form)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                346&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:fields&nbsp;(mapv&nbsp;(fn&nbsp;[[name&nbsp;pattern]]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                347&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:name&nbsp;name
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                348&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:pattern&nbsp;(parse-pattern&nbsp;pattern)})
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                349&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(drop&nbsp;2&nbsp;form))})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                350&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                351&nbsp;&nbsp;(defn-&nbsp;parse-union-pattern
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                352&nbsp;&nbsp;&nbsp;&nbsp;[form]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                353&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:union-pattern
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                354&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:name&nbsp;(first&nbsp;form)
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                355&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:args&nbsp;(mapv&nbsp;parse-pattern&nbsp;(rest&nbsp;form))})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                356&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                357&nbsp;&nbsp;(def&nbsp;^:private&nbsp;pattern-parsers
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                358&nbsp;&nbsp;&nbsp;&nbsp;[[literal-pattern?&nbsp;parse-literal-pattern]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                359&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[wildcard-pattern?&nbsp;parse-wildcard-pattern]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                360&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[symbol?&nbsp;parse-binder-pattern]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                361&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[record-pattern-form?&nbsp;parse-record-pattern]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                362&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[union-pattern-form?&nbsp;parse-union-pattern]])
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                363&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                364&nbsp;&nbsp;(defn&nbsp;parse-pattern
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                365&nbsp;&nbsp;&nbsp;&nbsp;[form]
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                366&nbsp;&nbsp;&nbsp;&nbsp;(if-let&nbsp;[[_&nbsp;parser]&nbsp;(some&nbsp;(fn&nbsp;[[pred&nbsp;parser]]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                367&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when&nbsp;(pred&nbsp;form)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                368&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[pred&nbsp;parser]))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                369&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pattern-parsers)]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                370&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(parser&nbsp;form)
+                </span><br/>
+<span class="not-covered" title="0 out of 4 forms covered">
+                371&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(throw&nbsp;(ex-info&nbsp;&quot;Unsupported&nbsp;pattern.&quot;
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                372&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:form&nbsp;form}))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                373&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                374&nbsp;&nbsp;(defn-&nbsp;parse-union-decl
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                375&nbsp;&nbsp;&nbsp;&nbsp;[[_&nbsp;name&nbsp;&amp;&nbsp;forms]]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                376&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[[type-params&nbsp;forms]&nbsp;(parse-type-params&nbsp;forms)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                377&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[invariants&nbsp;forms]&nbsp;(parse-invariants&nbsp;forms)]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                378&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:union
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                379&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:name&nbsp;name
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                380&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:type-params&nbsp;type-params
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                381&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:invariants&nbsp;invariants
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                382&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:variants&nbsp;(mapv&nbsp;parse-variant-decl&nbsp;forms)}))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                383&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                384&nbsp;&nbsp;(defn-&nbsp;parse-fn-decl
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                385&nbsp;&nbsp;&nbsp;&nbsp;[[tag&nbsp;name&nbsp;params-form&nbsp;returns-form&nbsp;effects-form&nbsp;requires-form&nbsp;ensures-form&nbsp;body-form]]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                386&nbsp;&nbsp;&nbsp;&nbsp;(expect-tag&nbsp;&#x27;fn&nbsp;[tag])
+                </span><br/>
+<span class="covered" title="10 out of 10 forms covered">
+                387&nbsp;&nbsp;&nbsp;&nbsp;{:op&nbsp;:fn
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                388&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:name&nbsp;name
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                389&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:params&nbsp;(mapv&nbsp;parse-param&nbsp;(rest&nbsp;params-form))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                390&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:return-type&nbsp;(second&nbsp;returns-form)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                391&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:effects&nbsp;(parse-effects&nbsp;effects-form)
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                392&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:requires&nbsp;(parse-contract-clause&nbsp;&#x27;requires&nbsp;requires-form)
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                393&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:ensures&nbsp;(parse-contract-clause&nbsp;&#x27;ensures&nbsp;ensures-form)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                394&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:body&nbsp;(parse-expr&nbsp;body-form)})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                395&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                396&nbsp;&nbsp;(defn-&nbsp;parse-decl
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                397&nbsp;&nbsp;&nbsp;&nbsp;[form]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                398&nbsp;&nbsp;&nbsp;&nbsp;(case&nbsp;(first&nbsp;form)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                399&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data&nbsp;(parse-data-decl&nbsp;form)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                400&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;enum&nbsp;(parse-enum-decl&nbsp;form)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                401&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;union&nbsp;(parse-union-decl&nbsp;form)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                402&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fn&nbsp;(parse-fn-decl&nbsp;form)
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                403&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(throw&nbsp;(ex-info&nbsp;&quot;Unsupported&nbsp;declaration.&quot;
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                404&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:form&nbsp;form}))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                405&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                406&nbsp;&nbsp;(defn&nbsp;parse-expr
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                407&nbsp;&nbsp;&nbsp;&nbsp;[form]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                408&nbsp;&nbsp;&nbsp;&nbsp;(if&nbsp;(seq?&nbsp;form)
+                </span><br/>
+<span class="covered" title="10 out of 10 forms covered">
+                409&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(if-let&nbsp;[handler&nbsp;(get&nbsp;expr-handlers&nbsp;(first&nbsp;form))]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                410&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(handler&nbsp;form)
+                </span><br/>
+<span class="not-covered" title="0 out of 4 forms covered">
+                411&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(throw&nbsp;(ex-info&nbsp;&quot;Unsupported&nbsp;expression.&quot;
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                412&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:form&nbsp;form})))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                413&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;form))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                414&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                415&nbsp;&nbsp;(defn&nbsp;parse-module
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                416&nbsp;&nbsp;&nbsp;&nbsp;[source]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                417&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[[tag&nbsp;name&nbsp;imports-form&nbsp;export-form&nbsp;&amp;&nbsp;decl-forms]&nbsp;(edn&#x2F;read-string&nbsp;source)]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                418&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(expect-tag&nbsp;&#x27;module&nbsp;[tag])
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                419&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:name&nbsp;name
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                420&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:imports&nbsp;(parse-imports&nbsp;imports-form)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                421&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:exports&nbsp;(parse-exports&nbsp;export-form)
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                422&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:decls&nbsp;(mapv&nbsp;parse-decl&nbsp;decl-forms)}))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                423&nbsp;&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                424&nbsp;&nbsp;;;&nbsp;clj-mutate-manifest-begin
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                425&nbsp;&nbsp;;;&nbsp;{:version&nbsp;1,&nbsp;:tested-at&nbsp;&quot;2026-03-12T12:22:36.841445-05:00&quot;,&nbsp;:module-hash&nbsp;&quot;1714522822&quot;,&nbsp;:forms&nbsp;[{:id&nbsp;&quot;form&#x2F;0&#x2F;ns&quot;,&nbsp;:kind&nbsp;&quot;ns&quot;,&nbsp;:line&nbsp;1,&nbsp;:end-line&nbsp;2,&nbsp;:hash&nbsp;&quot;1367613317&quot;}&nbsp;{:id&nbsp;&quot;form&#x2F;1&#x2F;declare&quot;,&nbsp;:kind&nbsp;&quot;declare&quot;,&nbsp;:line&nbsp;4,&nbsp;:end-line&nbsp;4,&nbsp;:hash&nbsp;&quot;1128659220&quot;}&nbsp;{:id&nbsp;&quot;form&#x2F;2&#x2F;declare&quot;,&nbsp;:kind&nbsp;&quot;declare&quot;,&nbsp;:line&nbsp;5,&nbsp;:end-line&nbsp;5,&nbsp;:hash&nbsp;&quot;-1446383543&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-import&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;7,&nbsp;:end-line&nbsp;20,&nbsp;:hash&nbsp;&quot;-1572688366&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;expect-tag&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;22,&nbsp;:end-line&nbsp;28,&nbsp;:hash&nbsp;&quot;-1315660753&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-imports&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;30,&nbsp;:end-line&nbsp;33,&nbsp;:hash&nbsp;&quot;2124099339&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-exports&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;35,&nbsp;:end-line&nbsp;38,&nbsp;:hash&nbsp;&quot;987718804&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-param&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;40,&nbsp;:end-line&nbsp;43,&nbsp;:hash&nbsp;&quot;949945736&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-field&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;45,&nbsp;:end-line&nbsp;49,&nbsp;:hash&nbsp;&quot;1251715611&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-effects&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;51,&nbsp;:end-line&nbsp;66,&nbsp;:hash&nbsp;&quot;2129032603&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-contract-clause&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;68,&nbsp;:end-line&nbsp;71,&nbsp;:hash&nbsp;&quot;2065410627&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-invariants&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;73,&nbsp;:end-line&nbsp;78,&nbsp;:hash&nbsp;&quot;-56402401&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-type-params&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;80,&nbsp;:end-line&nbsp;85,&nbsp;:hash&nbsp;&quot;-1233585086&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-data-decl&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;87,&nbsp;:end-line&nbsp;95,&nbsp;:hash&nbsp;&quot;240075906&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-enum-decl&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;97,&nbsp;:end-line&nbsp;101,&nbsp;:hash&nbsp;&quot;53471563&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-variant-decl&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;103,&nbsp;:end-line&nbsp;107,&nbsp;:hash&nbsp;&quot;545649087&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-case&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;109,&nbsp;:end-line&nbsp;113,&nbsp;:hash&nbsp;&quot;505569259&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-call-expr&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;115,&nbsp;:end-line&nbsp;119,&nbsp;:hash&nbsp;&quot;1364196914&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-construct-expr&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;121,&nbsp;:end-line&nbsp;125,&nbsp;:hash&nbsp;&quot;587366883&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-variant-expr&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;127,&nbsp;:end-line&nbsp;132,&nbsp;:hash&nbsp;&quot;-385235348&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-record-get-expr&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;134,&nbsp;:end-line&nbsp;138,&nbsp;:hash&nbsp;&quot;1628847814&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-if-expr&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;140,&nbsp;:end-line&nbsp;145,&nbsp;:hash&nbsp;&quot;-1106654283&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-match-expr&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;147,&nbsp;:end-line&nbsp;151,&nbsp;:hash&nbsp;&quot;1800281827&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-binding&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;153,&nbsp;:end-line&nbsp;156,&nbsp;:hash&nbsp;&quot;-1959265528&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-let-expr&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;158,&nbsp;:end-line&nbsp;162,&nbsp;:hash&nbsp;&quot;-647963169&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-seq-expr&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;164,&nbsp;:end-line&nbsp;167,&nbsp;:hash&nbsp;&quot;302220611&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-lambda-expr&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;169,&nbsp;:end-line&nbsp;175,&nbsp;:hash&nbsp;&quot;-1706998005&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-catch-clause&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;177,&nbsp;:end-line&nbsp;182,&nbsp;:hash&nbsp;&quot;1820817090&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-finally-clause&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;184,&nbsp;:end-line&nbsp;187,&nbsp;:hash&nbsp;&quot;-378492021&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-try-expr&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;189,&nbsp;:end-line&nbsp;198,&nbsp;:hash&nbsp;&quot;312839854&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-var-expr&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;200,&nbsp;:end-line&nbsp;205,&nbsp;:hash&nbsp;&quot;1325393821&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-set-expr&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;207,&nbsp;:end-line&nbsp;211,&nbsp;:hash&nbsp;&quot;1429713983&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-loop-expr&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;213,&nbsp;:end-line&nbsp;217,&nbsp;:hash&nbsp;&quot;-198693472&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-recur-expr&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;219,&nbsp;:end-line&nbsp;222,&nbsp;:hash&nbsp;&quot;-1009172251&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-raise-expr&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;224,&nbsp;:end-line&nbsp;227,&nbsp;:hash&nbsp;&quot;-1091784450&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-type-args&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;229,&nbsp;:end-line&nbsp;232,&nbsp;:hash&nbsp;&quot;-266637052&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-signature&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;234,&nbsp;:end-line&nbsp;238,&nbsp;:hash&nbsp;&quot;804347329&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-java-new-expr&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;240,&nbsp;:end-line&nbsp;251,&nbsp;:hash&nbsp;&quot;-1667842733&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-java-call-expr&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;253,&nbsp;:end-line&nbsp;259,&nbsp;:hash&nbsp;&quot;-1542269505&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-java-static-call-expr&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;261,&nbsp;:end-line&nbsp;267,&nbsp;:hash&nbsp;&quot;1075951034&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-java-get-field-expr&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;269,&nbsp;:end-line&nbsp;274,&nbsp;:hash&nbsp;&quot;1853237465&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-java-set-field-expr&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;276,&nbsp;:end-line&nbsp;282,&nbsp;:hash&nbsp;&quot;-2021484420&quot;}&nbsp;{:id&nbsp;&quot;def&#x2F;expr-handlers&quot;,&nbsp;:kind&nbsp;&quot;def&quot;,&nbsp;:line&nbsp;284,&nbsp;:end-line&nbsp;307,&nbsp;:hash&nbsp;&quot;1997147207&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;literal-pattern?&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;309,&nbsp;:end-line&nbsp;314,&nbsp;:hash&nbsp;&quot;635525918&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;wildcard-pattern?&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;316,&nbsp;:end-line&nbsp;318,&nbsp;:hash&nbsp;&quot;76497133&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;record-pattern-form?&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;320,&nbsp;:end-line&nbsp;322,&nbsp;:hash&nbsp;&quot;-1394925114&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;union-pattern-form?&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;324,&nbsp;:end-line&nbsp;326,&nbsp;:hash&nbsp;&quot;765247313&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-literal-pattern&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;328,&nbsp;:end-line&nbsp;331,&nbsp;:hash&nbsp;&quot;148576341&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-wildcard-pattern&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;333,&nbsp;:end-line&nbsp;335,&nbsp;:hash&nbsp;&quot;688434532&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-binder-pattern&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;337,&nbsp;:end-line&nbsp;340,&nbsp;:hash&nbsp;&quot;-1102720389&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-record-pattern&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;342,&nbsp;:end-line&nbsp;349,&nbsp;:hash&nbsp;&quot;785832603&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-union-pattern&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;351,&nbsp;:end-line&nbsp;355,&nbsp;:hash&nbsp;&quot;1434576212&quot;}&nbsp;{:id&nbsp;&quot;def&#x2F;pattern-parsers&quot;,&nbsp;:kind&nbsp;&quot;def&quot;,&nbsp;:line&nbsp;357,&nbsp;:end-line&nbsp;362,&nbsp;:hash&nbsp;&quot;1242457034&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;parse-pattern&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;364,&nbsp;:end-line&nbsp;372,&nbsp;:hash&nbsp;&quot;-1975440247&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-union-decl&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;374,&nbsp;:end-line&nbsp;382,&nbsp;:hash&nbsp;&quot;-1120328440&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-fn-decl&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;384,&nbsp;:end-line&nbsp;394,&nbsp;:hash&nbsp;&quot;-1738991000&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parse-decl&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;396,&nbsp;:end-line&nbsp;404,&nbsp;:hash&nbsp;&quot;-268353563&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;parse-expr&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;406,&nbsp;:end-line&nbsp;413,&nbsp;:hash&nbsp;&quot;-1503518551&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;parse-module&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;415,&nbsp;:end-line&nbsp;422,&nbsp;:hash&nbsp;&quot;52551823&quot;}]}
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                426&nbsp;&nbsp;;;&nbsp;clj-mutate-manifest-end
+                </span><br/>
+ </body>
+</html>

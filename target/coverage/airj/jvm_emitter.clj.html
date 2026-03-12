@@ -1,0 +1,2033 @@
+<html>
+ <head>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <link rel="stylesheet" href="../coverage.css"/>  <title> airj/jvm_emitter.clj </title>
+ </head>
+ <body>
+<span class="covered" title="1 out of 1 forms covered">
+                001&nbsp;&nbsp;(ns&nbsp;airj.jvm-emitter
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                002&nbsp;&nbsp;&nbsp;&nbsp;(:require&nbsp;[airj.jvm-cells&nbsp;:as&nbsp;jvm-cells]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                003&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.jvm-class-writer&nbsp;:as&nbsp;jvm-class-writer]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                004&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.jvm-emit-cells&nbsp;:as&nbsp;jvm-emit-cells]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                005&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.jvm-emit-closures&nbsp;:as&nbsp;jvm-emit-closures]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                006&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.jvm-emit-entry&nbsp;:as&nbsp;jvm-emit-entry]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                007&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.jvm-emit-try&nbsp;:as&nbsp;jvm-emit-try])
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                008&nbsp;&nbsp;&nbsp;&nbsp;(:import&nbsp;(clojure.asm&nbsp;ClassWriter&nbsp;Label&nbsp;MethodVisitor&nbsp;Opcodes)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                009&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                010&nbsp;&nbsp;(declare&nbsp;emit-expr)
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                011&nbsp;&nbsp;(declare&nbsp;descriptor)
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                012&nbsp;&nbsp;(declare&nbsp;constructor-descriptor)
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                013&nbsp;&nbsp;(declare&nbsp;emit-expr-handlers)
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                014&nbsp;&nbsp;(declare&nbsp;emit-binding)
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                015&nbsp;&nbsp;(declare&nbsp;bind-var-slot)
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                016&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                017&nbsp;&nbsp;(def&nbsp;^:private&nbsp;type-descriptors
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                018&nbsp;&nbsp;&nbsp;&nbsp;{:int&nbsp;&quot;I&quot;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                019&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:boolean&nbsp;&quot;Z&quot;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                020&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:void&nbsp;&quot;V&quot;})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                021&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                022&nbsp;&nbsp;(def&nbsp;^:private&nbsp;load-opcodes
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                023&nbsp;&nbsp;&nbsp;&nbsp;{:int&nbsp;Opcodes&#x2F;ILOAD
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                024&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:boolean&nbsp;Opcodes&#x2F;ILOAD})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                025&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                026&nbsp;&nbsp;(def&nbsp;^:private&nbsp;store-opcodes
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                027&nbsp;&nbsp;&nbsp;&nbsp;{:int&nbsp;Opcodes&#x2F;ISTORE
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                028&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:boolean&nbsp;Opcodes&#x2F;ISTORE})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                029&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                030&nbsp;&nbsp;(def&nbsp;^:private&nbsp;return-opcodes
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                031&nbsp;&nbsp;&nbsp;&nbsp;{:int&nbsp;Opcodes&#x2F;IRETURN
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                032&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:boolean&nbsp;Opcodes&#x2F;IRETURN
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                033&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:void&nbsp;Opcodes&#x2F;RETURN})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                034&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                035&nbsp;&nbsp;(defn-&nbsp;fail!
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                036&nbsp;&nbsp;&nbsp;&nbsp;[message&nbsp;data]
+                </span><br/>
+<span class="not-covered" title="0 out of 5 forms covered">
+                037&nbsp;&nbsp;&nbsp;&nbsp;(throw&nbsp;(ex-info&nbsp;message&nbsp;data)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                038&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                039&nbsp;&nbsp;(defn-&nbsp;method-name
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                040&nbsp;&nbsp;&nbsp;&nbsp;[name]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                041&nbsp;&nbsp;&nbsp;&nbsp;(if&nbsp;(=&nbsp;&#x27;main&nbsp;name)
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                042&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;airj_main&quot;
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                043&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(-&gt;&nbsp;name&nbsp;str&nbsp;(.replace&nbsp;&quot;-&quot;&nbsp;&quot;_&quot;))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                044&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                045&nbsp;&nbsp;(defn-&nbsp;init-descriptor
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                046&nbsp;&nbsp;&nbsp;&nbsp;[fields]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                047&nbsp;&nbsp;&nbsp;&nbsp;(str&nbsp;&quot;(&quot;
+                </span><br/>
+<span class="covered" title="10 out of 10 forms covered">
+                048&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(apply&nbsp;str&nbsp;(map&nbsp;(comp&nbsp;descriptor&nbsp;:jvm-type)&nbsp;fields))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                049&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;)V&quot;))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                050&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                051&nbsp;&nbsp;(defn-&nbsp;descriptor
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                052&nbsp;&nbsp;&nbsp;&nbsp;[jvm-type]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                053&nbsp;&nbsp;&nbsp;&nbsp;(jvm-cells&#x2F;descriptor&nbsp;jvm-type))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                054&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                055&nbsp;&nbsp;(defn-&nbsp;method-descriptor
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                056&nbsp;&nbsp;&nbsp;&nbsp;[params&nbsp;return-type]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                057&nbsp;&nbsp;&nbsp;&nbsp;(str&nbsp;&quot;(&quot;
+                </span><br/>
+<span class="covered" title="10 out of 10 forms covered">
+                058&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(apply&nbsp;str&nbsp;(map&nbsp;(comp&nbsp;descriptor&nbsp;:jvm-type)&nbsp;params))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                059&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;)&quot;
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                060&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(descriptor&nbsp;return-type)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                061&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                062&nbsp;&nbsp;(defn-&nbsp;load-opcode
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                063&nbsp;&nbsp;&nbsp;&nbsp;[jvm-type]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                064&nbsp;&nbsp;&nbsp;&nbsp;(get&nbsp;load-opcodes&nbsp;jvm-type&nbsp;Opcodes&#x2F;ALOAD))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                065&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                066&nbsp;&nbsp;(defn-&nbsp;store-opcode
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                067&nbsp;&nbsp;&nbsp;&nbsp;[jvm-type]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                068&nbsp;&nbsp;&nbsp;&nbsp;(get&nbsp;store-opcodes&nbsp;jvm-type&nbsp;Opcodes&#x2F;ASTORE))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                069&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                070&nbsp;&nbsp;(defn-&nbsp;return-opcode
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                071&nbsp;&nbsp;&nbsp;&nbsp;[jvm-type]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                072&nbsp;&nbsp;&nbsp;&nbsp;(get&nbsp;return-opcodes&nbsp;jvm-type&nbsp;Opcodes&#x2F;ARETURN))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                073&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                074&nbsp;&nbsp;(defn-&nbsp;local-slots
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                075&nbsp;&nbsp;&nbsp;&nbsp;[params]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                076&nbsp;&nbsp;&nbsp;&nbsp;{:slots&nbsp;(into&nbsp;{}
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                077&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(map-indexed&nbsp;(fn&nbsp;[index&nbsp;param]
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                078&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[(:name&nbsp;param)&nbsp;{:slot&nbsp;index
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                079&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-type&nbsp;(:jvm-type&nbsp;param)}])
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                080&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;params))
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                081&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:next-slot&nbsp;(count&nbsp;params)})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                082&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                083&nbsp;&nbsp;(defn-&nbsp;instance-local-slots
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                084&nbsp;&nbsp;&nbsp;&nbsp;[params]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                085&nbsp;&nbsp;&nbsp;&nbsp;{:slots&nbsp;(into&nbsp;{}
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                086&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(map-indexed&nbsp;(fn&nbsp;[index&nbsp;param]
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                087&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[(:name&nbsp;param)&nbsp;{:slot&nbsp;(inc&nbsp;index)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                088&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-type&nbsp;(:jvm-type&nbsp;param)}])
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                089&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;params))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                090&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:next-slot&nbsp;(inc&nbsp;(count&nbsp;params))})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                091&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                092&nbsp;&nbsp;(defn-&nbsp;emit-int
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                093&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                094&nbsp;&nbsp;&nbsp;&nbsp;(.visitLdcInsn&nbsp;mv&nbsp;(int&nbsp;(:value&nbsp;expr))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                095&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                096&nbsp;&nbsp;(defn-&nbsp;emit-string
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                097&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                098&nbsp;&nbsp;&nbsp;&nbsp;(.visitLdcInsn&nbsp;mv&nbsp;^String&nbsp;(:value&nbsp;expr)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                099&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                100&nbsp;&nbsp;(defn-&nbsp;emit-boolean
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                101&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                102&nbsp;&nbsp;&nbsp;&nbsp;(.visitLdcInsn&nbsp;mv&nbsp;(boolean&nbsp;(:value&nbsp;expr))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                103&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                104&nbsp;&nbsp;(defn-&nbsp;emit-local
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                105&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;env]
+                </span><br/>
+<span class="partial" title="13 out of 15 forms covered">
+                106&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[{:keys&nbsp;[slot&nbsp;jvm-type]}&nbsp;(or&nbsp;(get-in&nbsp;env&nbsp;[:slots&nbsp;(:name&nbsp;expr)])
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                107&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fail!&nbsp;&quot;Unknown&nbsp;emitted&nbsp;local.&quot;
+                </span><br/>
+<span class="not-covered" title="0 out of 5 forms covered">
+                108&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:name&nbsp;(:name&nbsp;expr)}))]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                109&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitVarInsn&nbsp;mv&nbsp;(load-opcode&nbsp;jvm-type)&nbsp;slot)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                110&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                111&nbsp;&nbsp;(defn-&nbsp;emit-invoke-static
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                112&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;env]
+                </span><br/>
+<span class="partial" title="28 out of 33 forms covered">
+                113&nbsp;&nbsp;&nbsp;&nbsp;(doseq&nbsp;[arg&nbsp;(:args&nbsp;expr)]
+                </span><br/>
+<span class="partial" title="5 out of 10 forms covered">
+                114&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-expr&nbsp;mv&nbsp;arg&nbsp;env))
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                115&nbsp;&nbsp;&nbsp;&nbsp;(.visitMethodInsn&nbsp;mv
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                116&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Opcodes&#x2F;INVOKESTATIC
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                117&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:owner&nbsp;expr)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                118&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(method-name&nbsp;(:name&nbsp;expr))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                119&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(str&nbsp;&quot;(&quot;
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                120&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(apply&nbsp;str&nbsp;(map&nbsp;descriptor&nbsp;(:parameter-types&nbsp;expr)))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                121&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;)&quot;
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                122&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(descriptor&nbsp;(:return-type&nbsp;expr)))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                123&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;false))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                124&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                125&nbsp;&nbsp;(defn-&nbsp;emit-java-static-call
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                126&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;env]
+                </span><br/>
+<span class="partial" title="28 out of 33 forms covered">
+                127&nbsp;&nbsp;&nbsp;&nbsp;(doseq&nbsp;[arg&nbsp;(:args&nbsp;expr)]
+                </span><br/>
+<span class="partial" title="5 out of 10 forms covered">
+                128&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-expr&nbsp;mv&nbsp;arg&nbsp;env))
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                129&nbsp;&nbsp;&nbsp;&nbsp;(.visitMethodInsn&nbsp;mv
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                130&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Opcodes&#x2F;INVOKESTATIC
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                131&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:class-name&nbsp;expr)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                132&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(str&nbsp;(:member-id&nbsp;expr))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                133&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(str&nbsp;&quot;(&quot;
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                134&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(apply&nbsp;str&nbsp;(map&nbsp;descriptor&nbsp;(:parameter-types&nbsp;expr)))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                135&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;)&quot;
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                136&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(descriptor&nbsp;(:return-type&nbsp;expr)))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                137&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;false))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                138&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                139&nbsp;&nbsp;(defn-&nbsp;emit-java-new
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                140&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;env]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                141&nbsp;&nbsp;&nbsp;&nbsp;(.visitTypeInsn&nbsp;mv&nbsp;Opcodes&#x2F;NEW&nbsp;(:class-name&nbsp;expr))
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                142&nbsp;&nbsp;&nbsp;&nbsp;(.visitInsn&nbsp;mv&nbsp;Opcodes&#x2F;DUP)
+                </span><br/>
+<span class="partial" title="28 out of 33 forms covered">
+                143&nbsp;&nbsp;&nbsp;&nbsp;(doseq&nbsp;[arg&nbsp;(:args&nbsp;expr)]
+                </span><br/>
+<span class="partial" title="5 out of 10 forms covered">
+                144&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-expr&nbsp;mv&nbsp;arg&nbsp;env))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                145&nbsp;&nbsp;&nbsp;&nbsp;(.visitMethodInsn&nbsp;mv
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                146&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Opcodes&#x2F;INVOKESPECIAL
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                147&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:class-name&nbsp;expr)
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                148&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;&lt;init&gt;&quot;
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                149&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(str&nbsp;&quot;(&quot;
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                150&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(apply&nbsp;str&nbsp;(map&nbsp;descriptor&nbsp;(:parameter-types&nbsp;expr)))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                151&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;)V&quot;)
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                152&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;false))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                153&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                154&nbsp;&nbsp;(defn-&nbsp;emit-if
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                155&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;env]
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                156&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[else-label&nbsp;(Label.)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                157&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;end-label&nbsp;(Label.)]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                158&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-expr&nbsp;mv&nbsp;(:test&nbsp;expr)&nbsp;env)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                159&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitJumpInsn&nbsp;mv&nbsp;Opcodes&#x2F;IFEQ&nbsp;else-label)
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                160&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-expr&nbsp;mv&nbsp;(:then&nbsp;expr)&nbsp;env)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                161&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitJumpInsn&nbsp;mv&nbsp;Opcodes&#x2F;GOTO&nbsp;end-label)
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                162&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitLabel&nbsp;mv&nbsp;else-label)
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                163&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-expr&nbsp;mv&nbsp;(:else&nbsp;expr)&nbsp;env)
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                164&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitLabel&nbsp;mv&nbsp;end-label)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                165&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                166&nbsp;&nbsp;(defn-&nbsp;pop-opcode
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                167&nbsp;&nbsp;&nbsp;&nbsp;[jvm-type]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                168&nbsp;&nbsp;&nbsp;&nbsp;(case&nbsp;jvm-type
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                169&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:void&nbsp;nil
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                170&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Opcodes&#x2F;POP))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                171&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                172&nbsp;&nbsp;(defn-&nbsp;emit-discarded
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                173&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;env]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                174&nbsp;&nbsp;&nbsp;&nbsp;(emit-expr&nbsp;mv&nbsp;expr&nbsp;env)
+                </span><br/>
+<span class="covered" title="11 out of 11 forms covered">
+                175&nbsp;&nbsp;&nbsp;&nbsp;(when-let&nbsp;[opcode&nbsp;(pop-opcode&nbsp;(:jvm-type&nbsp;expr))]
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                176&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitInsn&nbsp;mv&nbsp;opcode)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                177&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                178&nbsp;&nbsp;(defn-&nbsp;emit-seq
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                179&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;env]
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                180&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[[_&nbsp;final-env]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                181&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(reduce&nbsp;(fn&nbsp;[[_&nbsp;current-env]&nbsp;subexpr]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                182&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-expr&nbsp;mv&nbsp;subexpr&nbsp;current-env)
+                </span><br/>
+<span class="covered" title="11 out of 11 forms covered">
+                183&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when-let&nbsp;[opcode&nbsp;(pop-opcode&nbsp;(:jvm-type&nbsp;subexpr))]
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                184&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitInsn&nbsp;mv&nbsp;opcode))
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                185&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[nil
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                186&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(if&nbsp;(=&nbsp;:jvm-var&nbsp;(:op&nbsp;subexpr))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                187&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(bind-var-slot&nbsp;current-env&nbsp;subexpr)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                188&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;current-env)])
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                189&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[nil&nbsp;env]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                190&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(butlast&nbsp;(:exprs&nbsp;expr)))]
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                191&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-expr&nbsp;mv&nbsp;(last&nbsp;(:exprs&nbsp;expr))&nbsp;final-env)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                192&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                193&nbsp;&nbsp;(defn-&nbsp;bind-let-slots
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                194&nbsp;&nbsp;&nbsp;&nbsp;[env&nbsp;bindings]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                195&nbsp;&nbsp;&nbsp;&nbsp;(reduce&nbsp;(fn&nbsp;[acc&nbsp;binding]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                196&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(assoc-in&nbsp;(update&nbsp;acc&nbsp;:next-slot&nbsp;inc)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                197&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[:slots&nbsp;(:name&nbsp;binding)]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                198&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:slot&nbsp;(:next-slot&nbsp;acc)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                199&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-type&nbsp;(:jvm-type&nbsp;(:expr&nbsp;binding))}))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                200&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;env
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                201&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bindings))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                202&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                203&nbsp;&nbsp;(defn-&nbsp;bind-typed-slots
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                204&nbsp;&nbsp;&nbsp;&nbsp;[env&nbsp;bindings&nbsp;type-key]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                205&nbsp;&nbsp;&nbsp;&nbsp;(reduce&nbsp;(fn&nbsp;[acc&nbsp;binding]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                206&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(assoc-in&nbsp;(update&nbsp;acc&nbsp;:next-slot&nbsp;inc)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                207&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[:slots&nbsp;(:name&nbsp;binding)]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                208&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:slot&nbsp;(:next-slot&nbsp;acc)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                209&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-type&nbsp;(get&nbsp;binding&nbsp;type-key)}))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                210&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;env
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                211&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bindings))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                212&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                213&nbsp;&nbsp;(defn-&nbsp;bind-var-slot
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                214&nbsp;&nbsp;&nbsp;&nbsp;[env&nbsp;expr]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                215&nbsp;&nbsp;&nbsp;&nbsp;(assoc-in&nbsp;(update&nbsp;env&nbsp;:next-slot&nbsp;inc)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                216&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[:slots&nbsp;(:name&nbsp;expr)]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                217&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:slot&nbsp;(:next-slot&nbsp;env)
+                </span><br/>
+<span class="partial" title="7 out of 9 forms covered">
+                218&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-type&nbsp;(or&nbsp;(:cell-jvm-type&nbsp;expr)
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                219&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:jvm-type&nbsp;(:init&nbsp;expr)))}))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                220&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                221&nbsp;&nbsp;(defn-&nbsp;emit-var
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                222&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;env]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                223&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[body-env&nbsp;(bind-var-slot&nbsp;env&nbsp;expr)
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                224&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:keys&nbsp;[slot&nbsp;jvm-type]}&nbsp;(get-in&nbsp;body-env&nbsp;[:slots&nbsp;(:name&nbsp;expr)])]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                225&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(if&nbsp;(:cell-jvm-type&nbsp;expr)
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                226&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(jvm-emit-cells&#x2F;emit-cell-new&nbsp;mv&nbsp;expr&nbsp;env&nbsp;{:emit-expr&nbsp;emit-expr})
+                </span><br/>
+<span class="not-covered" title="0 out of 7 forms covered">
+                227&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-expr&nbsp;mv&nbsp;(:init&nbsp;expr)&nbsp;env))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                228&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitVarInsn&nbsp;mv&nbsp;(store-opcode&nbsp;jvm-type)&nbsp;slot)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                229&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                230&nbsp;&nbsp;(defn-&nbsp;emit-set
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                231&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;env]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                232&nbsp;&nbsp;&nbsp;&nbsp;(if&nbsp;(:cell-jvm-type&nbsp;expr)
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                233&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(jvm-emit-cells&#x2F;emit-cell-set&nbsp;mv&nbsp;expr&nbsp;env&nbsp;{:emit-expr&nbsp;emit-expr})
+                </span><br/>
+<span class="not-covered" title="0 out of 15 forms covered">
+                234&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[{:keys&nbsp;[slot&nbsp;jvm-type]}&nbsp;(or&nbsp;(get-in&nbsp;env&nbsp;[:slots&nbsp;(:name&nbsp;expr)])
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                235&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fail!&nbsp;&quot;Unknown&nbsp;emitted&nbsp;mutable&nbsp;local.&quot;
+                </span><br/>
+<span class="not-covered" title="0 out of 5 forms covered">
+                236&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:name&nbsp;(:name&nbsp;expr)}))]
+                </span><br/>
+<span class="not-covered" title="0 out of 7 forms covered">
+                237&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-expr&nbsp;mv&nbsp;(:expr&nbsp;expr)&nbsp;env)
+                </span><br/>
+<span class="not-covered" title="0 out of 5 forms covered">
+                238&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitVarInsn&nbsp;mv&nbsp;(store-opcode&nbsp;jvm-type)&nbsp;slot))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                239&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                240&nbsp;&nbsp;(defn-&nbsp;emit-let
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                241&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;env]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                242&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[body-env&nbsp;(bind-let-slots&nbsp;env&nbsp;(:bindings&nbsp;expr))]
+                </span><br/>
+<span class="partial" title="28 out of 33 forms covered">
+                243&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(doseq&nbsp;[binding&nbsp;(:bindings&nbsp;expr)]
+                </span><br/>
+<span class="partial" title="5 out of 10 forms covered">
+                244&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-binding&nbsp;mv&nbsp;binding&nbsp;body-env))
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                245&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-expr&nbsp;mv&nbsp;(:body&nbsp;expr)&nbsp;body-env)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                246&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                247&nbsp;&nbsp;(defn-&nbsp;constructor-descriptor
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                248&nbsp;&nbsp;&nbsp;&nbsp;[args]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                249&nbsp;&nbsp;&nbsp;&nbsp;(str&nbsp;&quot;(&quot;
+                </span><br/>
+<span class="covered" title="10 out of 10 forms covered">
+                250&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(apply&nbsp;str&nbsp;(map&nbsp;(comp&nbsp;descriptor&nbsp;:jvm-type)&nbsp;args))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                251&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;)V&quot;))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                252&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                253&nbsp;&nbsp;(defn-&nbsp;emit-construct
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                254&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;env]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                255&nbsp;&nbsp;&nbsp;&nbsp;(.visitTypeInsn&nbsp;mv&nbsp;Opcodes&#x2F;NEW&nbsp;(:class-name&nbsp;expr))
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                256&nbsp;&nbsp;&nbsp;&nbsp;(.visitInsn&nbsp;mv&nbsp;Opcodes&#x2F;DUP)
+                </span><br/>
+<span class="partial" title="28 out of 33 forms covered">
+                257&nbsp;&nbsp;&nbsp;&nbsp;(doseq&nbsp;[arg&nbsp;(:args&nbsp;expr)]
+                </span><br/>
+<span class="partial" title="5 out of 10 forms covered">
+                258&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-expr&nbsp;mv&nbsp;arg&nbsp;env))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                259&nbsp;&nbsp;&nbsp;&nbsp;(.visitMethodInsn&nbsp;mv
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                260&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Opcodes&#x2F;INVOKESPECIAL
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                261&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:class-name&nbsp;expr)
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                262&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;&lt;init&gt;&quot;
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                263&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(constructor-descriptor&nbsp;(:args&nbsp;expr))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                264&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;false))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                265&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                266&nbsp;&nbsp;(defn-&nbsp;emit-record-get
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                267&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;env]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                268&nbsp;&nbsp;&nbsp;&nbsp;(emit-expr&nbsp;mv&nbsp;(:target&nbsp;expr)&nbsp;env)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                269&nbsp;&nbsp;&nbsp;&nbsp;(.visitFieldInsn&nbsp;mv
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                270&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Opcodes&#x2F;GETFIELD
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                271&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:jvm-type&nbsp;(:target&nbsp;expr))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                272&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(str&nbsp;(:field&nbsp;expr))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                273&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(descriptor&nbsp;(:jvm-type&nbsp;expr))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                274&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                275&nbsp;&nbsp;(defn-&nbsp;emit-variant
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                276&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;env]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                277&nbsp;&nbsp;&nbsp;&nbsp;(emit-construct&nbsp;mv&nbsp;expr&nbsp;env))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                278&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                279&nbsp;&nbsp;(defn-&nbsp;emit-instance-of
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                280&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;env]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                281&nbsp;&nbsp;&nbsp;&nbsp;(emit-expr&nbsp;mv&nbsp;(:target&nbsp;expr)&nbsp;env)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                282&nbsp;&nbsp;&nbsp;&nbsp;(.visitTypeInsn&nbsp;mv&nbsp;Opcodes&#x2F;INSTANCEOF&nbsp;(:class-name&nbsp;expr)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                283&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                284&nbsp;&nbsp;(defn-&nbsp;emit-variant-field
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                285&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;env]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                286&nbsp;&nbsp;&nbsp;&nbsp;(emit-expr&nbsp;mv&nbsp;(:target&nbsp;expr)&nbsp;env)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                287&nbsp;&nbsp;&nbsp;&nbsp;(.visitTypeInsn&nbsp;mv&nbsp;Opcodes&#x2F;CHECKCAST&nbsp;(:class-name&nbsp;expr))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                288&nbsp;&nbsp;&nbsp;&nbsp;(.visitFieldInsn&nbsp;mv
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                289&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Opcodes&#x2F;GETFIELD
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                290&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:class-name&nbsp;expr)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                291&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(str&nbsp;(:field&nbsp;expr))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                292&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(descriptor&nbsp;(:jvm-type&nbsp;expr))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                293&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                294&nbsp;&nbsp;(defn-&nbsp;emit-literal-test
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                295&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;env]
+                </span><br/>
+<span class="not-covered" title="0 out of 7 forms covered">
+                296&nbsp;&nbsp;&nbsp;&nbsp;(emit-expr&nbsp;mv&nbsp;(:target&nbsp;expr)&nbsp;env)
+                </span><br/>
+<span class="not-covered" title="0 out of 7 forms covered">
+                297&nbsp;&nbsp;&nbsp;&nbsp;(emit-expr&nbsp;mv&nbsp;(:literal&nbsp;expr)&nbsp;env)
+                </span><br/>
+<span class="not-covered" title="0 out of 2 forms covered">
+                298&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[false-label&nbsp;(Label.)
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                299&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;end-label&nbsp;(Label.)]
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                300&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitJumpInsn&nbsp;mv&nbsp;Opcodes&#x2F;IF_ICMPNE&nbsp;false-label)
+                </span><br/>
+<span class="not-covered" title="0 out of 2 forms covered">
+                301&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitInsn&nbsp;mv&nbsp;Opcodes&#x2F;ICONST_1)
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                302&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitJumpInsn&nbsp;mv&nbsp;Opcodes&#x2F;GOTO&nbsp;end-label)
+                </span><br/>
+<span class="not-covered" title="0 out of 2 forms covered">
+                303&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitLabel&nbsp;mv&nbsp;false-label)
+                </span><br/>
+<span class="not-covered" title="0 out of 2 forms covered">
+                304&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitInsn&nbsp;mv&nbsp;Opcodes&#x2F;ICONST_0)
+                </span><br/>
+<span class="not-covered" title="0 out of 2 forms covered">
+                305&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitLabel&nbsp;mv&nbsp;end-label)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                306&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                307&nbsp;&nbsp;(defn-&nbsp;emit-always-true
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                308&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv]
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                309&nbsp;&nbsp;&nbsp;&nbsp;(.visitInsn&nbsp;mv&nbsp;Opcodes&#x2F;ICONST_1))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                310&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                311&nbsp;&nbsp;(defn-&nbsp;bind-local-slots
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                312&nbsp;&nbsp;&nbsp;&nbsp;[env&nbsp;bindings]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                313&nbsp;&nbsp;&nbsp;&nbsp;(reduce&nbsp;(fn&nbsp;[acc&nbsp;binding]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                314&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(assoc-in&nbsp;(update&nbsp;acc&nbsp;:next-slot&nbsp;inc)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                315&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[:slots&nbsp;(:name&nbsp;binding)]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                316&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:slot&nbsp;(:next-slot&nbsp;acc)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                317&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-type&nbsp;(:jvm-type&nbsp;(:expr&nbsp;binding))}))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                318&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;env
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                319&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bindings))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                320&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                321&nbsp;&nbsp;(defn-&nbsp;bind-loop-slots
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                322&nbsp;&nbsp;&nbsp;&nbsp;[env&nbsp;bindings]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                323&nbsp;&nbsp;&nbsp;&nbsp;(bind-typed-slots&nbsp;env&nbsp;bindings&nbsp;:jvm-type))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                324&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                325&nbsp;&nbsp;(defn-&nbsp;emit-binding
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                326&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;binding&nbsp;env]
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                327&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[{:keys&nbsp;[slot&nbsp;jvm-type]}&nbsp;(get-in&nbsp;env&nbsp;[:slots&nbsp;(:name&nbsp;binding)])]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                328&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-expr&nbsp;mv&nbsp;(:expr&nbsp;binding)&nbsp;env)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                329&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitVarInsn&nbsp;mv&nbsp;(store-opcode&nbsp;jvm-type)&nbsp;slot)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                330&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                331&nbsp;&nbsp;(defn-&nbsp;emit-match
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                332&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;env]
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                333&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[end-label&nbsp;(Label.)
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                334&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case-labels&nbsp;(repeatedly&nbsp;(count&nbsp;(:cases&nbsp;expr))&nbsp;#(Label.))
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                335&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;next-labels&nbsp;(concat&nbsp;(rest&nbsp;case-labels)&nbsp;[nil])]
+                </span><br/>
+<span class="partial" title="36 out of 41 forms covered">
+                336&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(doseq&nbsp;[[[case&nbsp;current-label]&nbsp;next-label]&nbsp;(map&nbsp;vector&nbsp;(map&nbsp;vector&nbsp;(:cases&nbsp;expr)&nbsp;case-labels)&nbsp;next-labels)]
+                </span><br/>
+<span class="partial" title="2 out of 4 forms covered">
+                337&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitLabel&nbsp;mv&nbsp;current-label)
+                </span><br/>
+<span class="partial" title="7 out of 14 forms covered">
+                338&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-expr&nbsp;mv&nbsp;(:test&nbsp;case)&nbsp;env)
+                </span><br/>
+<span class="partial" title="3 out of 6 forms covered">
+                339&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when&nbsp;next-label
+                </span><br/>
+<span class="partial" title="3 out of 6 forms covered">
+                340&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitJumpInsn&nbsp;mv&nbsp;Opcodes&#x2F;IFEQ&nbsp;next-label))
+                </span><br/>
+<span class="partial" title="4 out of 8 forms covered">
+                341&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when-not&nbsp;next-label
+                </span><br/>
+<span class="partial" title="2 out of 4 forms covered">
+                342&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitInsn&nbsp;mv&nbsp;Opcodes&#x2F;POP))
+                </span><br/>
+<span class="partial" title="7 out of 14 forms covered">
+                343&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[body-env&nbsp;(bind-local-slots&nbsp;env&nbsp;(:bindings&nbsp;case))]
+                </span><br/>
+<span class="partial" title="28 out of 66 forms covered">
+                344&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(doseq&nbsp;[binding&nbsp;(:bindings&nbsp;case)]
+                </span><br/>
+<span class="partial" title="5 out of 20 forms covered">
+                345&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-binding&nbsp;mv&nbsp;binding&nbsp;body-env))
+                </span><br/>
+<span class="partial" title="7 out of 14 forms covered">
+                346&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-expr&nbsp;mv&nbsp;(:body&nbsp;case)&nbsp;body-env))
+                </span><br/>
+<span class="partial" title="3 out of 6 forms covered">
+                347&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitJumpInsn&nbsp;mv&nbsp;Opcodes&#x2F;GOTO&nbsp;end-label))
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                348&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitLabel&nbsp;mv&nbsp;end-label)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                349&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                350&nbsp;&nbsp;(defn-&nbsp;recur-frame
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                351&nbsp;&nbsp;&nbsp;&nbsp;[env]
+                </span><br/>
+<span class="partial" title="9 out of 11 forms covered">
+                352&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;(peek&nbsp;(:loop-stack&nbsp;env))
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                353&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fail!&nbsp;&quot;Recur&nbsp;emitted&nbsp;outside&nbsp;loop.&quot;
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                354&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:env&nbsp;env})))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                355&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                356&nbsp;&nbsp;(defn-&nbsp;temp-slots
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                357&nbsp;&nbsp;&nbsp;&nbsp;[env&nbsp;args]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                358&nbsp;&nbsp;&nbsp;&nbsp;(reduce&nbsp;(fn&nbsp;[{:keys&nbsp;[slots&nbsp;next-slot]}&nbsp;arg]
+                </span><br/>
+<span class="covered" title="10 out of 10 forms covered">
+                359&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:slots&nbsp;(conj&nbsp;slots&nbsp;{:slot&nbsp;next-slot
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                360&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-type&nbsp;(:jvm-type&nbsp;arg)})
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                361&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:next-slot&nbsp;(inc&nbsp;next-slot)})
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                362&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:slots&nbsp;[]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                363&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:next-slot&nbsp;(:next-slot&nbsp;env)}
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                364&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;args))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                365&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                366&nbsp;&nbsp;(defn-&nbsp;emit-recur
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                367&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;env]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                368&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[{:keys&nbsp;[start-label&nbsp;bindings]}&nbsp;(recur-frame&nbsp;env)
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                369&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:keys&nbsp;[slots]}&nbsp;(temp-slots&nbsp;env&nbsp;(:args&nbsp;expr))]
+                </span><br/>
+<span class="partial" title="32 out of 37 forms covered">
+                370&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(doseq&nbsp;[[arg&nbsp;{:keys&nbsp;[slot&nbsp;jvm-type]}]&nbsp;(map&nbsp;vector&nbsp;(:args&nbsp;expr)&nbsp;slots)]
+                </span><br/>
+<span class="partial" title="5 out of 10 forms covered">
+                371&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-expr&nbsp;mv&nbsp;arg&nbsp;env)
+                </span><br/>
+<span class="partial" title="5 out of 10 forms covered">
+                372&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitVarInsn&nbsp;mv&nbsp;(store-opcode&nbsp;jvm-type)&nbsp;slot))
+                </span><br/>
+<span class="partial" title="25 out of 30 forms covered">
+                373&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(doseq&nbsp;[[{:keys&nbsp;[slot&nbsp;jvm-type]}&nbsp;{:keys&nbsp;[binding-slot]}]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                374&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(map&nbsp;vector
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                375&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;slots
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                376&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(map&nbsp;(fn&nbsp;[binding]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                377&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:binding-slot&nbsp;(:slot&nbsp;binding)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                378&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-type&nbsp;(:jvm-type&nbsp;binding)})
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                379&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bindings))]
+                </span><br/>
+<span class="partial" title="5 out of 10 forms covered">
+                380&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitVarInsn&nbsp;mv&nbsp;(load-opcode&nbsp;jvm-type)&nbsp;slot)
+                </span><br/>
+<span class="partial" title="5 out of 10 forms covered">
+                381&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitVarInsn&nbsp;mv&nbsp;(store-opcode&nbsp;jvm-type)&nbsp;binding-slot))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                382&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitJumpInsn&nbsp;mv&nbsp;Opcodes&#x2F;GOTO&nbsp;start-label)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                383&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                384&nbsp;&nbsp;(defn-&nbsp;temp-slot
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                385&nbsp;&nbsp;&nbsp;&nbsp;[env&nbsp;jvm-type]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                386&nbsp;&nbsp;&nbsp;&nbsp;{:slot&nbsp;(:next-slot&nbsp;env)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                387&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-type&nbsp;jvm-type
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                388&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:env&nbsp;(update&nbsp;env&nbsp;:next-slot&nbsp;inc)})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                389&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                390&nbsp;&nbsp;(defn-&nbsp;emit-raise
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                391&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;env]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                392&nbsp;&nbsp;&nbsp;&nbsp;(emit-expr&nbsp;mv&nbsp;(:expr&nbsp;expr)&nbsp;env)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                393&nbsp;&nbsp;&nbsp;&nbsp;(.visitTypeInsn&nbsp;mv&nbsp;Opcodes&#x2F;CHECKCAST&nbsp;&quot;java&#x2F;lang&#x2F;Throwable&quot;)
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                394&nbsp;&nbsp;&nbsp;&nbsp;(.visitInsn&nbsp;mv&nbsp;Opcodes&#x2F;ATHROW))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                395&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                396&nbsp;&nbsp;(defn-&nbsp;emit-try
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                397&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;env]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                398&nbsp;&nbsp;&nbsp;&nbsp;(jvm-emit-try&#x2F;emit-try&nbsp;mv
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                399&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;expr
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                400&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;env
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                401&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:emit-expr&nbsp;emit-expr
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                402&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:emit-discarded&nbsp;emit-discarded
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                403&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:store-opcode&nbsp;store-opcode
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                404&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:load-opcode&nbsp;load-opcode
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                405&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:temp-slot&nbsp;temp-slot}))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                406&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                407&nbsp;&nbsp;(defn-&nbsp;emit-loop
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                408&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;env]
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                409&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[start-label&nbsp;(Label.)
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                410&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;loop-env&nbsp;(bind-loop-slots&nbsp;env&nbsp;(:bindings&nbsp;expr))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                411&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;binding-state&nbsp;(mapv&nbsp;(fn&nbsp;[binding]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                412&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(merge&nbsp;binding
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                413&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(get-in&nbsp;loop-env&nbsp;[:slots&nbsp;(:name&nbsp;binding)])))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                414&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:bindings&nbsp;expr))
+                </span><br/>
+<span class="covered" title="12 out of 12 forms covered">
+                415&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;body-env&nbsp;(update&nbsp;loop-env&nbsp;:loop-stack&nbsp;(fnil&nbsp;conj&nbsp;[])&nbsp;{:start-label&nbsp;start-label
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                416&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:bindings&nbsp;binding-state})]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                417&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(reduce&nbsp;(fn&nbsp;[current-env&nbsp;binding]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                418&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-expr&nbsp;mv&nbsp;(:init&nbsp;binding)&nbsp;current-env)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                419&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitVarInsn&nbsp;mv
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                420&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(store-opcode&nbsp;(:jvm-type&nbsp;binding))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                421&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:slot&nbsp;binding))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                422&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(assoc-in&nbsp;current-env
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                423&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[:slots&nbsp;(:name&nbsp;binding)]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                424&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:slot&nbsp;(:slot&nbsp;binding)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                425&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-type&nbsp;(:jvm-type&nbsp;binding)}))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                426&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;env
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                427&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;binding-state)
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                428&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitLabel&nbsp;mv&nbsp;start-label)
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                429&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-expr&nbsp;mv&nbsp;(:body&nbsp;expr)&nbsp;body-env)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                430&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                431&nbsp;&nbsp;(defn-&nbsp;emit-literal
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                432&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr]
+                </span><br/>
+<span class="covered" title="12 out of 12 forms covered">
+                433&nbsp;&nbsp;&nbsp;&nbsp;(when&nbsp;(contains?&nbsp;#{:jvm-int&nbsp;:jvm-string&nbsp;:jvm-boolean}&nbsp;(:op&nbsp;expr))
+                </span><br/>
+<span class="partial" title="5 out of 11 forms covered">
+                434&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(case&nbsp;(:op&nbsp;expr)
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                435&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-int&nbsp;(emit-int&nbsp;mv&nbsp;expr)
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                436&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-string&nbsp;(emit-string&nbsp;mv&nbsp;expr)
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                437&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-boolean&nbsp;(emit-boolean&nbsp;mv&nbsp;expr))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                438&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;true))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                439&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                440&nbsp;&nbsp;(def&nbsp;^:private&nbsp;emit-expr-handlers
+                </span><br/>
+<span class="covered" title="26 out of 26 forms covered">
+                441&nbsp;&nbsp;&nbsp;&nbsp;{:jvm-local&nbsp;emit-local
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                442&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-invoke-static&nbsp;emit-invoke-static
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                443&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-java-static-call&nbsp;emit-java-static-call
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                444&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-java-new&nbsp;emit-java-new
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                445&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-closure-new&nbsp;(fn&nbsp;[mv&nbsp;expr&nbsp;env]
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                446&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(jvm-emit-closures&#x2F;emit-closure-new
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                447&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mv
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                448&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;expr
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                449&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;env
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                450&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:emit-expr&nbsp;emit-expr
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                451&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:constructor-descriptor&nbsp;constructor-descriptor}))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                452&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-closure-call&nbsp;(fn&nbsp;[mv&nbsp;expr&nbsp;env]
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                453&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(jvm-emit-closures&#x2F;emit-closure-call
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                454&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mv
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                455&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;expr
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                456&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;env
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                457&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:emit-expr&nbsp;emit-expr
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                458&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:descriptor&nbsp;descriptor}))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                459&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-cell-get&nbsp;(fn&nbsp;[mv&nbsp;expr&nbsp;env]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                460&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(jvm-emit-cells&#x2F;emit-cell-get&nbsp;mv&nbsp;expr&nbsp;env))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                461&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-if&nbsp;emit-if
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                462&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-seq&nbsp;emit-seq
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                463&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-let&nbsp;emit-let
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                464&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-var&nbsp;emit-var
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                465&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-set&nbsp;emit-set
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                466&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-loop&nbsp;emit-loop
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                467&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-recur&nbsp;emit-recur
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                468&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-try&nbsp;emit-try
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                469&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-raise&nbsp;emit-raise
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                470&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-construct&nbsp;emit-construct
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                471&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-record-get&nbsp;emit-record-get
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                472&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-variant&nbsp;emit-variant
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                473&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-instance-of&nbsp;emit-instance-of
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                474&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-variant-field&nbsp;emit-variant-field
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                475&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-literal-test&nbsp;emit-literal-test
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                476&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-always-true&nbsp;(fn&nbsp;[mv&nbsp;_&nbsp;_]&nbsp;(emit-always-true&nbsp;mv))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                477&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-match&nbsp;emit-match})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                478&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                479&nbsp;&nbsp;(defn-&nbsp;emit-expr
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                480&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;env]
+                </span><br/>
+<span class="covered" title="13 out of 13 forms covered">
+                481&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;(emit-literal&nbsp;mv&nbsp;expr)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                482&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(if-let&nbsp;[handler&nbsp;(get&nbsp;emit-expr-handlers&nbsp;(:op&nbsp;expr))]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                483&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(handler&nbsp;mv&nbsp;expr&nbsp;env)
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                484&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fail!&nbsp;&quot;Unsupported&nbsp;JVM&nbsp;emission&nbsp;expression.&quot;
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                485&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:expr&nbsp;expr}))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                486&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                487&nbsp;&nbsp;(defn-&nbsp;emit-default-constructor
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                488&nbsp;&nbsp;&nbsp;&nbsp;([^ClassWriter&nbsp;cw]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                489&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-default-constructor&nbsp;cw&nbsp;&quot;java&#x2F;lang&#x2F;Object&quot;))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                490&nbsp;&nbsp;&nbsp;&nbsp;([^ClassWriter&nbsp;cw&nbsp;super-name]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                491&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[mv&nbsp;(.visitMethod&nbsp;cw&nbsp;Opcodes&#x2F;ACC_PUBLIC&nbsp;&quot;&lt;init&gt;&quot;&nbsp;&quot;()V&quot;&nbsp;nil&nbsp;nil)]
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                492&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitCode&nbsp;mv)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                493&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitVarInsn&nbsp;mv&nbsp;Opcodes&#x2F;ALOAD&nbsp;0)
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                494&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitMethodInsn&nbsp;mv&nbsp;Opcodes&#x2F;INVOKESPECIAL&nbsp;super-name&nbsp;&quot;&lt;init&gt;&quot;&nbsp;&quot;()V&quot;&nbsp;false)
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                495&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitInsn&nbsp;mv&nbsp;Opcodes&#x2F;RETURN)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                496&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitMaxs&nbsp;mv&nbsp;0&nbsp;0)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                497&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitEnd&nbsp;mv))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                498&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                499&nbsp;&nbsp;(defn-&nbsp;field-slot
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                500&nbsp;&nbsp;&nbsp;&nbsp;[fields]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                501&nbsp;&nbsp;&nbsp;&nbsp;(map-indexed&nbsp;(fn&nbsp;[index&nbsp;field]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                502&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[(inc&nbsp;index)&nbsp;field])
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                503&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fields))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                504&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                505&nbsp;&nbsp;(defn-&nbsp;emit-record-constructor
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                506&nbsp;&nbsp;&nbsp;&nbsp;[^ClassWriter&nbsp;cw&nbsp;record]
+                </span><br/>
+<span class="covered" title="11 out of 11 forms covered">
+                507&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[mv&nbsp;(.visitMethod&nbsp;cw&nbsp;Opcodes&#x2F;ACC_PUBLIC&nbsp;&quot;&lt;init&gt;&quot;&nbsp;(init-descriptor&nbsp;(:fields&nbsp;record))&nbsp;nil&nbsp;nil)]
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                508&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitCode&nbsp;mv)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                509&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitVarInsn&nbsp;mv&nbsp;Opcodes&#x2F;ALOAD&nbsp;0)
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                510&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitMethodInsn&nbsp;mv&nbsp;Opcodes&#x2F;INVOKESPECIAL&nbsp;&quot;java&#x2F;lang&#x2F;Object&quot;&nbsp;&quot;&lt;init&gt;&quot;&nbsp;&quot;()V&quot;&nbsp;false)
+                </span><br/>
+<span class="partial" title="30 out of 35 forms covered">
+                511&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(doseq&nbsp;[[slot&nbsp;field]&nbsp;(field-slot&nbsp;(:fields&nbsp;record))]
+                </span><br/>
+<span class="partial" title="3 out of 6 forms covered">
+                512&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitVarInsn&nbsp;mv&nbsp;Opcodes&#x2F;ALOAD&nbsp;0)
+                </span><br/>
+<span class="partial" title="7 out of 14 forms covered">
+                513&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitVarInsn&nbsp;mv&nbsp;(load-opcode&nbsp;(:jvm-type&nbsp;field))&nbsp;slot)
+                </span><br/>
+<span class="partial" title="1 out of 2 forms covered">
+                514&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitFieldInsn&nbsp;mv
+                </span><br/>
+<span class="partial" title="1 out of 2 forms covered">
+                515&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Opcodes&#x2F;PUTFIELD
+                </span><br/>
+<span class="partial" title="3 out of 6 forms covered">
+                516&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:class-name&nbsp;record)
+                </span><br/>
+<span class="partial" title="5 out of 10 forms covered">
+                517&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(str&nbsp;(:name&nbsp;field))
+                </span><br/>
+<span class="partial" title="5 out of 10 forms covered">
+                518&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(descriptor&nbsp;(:jvm-type&nbsp;field))))
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                519&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitInsn&nbsp;mv&nbsp;Opcodes&#x2F;RETURN)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                520&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitMaxs&nbsp;mv&nbsp;0&nbsp;0)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                521&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitEnd&nbsp;mv)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                522&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                523&nbsp;&nbsp;(defn-&nbsp;emit-record-class-bytes
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                524&nbsp;&nbsp;&nbsp;&nbsp;[module&nbsp;record]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                525&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[^ClassWriter&nbsp;cw&nbsp;(jvm-class-writer&#x2F;class-writer&nbsp;module)]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                526&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visit&nbsp;cw
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                527&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Opcodes&#x2F;V1_8
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                528&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(+&nbsp;Opcodes&#x2F;ACC_PUBLIC&nbsp;Opcodes&#x2F;ACC_SUPER)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                529&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:class-name&nbsp;record)
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                530&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nil
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                531&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;java&#x2F;lang&#x2F;Object&quot;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                532&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nil)
+                </span><br/>
+<span class="partial" title="28 out of 33 forms covered">
+                533&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(doseq&nbsp;[field&nbsp;(:fields&nbsp;record)]
+                </span><br/>
+<span class="partial" title="3 out of 6 forms covered">
+                534&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitField&nbsp;cw
+                </span><br/>
+<span class="partial" title="3 out of 6 forms covered">
+                535&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(+&nbsp;Opcodes&#x2F;ACC_PUBLIC&nbsp;Opcodes&#x2F;ACC_FINAL)
+                </span><br/>
+<span class="partial" title="5 out of 10 forms covered">
+                536&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(str&nbsp;(:name&nbsp;field))
+                </span><br/>
+<span class="partial" title="5 out of 10 forms covered">
+                537&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(descriptor&nbsp;(:jvm-type&nbsp;field))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                538&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nil
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                539&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nil))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                540&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-default-constructor&nbsp;cw)
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                541&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-record-constructor&nbsp;cw&nbsp;record)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                542&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitEnd&nbsp;cw)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                543&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.toByteArray&nbsp;cw)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                544&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                545&nbsp;&nbsp;(defn-&nbsp;emit-union-base-class-bytes
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                546&nbsp;&nbsp;&nbsp;&nbsp;[module&nbsp;union]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                547&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[^ClassWriter&nbsp;cw&nbsp;(jvm-class-writer&#x2F;class-writer&nbsp;module)]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                548&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visit&nbsp;cw
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                549&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Opcodes&#x2F;V1_8
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                550&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(+&nbsp;Opcodes&#x2F;ACC_PUBLIC&nbsp;Opcodes&#x2F;ACC_SUPER)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                551&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:base-class&nbsp;union)
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                552&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nil
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                553&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;java&#x2F;lang&#x2F;Object&quot;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                554&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nil)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                555&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-default-constructor&nbsp;cw)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                556&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitEnd&nbsp;cw)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                557&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.toByteArray&nbsp;cw)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                558&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                559&nbsp;&nbsp;(defn-&nbsp;emit-union-variant-class-bytes
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                560&nbsp;&nbsp;&nbsp;&nbsp;[module&nbsp;union&nbsp;variant]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                561&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[^ClassWriter&nbsp;cw&nbsp;(jvm-class-writer&#x2F;class-writer&nbsp;module)]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                562&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visit&nbsp;cw
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                563&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Opcodes&#x2F;V1_8
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                564&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(+&nbsp;Opcodes&#x2F;ACC_PUBLIC&nbsp;Opcodes&#x2F;ACC_SUPER)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                565&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:class-name&nbsp;variant)
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                566&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nil
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                567&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:base-class&nbsp;union)
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                568&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nil)
+                </span><br/>
+<span class="partial" title="28 out of 33 forms covered">
+                569&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(doseq&nbsp;[field&nbsp;(:fields&nbsp;variant)]
+                </span><br/>
+<span class="partial" title="3 out of 6 forms covered">
+                570&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitField&nbsp;cw
+                </span><br/>
+<span class="partial" title="3 out of 6 forms covered">
+                571&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(+&nbsp;Opcodes&#x2F;ACC_PUBLIC&nbsp;Opcodes&#x2F;ACC_FINAL)
+                </span><br/>
+<span class="partial" title="5 out of 10 forms covered">
+                572&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(str&nbsp;(:name&nbsp;field))
+                </span><br/>
+<span class="partial" title="5 out of 10 forms covered">
+                573&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(descriptor&nbsp;(:jvm-type&nbsp;field))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                574&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nil
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                575&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nil))
+                </span><br/>
+<span class="covered" title="11 out of 11 forms covered">
+                576&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[mv&nbsp;(.visitMethod&nbsp;cw&nbsp;Opcodes&#x2F;ACC_PUBLIC&nbsp;&quot;&lt;init&gt;&quot;&nbsp;(init-descriptor&nbsp;(:fields&nbsp;variant))&nbsp;nil&nbsp;nil)]
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                577&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitCode&nbsp;mv)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                578&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitVarInsn&nbsp;mv&nbsp;Opcodes&#x2F;ALOAD&nbsp;0)
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                579&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitMethodInsn&nbsp;mv&nbsp;Opcodes&#x2F;INVOKESPECIAL&nbsp;(:base-class&nbsp;union)&nbsp;&quot;&lt;init&gt;&quot;&nbsp;&quot;()V&quot;&nbsp;false)
+                </span><br/>
+<span class="partial" title="30 out of 35 forms covered">
+                580&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(doseq&nbsp;[[slot&nbsp;field]&nbsp;(field-slot&nbsp;(:fields&nbsp;variant))]
+                </span><br/>
+<span class="partial" title="3 out of 6 forms covered">
+                581&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitVarInsn&nbsp;mv&nbsp;Opcodes&#x2F;ALOAD&nbsp;0)
+                </span><br/>
+<span class="partial" title="7 out of 14 forms covered">
+                582&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitVarInsn&nbsp;mv&nbsp;(load-opcode&nbsp;(:jvm-type&nbsp;field))&nbsp;slot)
+                </span><br/>
+<span class="partial" title="1 out of 2 forms covered">
+                583&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitFieldInsn&nbsp;mv
+                </span><br/>
+<span class="partial" title="1 out of 2 forms covered">
+                584&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Opcodes&#x2F;PUTFIELD
+                </span><br/>
+<span class="partial" title="3 out of 6 forms covered">
+                585&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:class-name&nbsp;variant)
+                </span><br/>
+<span class="partial" title="5 out of 10 forms covered">
+                586&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(str&nbsp;(:name&nbsp;field))
+                </span><br/>
+<span class="partial" title="5 out of 10 forms covered">
+                587&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(descriptor&nbsp;(:jvm-type&nbsp;field))))
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                588&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitInsn&nbsp;mv&nbsp;Opcodes&#x2F;RETURN)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                589&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitMaxs&nbsp;mv&nbsp;0&nbsp;0)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                590&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitEnd&nbsp;mv))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                591&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitEnd&nbsp;cw)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                592&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.toByteArray&nbsp;cw)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                593&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                594&nbsp;&nbsp;(defn-&nbsp;emit-method
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                595&nbsp;&nbsp;&nbsp;&nbsp;[^ClassWriter&nbsp;cw&nbsp;method]
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                596&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[descriptor&nbsp;(method-descriptor&nbsp;(:params&nbsp;method)&nbsp;(:return-type&nbsp;method))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                597&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mv&nbsp;(.visitMethod&nbsp;cw
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                598&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(+&nbsp;Opcodes&#x2F;ACC_PUBLIC&nbsp;Opcodes&#x2F;ACC_STATIC)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                599&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(method-name&nbsp;(:name&nbsp;method))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                600&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;descriptor
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                601&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nil
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                602&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nil)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                603&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;env&nbsp;(local-slots&nbsp;(:params&nbsp;method))]
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                604&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitCode&nbsp;mv)
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                605&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-expr&nbsp;mv&nbsp;(:body&nbsp;method)&nbsp;env)
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                606&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitInsn&nbsp;mv&nbsp;(return-opcode&nbsp;(:return-type&nbsp;method)))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                607&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitMaxs&nbsp;mv&nbsp;0&nbsp;0)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                608&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitEnd&nbsp;mv)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                609&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                610&nbsp;&nbsp;(defn&nbsp;emit-module-bytes
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                611&nbsp;&nbsp;&nbsp;&nbsp;[module]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                612&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[^ClassWriter&nbsp;cw&nbsp;(jvm-class-writer&#x2F;class-writer&nbsp;module)]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                613&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visit&nbsp;cw
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                614&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Opcodes&#x2F;V1_8
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                615&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(+&nbsp;Opcodes&#x2F;ACC_PUBLIC&nbsp;Opcodes&#x2F;ACC_SUPER)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                616&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:internal-name&nbsp;module)
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                617&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nil
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                618&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;java&#x2F;lang&#x2F;Object&quot;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                619&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nil)
+                </span><br/>
+<span class="partial" title="28 out of 33 forms covered">
+                620&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(doseq&nbsp;[method&nbsp;(:methods&nbsp;module)]
+                </span><br/>
+<span class="partial" title="4 out of 8 forms covered">
+                621&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-method&nbsp;cw&nbsp;method))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                622&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(jvm-emit-entry&#x2F;emit-main-wrapper&nbsp;cw&nbsp;module
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                623&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:method-name&nbsp;method-name
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                624&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:method-descriptor&nbsp;method-descriptor
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                625&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:pop-opcode&nbsp;pop-opcode})
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                626&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitEnd&nbsp;cw)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                627&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.toByteArray&nbsp;cw)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                628&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                629&nbsp;&nbsp;(defn&nbsp;emit-class-bytes
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                630&nbsp;&nbsp;&nbsp;&nbsp;[module]
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                631&nbsp;&nbsp;&nbsp;&nbsp;(merge&nbsp;{(:internal-name&nbsp;module)&nbsp;(emit-module-bytes&nbsp;module)}
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                632&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(into&nbsp;{}
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                633&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(map&nbsp;(fn&nbsp;[interface]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                634&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[(:class-name&nbsp;interface)
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                635&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[^ClassWriter&nbsp;cw&nbsp;(jvm-class-writer&#x2F;class-writer&nbsp;module)]
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                636&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(jvm-emit-closures&#x2F;emit-closure-interface-bytes
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                637&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cw
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                638&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;interface
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                639&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;method-descriptor))]))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                640&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:closure-interfaces&nbsp;module))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                641&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(into&nbsp;{}
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                642&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(map&nbsp;(fn&nbsp;[closure]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                643&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[(:class-name&nbsp;closure)
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                644&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[^ClassWriter&nbsp;cw&nbsp;(jvm-class-writer&#x2F;class-writer&nbsp;module)]
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                645&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(jvm-emit-closures&#x2F;emit-closure-class-bytes
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                646&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cw
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                647&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closure
+                </span><br/>
+<span class="covered" title="12 out of 12 forms covered">
+                648&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:descriptor&nbsp;descriptor
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                649&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:init-descriptor&nbsp;init-descriptor
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                650&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:field-slot&nbsp;field-slot
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                651&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:load-opcode&nbsp;load-opcode
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                652&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:store-opcode&nbsp;store-opcode
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                653&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:method-descriptor&nbsp;method-descriptor
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                654&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:instance-local-slots&nbsp;instance-local-slots
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                655&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:bind-typed-slots&nbsp;bind-typed-slots
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                656&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:emit-expr&nbsp;emit-expr
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                657&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:return-opcode&nbsp;return-opcode}))]))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                658&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:closures&nbsp;module))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                659&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(into&nbsp;{}
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                660&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(map&nbsp;(fn&nbsp;[record]
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                661&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[(:class-name&nbsp;record)&nbsp;(emit-record-class-bytes&nbsp;module&nbsp;record)]))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                662&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:records&nbsp;module))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                663&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(into&nbsp;{}
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                664&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(mapcat
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                665&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fn&nbsp;[union]
+                </span><br/>
+<span class="covered" title="11 out of 11 forms covered">
+                666&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(concat&nbsp;[[(:base-class&nbsp;union)&nbsp;(emit-union-base-class-bytes&nbsp;module&nbsp;union)]]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                667&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(map&nbsp;(fn&nbsp;[variant]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                668&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[(:class-name&nbsp;variant)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                669&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-union-variant-class-bytes&nbsp;module&nbsp;union&nbsp;variant)])
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                670&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:variants&nbsp;union))))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                671&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:unions&nbsp;module)))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                672&nbsp;&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                673&nbsp;&nbsp;;;&nbsp;clj-mutate-manifest-begin
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                674&nbsp;&nbsp;;;&nbsp;{:version&nbsp;1,&nbsp;:tested-at&nbsp;&quot;2026-03-12T12:03:45.342209-05:00&quot;,&nbsp;:module-hash&nbsp;&quot;-1425246581&quot;,&nbsp;:forms&nbsp;[{:id&nbsp;&quot;form&#x2F;0&#x2F;ns&quot;,&nbsp;:kind&nbsp;&quot;ns&quot;,&nbsp;:line&nbsp;1,&nbsp;:end-line&nbsp;8,&nbsp;:hash&nbsp;&quot;-1034326435&quot;}&nbsp;{:id&nbsp;&quot;form&#x2F;1&#x2F;declare&quot;,&nbsp;:kind&nbsp;&quot;declare&quot;,&nbsp;:line&nbsp;10,&nbsp;:end-line&nbsp;10,&nbsp;:hash&nbsp;&quot;-351869103&quot;}&nbsp;{:id&nbsp;&quot;form&#x2F;2&#x2F;declare&quot;,&nbsp;:kind&nbsp;&quot;declare&quot;,&nbsp;:line&nbsp;11,&nbsp;:end-line&nbsp;11,&nbsp;:hash&nbsp;&quot;1069961042&quot;}&nbsp;{:id&nbsp;&quot;form&#x2F;3&#x2F;declare&quot;,&nbsp;:kind&nbsp;&quot;declare&quot;,&nbsp;:line&nbsp;12,&nbsp;:end-line&nbsp;12,&nbsp;:hash&nbsp;&quot;-2053214757&quot;}&nbsp;{:id&nbsp;&quot;form&#x2F;4&#x2F;declare&quot;,&nbsp;:kind&nbsp;&quot;declare&quot;,&nbsp;:line&nbsp;13,&nbsp;:end-line&nbsp;13,&nbsp;:hash&nbsp;&quot;2098266977&quot;}&nbsp;{:id&nbsp;&quot;form&#x2F;5&#x2F;declare&quot;,&nbsp;:kind&nbsp;&quot;declare&quot;,&nbsp;:line&nbsp;14,&nbsp;:end-line&nbsp;14,&nbsp;:hash&nbsp;&quot;963731763&quot;}&nbsp;{:id&nbsp;&quot;form&#x2F;6&#x2F;declare&quot;,&nbsp;:kind&nbsp;&quot;declare&quot;,&nbsp;:line&nbsp;15,&nbsp;:end-line&nbsp;15,&nbsp;:hash&nbsp;&quot;-1905695466&quot;}&nbsp;{:id&nbsp;&quot;def&#x2F;type-descriptors&quot;,&nbsp;:kind&nbsp;&quot;def&quot;,&nbsp;:line&nbsp;17,&nbsp;:end-line&nbsp;20,&nbsp;:hash&nbsp;&quot;-1455056336&quot;}&nbsp;{:id&nbsp;&quot;def&#x2F;load-opcodes&quot;,&nbsp;:kind&nbsp;&quot;def&quot;,&nbsp;:line&nbsp;22,&nbsp;:end-line&nbsp;24,&nbsp;:hash&nbsp;&quot;-950703340&quot;}&nbsp;{:id&nbsp;&quot;def&#x2F;store-opcodes&quot;,&nbsp;:kind&nbsp;&quot;def&quot;,&nbsp;:line&nbsp;26,&nbsp;:end-line&nbsp;28,&nbsp;:hash&nbsp;&quot;-997842127&quot;}&nbsp;{:id&nbsp;&quot;def&#x2F;return-opcodes&quot;,&nbsp;:kind&nbsp;&quot;def&quot;,&nbsp;:line&nbsp;30,&nbsp;:end-line&nbsp;33,&nbsp;:hash&nbsp;&quot;1506270588&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;fail!&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;35,&nbsp;:end-line&nbsp;37,&nbsp;:hash&nbsp;&quot;879938479&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;method-name&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;39,&nbsp;:end-line&nbsp;43,&nbsp;:hash&nbsp;&quot;1072728380&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;init-descriptor&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;45,&nbsp;:end-line&nbsp;49,&nbsp;:hash&nbsp;&quot;-591391110&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;descriptor&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;51,&nbsp;:end-line&nbsp;53,&nbsp;:hash&nbsp;&quot;799112538&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;method-descriptor&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;55,&nbsp;:end-line&nbsp;60,&nbsp;:hash&nbsp;&quot;-1082052598&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;load-opcode&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;62,&nbsp;:end-line&nbsp;64,&nbsp;:hash&nbsp;&quot;501460056&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;store-opcode&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;66,&nbsp;:end-line&nbsp;68,&nbsp;:hash&nbsp;&quot;234024341&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;return-opcode&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;70,&nbsp;:end-line&nbsp;72,&nbsp;:hash&nbsp;&quot;1071593654&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;local-slots&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;74,&nbsp;:end-line&nbsp;81,&nbsp;:hash&nbsp;&quot;-1480289965&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;instance-local-slots&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;83,&nbsp;:end-line&nbsp;90,&nbsp;:hash&nbsp;&quot;-1377007891&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-int&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;92,&nbsp;:end-line&nbsp;94,&nbsp;:hash&nbsp;&quot;682918505&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-string&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;96,&nbsp;:end-line&nbsp;98,&nbsp;:hash&nbsp;&quot;-364387159&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-boolean&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;100,&nbsp;:end-line&nbsp;102,&nbsp;:hash&nbsp;&quot;-818404463&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-local&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;104,&nbsp;:end-line&nbsp;109,&nbsp;:hash&nbsp;&quot;435457023&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-invoke-static&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;111,&nbsp;:end-line&nbsp;123,&nbsp;:hash&nbsp;&quot;1482752229&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-java-static-call&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;125,&nbsp;:end-line&nbsp;137,&nbsp;:hash&nbsp;&quot;-738935078&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-java-new&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;139,&nbsp;:end-line&nbsp;152,&nbsp;:hash&nbsp;&quot;1581399000&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-if&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;154,&nbsp;:end-line&nbsp;164,&nbsp;:hash&nbsp;&quot;-2016458095&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;pop-opcode&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;166,&nbsp;:end-line&nbsp;170,&nbsp;:hash&nbsp;&quot;-1145579462&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-discarded&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;172,&nbsp;:end-line&nbsp;176,&nbsp;:hash&nbsp;&quot;-373415048&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-seq&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;178,&nbsp;:end-line&nbsp;191,&nbsp;:hash&nbsp;&quot;1569148183&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;bind-let-slots&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;193,&nbsp;:end-line&nbsp;201,&nbsp;:hash&nbsp;&quot;1114237883&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;bind-typed-slots&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;203,&nbsp;:end-line&nbsp;211,&nbsp;:hash&nbsp;&quot;-21831128&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;bind-var-slot&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;213,&nbsp;:end-line&nbsp;219,&nbsp;:hash&nbsp;&quot;-1136329942&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-var&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;221,&nbsp;:end-line&nbsp;228,&nbsp;:hash&nbsp;&quot;879920388&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-set&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;230,&nbsp;:end-line&nbsp;238,&nbsp;:hash&nbsp;&quot;1326112789&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-let&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;240,&nbsp;:end-line&nbsp;245,&nbsp;:hash&nbsp;&quot;-1597708766&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;constructor-descriptor&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;247,&nbsp;:end-line&nbsp;251,&nbsp;:hash&nbsp;&quot;1030246641&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-construct&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;253,&nbsp;:end-line&nbsp;264,&nbsp;:hash&nbsp;&quot;642978394&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-record-get&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;266,&nbsp;:end-line&nbsp;273,&nbsp;:hash&nbsp;&quot;-1829411674&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-variant&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;275,&nbsp;:end-line&nbsp;277,&nbsp;:hash&nbsp;&quot;897327167&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-instance-of&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;279,&nbsp;:end-line&nbsp;282,&nbsp;:hash&nbsp;&quot;1555891405&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-variant-field&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;284,&nbsp;:end-line&nbsp;292,&nbsp;:hash&nbsp;&quot;828168694&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-literal-test&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;294,&nbsp;:end-line&nbsp;305,&nbsp;:hash&nbsp;&quot;1011164584&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-always-true&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;307,&nbsp;:end-line&nbsp;309,&nbsp;:hash&nbsp;&quot;415683512&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;bind-local-slots&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;311,&nbsp;:end-line&nbsp;319,&nbsp;:hash&nbsp;&quot;844729401&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;bind-loop-slots&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;321,&nbsp;:end-line&nbsp;323,&nbsp;:hash&nbsp;&quot;-1190078791&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-binding&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;325,&nbsp;:end-line&nbsp;329,&nbsp;:hash&nbsp;&quot;-167414695&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-match&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;331,&nbsp;:end-line&nbsp;348,&nbsp;:hash&nbsp;&quot;1586201505&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;recur-frame&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;350,&nbsp;:end-line&nbsp;354,&nbsp;:hash&nbsp;&quot;-1921183736&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;temp-slots&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;356,&nbsp;:end-line&nbsp;364,&nbsp;:hash&nbsp;&quot;-1804676158&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-recur&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;366,&nbsp;:end-line&nbsp;382,&nbsp;:hash&nbsp;&quot;-640909028&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;temp-slot&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;384,&nbsp;:end-line&nbsp;388,&nbsp;:hash&nbsp;&quot;-730167867&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-raise&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;390,&nbsp;:end-line&nbsp;394,&nbsp;:hash&nbsp;&quot;476518000&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-try&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;396,&nbsp;:end-line&nbsp;405,&nbsp;:hash&nbsp;&quot;1119462693&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-loop&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;407,&nbsp;:end-line&nbsp;429,&nbsp;:hash&nbsp;&quot;193454205&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-literal&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;431,&nbsp;:end-line&nbsp;438,&nbsp;:hash&nbsp;&quot;596586998&quot;}&nbsp;{:id&nbsp;&quot;def&#x2F;emit-expr-handlers&quot;,&nbsp;:kind&nbsp;&quot;def&quot;,&nbsp;:line&nbsp;440,&nbsp;:end-line&nbsp;477,&nbsp;:hash&nbsp;&quot;655660384&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-expr&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;479,&nbsp;:end-line&nbsp;485,&nbsp;:hash&nbsp;&quot;749449684&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-default-constructor&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;487,&nbsp;:end-line&nbsp;497,&nbsp;:hash&nbsp;&quot;240160418&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;field-slot&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;499,&nbsp;:end-line&nbsp;503,&nbsp;:hash&nbsp;&quot;-1567189554&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-record-constructor&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;505,&nbsp;:end-line&nbsp;521,&nbsp;:hash&nbsp;&quot;-316497366&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-record-class-bytes&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;523,&nbsp;:end-line&nbsp;543,&nbsp;:hash&nbsp;&quot;-382850934&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-union-base-class-bytes&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;545,&nbsp;:end-line&nbsp;557,&nbsp;:hash&nbsp;&quot;861277052&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-union-variant-class-bytes&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;559,&nbsp;:end-line&nbsp;592,&nbsp;:hash&nbsp;&quot;944748988&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-method&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;594,&nbsp;:end-line&nbsp;608,&nbsp;:hash&nbsp;&quot;-1558709303&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;emit-module-bytes&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;610,&nbsp;:end-line&nbsp;627,&nbsp;:hash&nbsp;&quot;1831727313&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;emit-class-bytes&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;629,&nbsp;:end-line&nbsp;671,&nbsp;:hash&nbsp;&quot;-1403240972&quot;}]}
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                675&nbsp;&nbsp;;;&nbsp;clj-mutate-manifest-end
+                </span><br/>
+ </body>
+</html>

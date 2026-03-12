@@ -1,0 +1,134 @@
+<html>
+ <head>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <link rel="stylesheet" href="../coverage.css"/>  <title> airj/project_sources.clj </title>
+ </head>
+ <body>
+<span class="covered" title="1 out of 1 forms covered">
+                001&nbsp;&nbsp;(ns&nbsp;airj.project-sources
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                002&nbsp;&nbsp;&nbsp;&nbsp;(:require&nbsp;[airj.interface-sources&nbsp;:as&nbsp;interface-sources]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                003&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.normalizer&nbsp;:as&nbsp;normalizer]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                004&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.parser&nbsp;:as&nbsp;parser]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                005&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[airj.project-graph&nbsp;:as&nbsp;project-graph]))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                006&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                007&nbsp;&nbsp;(defn-&nbsp;parsed-module-name
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                008&nbsp;&nbsp;&nbsp;&nbsp;[source]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                009&nbsp;&nbsp;&nbsp;&nbsp;(:name&nbsp;(normalizer&#x2F;normalize-module&nbsp;(parser&#x2F;parse-module&nbsp;source))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                010&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                011&nbsp;&nbsp;(defn&nbsp;source-map
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                012&nbsp;&nbsp;&nbsp;&nbsp;[module-sources]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                013&nbsp;&nbsp;&nbsp;&nbsp;(into&nbsp;{}
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                014&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(map&nbsp;(fn&nbsp;[[module-name&nbsp;source]]
+                </span><br/>
+<span class="covered" title="10 out of 10 forms covered">
+                015&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[(or&nbsp;module-name&nbsp;(parsed-module-name&nbsp;source))&nbsp;source]))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                016&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;module-sources))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                017&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                018&nbsp;&nbsp;(defn&nbsp;root-source
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                019&nbsp;&nbsp;&nbsp;&nbsp;[module-sources&nbsp;root-module-name]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                020&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[sources&nbsp;(source-map&nbsp;module-sources)]
+                </span><br/>
+<span class="partial" title="7 out of 8 forms covered">
+                021&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;(get&nbsp;sources&nbsp;root-module-name)
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                022&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(throw&nbsp;(ex-info&nbsp;&quot;Missing&nbsp;project&nbsp;root&nbsp;module&nbsp;source.&quot;
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                023&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:module&nbsp;root-module-name})))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                024&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                025&nbsp;&nbsp;(defn&nbsp;reachable-source-map
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                026&nbsp;&nbsp;&nbsp;&nbsp;[module-sources&nbsp;root-module-name]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                027&nbsp;&nbsp;&nbsp;&nbsp;(project-graph&#x2F;reachable-source-map&nbsp;(source-map&nbsp;module-sources)&nbsp;root-module-name))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                028&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                029&nbsp;&nbsp;(defn&nbsp;imported-interfaces
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                030&nbsp;&nbsp;&nbsp;&nbsp;[module-sources&nbsp;root-module-name]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                031&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[sources&nbsp;(reachable-source-map&nbsp;module-sources&nbsp;root-module-name)]
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                032&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(-&gt;&nbsp;sources
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                033&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(dissoc&nbsp;root-module-name)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                034&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;interface-sources&#x2F;sources-&gt;interfaces)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                035&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                036&nbsp;&nbsp;(defn&nbsp;compiler-options
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                037&nbsp;&nbsp;&nbsp;&nbsp;[module-sources&nbsp;root-module-name]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                038&nbsp;&nbsp;&nbsp;&nbsp;{:interfaces&nbsp;(imported-interfaces&nbsp;module-sources&nbsp;root-module-name)})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                039&nbsp;&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                040&nbsp;&nbsp;;;&nbsp;clj-mutate-manifest-begin
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                041&nbsp;&nbsp;;;&nbsp;{:version&nbsp;1,&nbsp;:tested-at&nbsp;&quot;2026-03-12T15:12:47.220674-05:00&quot;,&nbsp;:module-hash&nbsp;&quot;-1268839817&quot;,&nbsp;:forms&nbsp;[{:id&nbsp;&quot;form&#x2F;0&#x2F;ns&quot;,&nbsp;:kind&nbsp;&quot;ns&quot;,&nbsp;:line&nbsp;1,&nbsp;:end-line&nbsp;4,&nbsp;:hash&nbsp;&quot;123230311&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;parsed-module-name&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;6,&nbsp;:end-line&nbsp;8,&nbsp;:hash&nbsp;&quot;-860700766&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;source-map&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;10,&nbsp;:end-line&nbsp;15,&nbsp;:hash&nbsp;&quot;-1125280073&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;root-source&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;17,&nbsp;:end-line&nbsp;22,&nbsp;:hash&nbsp;&quot;586201105&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;direct-airj-imports&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;24,&nbsp;:end-line&nbsp;31,&nbsp;:hash&nbsp;&quot;-960332268&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;module-source&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;33,&nbsp;:end-line&nbsp;37,&nbsp;:hash&nbsp;&quot;476968309&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;fail-on-cycle!&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;39,&nbsp;:end-line&nbsp;44,&nbsp;:hash&nbsp;&quot;-134953179&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;visit-module&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;46,&nbsp;:end-line&nbsp;64,&nbsp;:hash&nbsp;&quot;-2024500094&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;reachable-source-map&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;66,&nbsp;:end-line&nbsp;69,&nbsp;:hash&nbsp;&quot;-847655775&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;imported-interfaces&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;71,&nbsp;:end-line&nbsp;76,&nbsp;:hash&nbsp;&quot;551457564&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;compiler-options&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;78,&nbsp;:end-line&nbsp;80,&nbsp;:hash&nbsp;&quot;-569601317&quot;}]}
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                042&nbsp;&nbsp;;;&nbsp;clj-mutate-manifest-end
+                </span><br/>
+ </body>
+</html>

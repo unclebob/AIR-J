@@ -1,0 +1,281 @@
+<html>
+ <head>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <link rel="stylesheet" href="../coverage.css"/>  <title> airj/java_members.clj </title>
+ </head>
+ <body>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                001&nbsp;&nbsp;;;&nbsp;mutation-tested:&nbsp;2026-03-11
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                002&nbsp;&nbsp;(ns&nbsp;airj.java-members
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                003&nbsp;&nbsp;&nbsp;&nbsp;(:require&nbsp;[airj.java-types&nbsp;:as&nbsp;java-types])
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                004&nbsp;&nbsp;&nbsp;&nbsp;(:import&nbsp;(java.lang.reflect&nbsp;Constructor&nbsp;Field&nbsp;Method&nbsp;Modifier)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                005&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                006&nbsp;&nbsp;(defn-&nbsp;signature-types
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                007&nbsp;&nbsp;&nbsp;&nbsp;[signature]
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                008&nbsp;&nbsp;&nbsp;&nbsp;{:params&nbsp;(mapv&nbsp;java-types&#x2F;resolve-type&nbsp;(:params&nbsp;signature))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                009&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:return-type&nbsp;(java-types&#x2F;resolve-type&nbsp;(:return-type&nbsp;signature))})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                010&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                011&nbsp;&nbsp;(defn-&nbsp;load-class
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                012&nbsp;&nbsp;&nbsp;&nbsp;[class-name]
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                013&nbsp;&nbsp;&nbsp;&nbsp;(try
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                014&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(java-types&#x2F;load-class&nbsp;class-name)
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                015&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(catch&nbsp;ClassNotFoundException&nbsp;_
+                </span><br/>
+<span class="not-covered" title="0 out of 4 forms covered">
+                016&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(throw&nbsp;(ex-info&nbsp;&quot;Unknown&nbsp;Java&nbsp;class.&quot;
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                017&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:class-name&nbsp;class-name})))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                018&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                019&nbsp;&nbsp;(defn-&nbsp;method-meta
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                020&nbsp;&nbsp;&nbsp;&nbsp;[class-name&nbsp;^Method&nbsp;method&nbsp;member-id]
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                021&nbsp;&nbsp;&nbsp;&nbsp;{:kind&nbsp;:method
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                022&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:class-name&nbsp;class-name
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                023&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:member-id&nbsp;member-id
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                024&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:static?&nbsp;(Modifier&#x2F;isStatic&nbsp;(.getModifiers&nbsp;method))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                025&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:parameter-types&nbsp;(vec&nbsp;(.getParameterTypes&nbsp;method))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                026&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:return-type&nbsp;(.getReturnType&nbsp;method)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                027&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:declaring-class&nbsp;(.getDeclaringClass&nbsp;method)})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                028&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                029&nbsp;&nbsp;(defn-&nbsp;field-meta
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                030&nbsp;&nbsp;&nbsp;&nbsp;[class-name&nbsp;^Field&nbsp;field&nbsp;field-name]
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                031&nbsp;&nbsp;&nbsp;&nbsp;{:kind&nbsp;:field
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                032&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:class-name&nbsp;class-name
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                033&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:field-name&nbsp;field-name
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                034&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:static?&nbsp;(Modifier&#x2F;isStatic&nbsp;(.getModifiers&nbsp;field))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                035&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:field-type&nbsp;(.getType&nbsp;field)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                036&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:declaring-class&nbsp;(.getDeclaringClass&nbsp;field)})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                037&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                038&nbsp;&nbsp;(defn-&nbsp;constructor-meta
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                039&nbsp;&nbsp;&nbsp;&nbsp;[class-name&nbsp;^Constructor&nbsp;ctor]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                040&nbsp;&nbsp;&nbsp;&nbsp;{:kind&nbsp;:constructor
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                041&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:class-name&nbsp;class-name
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                042&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:parameter-types&nbsp;(vec&nbsp;(.getParameterTypes&nbsp;ctor))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                043&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:declaring-class&nbsp;(.getDeclaringClass&nbsp;ctor)})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                044&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                045&nbsp;&nbsp;(defn&nbsp;resolve-constructor
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                046&nbsp;&nbsp;&nbsp;&nbsp;[class-name&nbsp;arg-types]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                047&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[klass&nbsp;(load-class&nbsp;class-name)]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                048&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(some&nbsp;(fn&nbsp;[^Constructor&nbsp;ctor]
+                </span><br/>
+<span class="covered" title="12 out of 12 forms covered">
+                049&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when&nbsp;(and&nbsp;(=&nbsp;(count&nbsp;arg-types)&nbsp;(alength&nbsp;(.getParameterTypes&nbsp;ctor)))
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                050&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(every?&nbsp;true?&nbsp;(map&nbsp;=&nbsp;arg-types&nbsp;(.getParameterTypes&nbsp;ctor))))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                051&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(constructor-meta&nbsp;class-name&nbsp;ctor)))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                052&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.getConstructors&nbsp;klass))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                053&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                054&nbsp;&nbsp;(defn&nbsp;resolve-static-method
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                055&nbsp;&nbsp;&nbsp;&nbsp;[class-name&nbsp;member-id&nbsp;signature]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                056&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[klass&nbsp;(load-class&nbsp;class-name)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                057&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:keys&nbsp;[params&nbsp;return-type]}&nbsp;(signature-types&nbsp;signature)]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                058&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(some&nbsp;(fn&nbsp;[^Method&nbsp;method]
+                </span><br/>
+<span class="partial" title="23 out of 24 forms covered">
+                059&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when&nbsp;(and&nbsp;(=&nbsp;(name&nbsp;member-id)&nbsp;(.getName&nbsp;method))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                060&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Modifier&#x2F;isStatic&nbsp;(.getModifiers&nbsp;method))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                061&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(=&nbsp;(count&nbsp;params)&nbsp;(alength&nbsp;(.getParameterTypes&nbsp;method)))
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                062&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(every?&nbsp;true?&nbsp;(map&nbsp;=&nbsp;params&nbsp;(.getParameterTypes&nbsp;method)))
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                063&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(=&nbsp;return-type&nbsp;(.getReturnType&nbsp;method)))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                064&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(method-meta&nbsp;class-name&nbsp;method&nbsp;member-id)))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                065&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.getMethods&nbsp;klass))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                066&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                067&nbsp;&nbsp;(defn&nbsp;resolve-instance-method
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                068&nbsp;&nbsp;&nbsp;&nbsp;[receiver-type&nbsp;member-id&nbsp;signature]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                069&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[klass&nbsp;(java-types&#x2F;resolve-type&nbsp;receiver-type)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                070&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;class-name&nbsp;(second&nbsp;receiver-type)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                071&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:keys&nbsp;[params&nbsp;return-type]}&nbsp;(signature-types&nbsp;signature)]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                072&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(some&nbsp;(fn&nbsp;[^Method&nbsp;method]
+                </span><br/>
+<span class="partial" title="23 out of 24 forms covered">
+                073&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when&nbsp;(and&nbsp;(=&nbsp;(name&nbsp;member-id)&nbsp;(.getName&nbsp;method))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                074&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(not&nbsp;(Modifier&#x2F;isStatic&nbsp;(.getModifiers&nbsp;method)))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                075&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(=&nbsp;(count&nbsp;params)&nbsp;(alength&nbsp;(.getParameterTypes&nbsp;method)))
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                076&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(every?&nbsp;true?&nbsp;(map&nbsp;=&nbsp;params&nbsp;(.getParameterTypes&nbsp;method)))
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                077&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(=&nbsp;return-type&nbsp;(.getReturnType&nbsp;method)))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                078&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(method-meta&nbsp;class-name&nbsp;method&nbsp;member-id)))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                079&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.getMethods&nbsp;klass))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                080&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                081&nbsp;&nbsp;(defn&nbsp;resolve-instance-field
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                082&nbsp;&nbsp;&nbsp;&nbsp;[receiver-type&nbsp;field-name&nbsp;field-type]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                083&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[klass&nbsp;(java-types&#x2F;resolve-type&nbsp;receiver-type)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                084&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;class-name&nbsp;(second&nbsp;receiver-type)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                085&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;resolved-type&nbsp;(java-types&#x2F;resolve-type&nbsp;field-type)]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                086&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(some&nbsp;(fn&nbsp;[^Field&nbsp;field]
+                </span><br/>
+<span class="partial" title="15 out of 16 forms covered">
+                087&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when&nbsp;(and&nbsp;(=&nbsp;(name&nbsp;field-name)&nbsp;(.getName&nbsp;field))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                088&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(not&nbsp;(Modifier&#x2F;isStatic&nbsp;(.getModifiers&nbsp;field)))
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                089&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(=&nbsp;resolved-type&nbsp;(.getType&nbsp;field)))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                090&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(field-meta&nbsp;class-name&nbsp;field&nbsp;field-name)))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                091&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.getFields&nbsp;klass))))
+                </span><br/>
+ </body>
+</html>

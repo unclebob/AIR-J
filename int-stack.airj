@@ -1,0 +1,57 @@
+(module example/int-stack
+  (imports
+    (airj core/list cons empty head is-empty tail)
+    (airj core/result Err Ok))
+  (export
+    PopResult
+    Stack
+    empty-stack
+    is-empty-stack
+    peek
+    pop
+    push)
+  (data Stack
+    (field items (List Int)))
+  (union PopResult
+    (variant Empty)
+    (variant Popped
+      (field value Int)
+      (field rest Stack)))
+  (fn empty-stack
+    (params ())
+    (returns Stack)
+    (effects ())
+    (construct Stack (call (local empty) )))
+  (fn is-empty-stack
+    (params (stack Stack))
+    (returns Bool)
+    (effects ())
+    (call (local is-empty) (record-get (local stack) items)))
+  (fn push
+    (params (stack Stack) (value Int))
+    (returns Stack)
+    (effects ())
+    (construct Stack
+      (call
+        (local cons)
+        (local value)
+        (record-get (local stack) items))))
+  (fn peek
+    (params (stack Stack))
+    (returns (Result Int String))
+    (effects ())
+    (if
+      (call (local is-empty) (record-get (local stack) items))
+      (call (local Err) "empty-stack")
+      (call (local Ok) (call (local head) (record-get (local stack) items)))))
+  (fn pop
+    (params (stack Stack))
+    (returns PopResult)
+    (effects ())
+    (if
+      (call (local is-empty) (record-get (local stack) items))
+      (variant PopResult Empty)
+      (variant PopResult Popped
+        (call (local head) (record-get (local stack) items))
+        (construct Stack
+          (call (local tail) (record-get (local stack) items)))))))

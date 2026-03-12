@@ -1,0 +1,329 @@
+<html>
+ <head>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <link rel="stylesheet" href="../coverage.css"/>  <title> airj/patterns.clj </title>
+ </head>
+ <body>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                001&nbsp;&nbsp;;;&nbsp;mutation-tested:&nbsp;2026-03-11
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                002&nbsp;&nbsp;(ns&nbsp;airj.patterns)
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                003&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                004&nbsp;&nbsp;(declare&nbsp;bind-pattern)
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                005&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                006&nbsp;&nbsp;(defn&nbsp;decl-for-type
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                007&nbsp;&nbsp;&nbsp;&nbsp;[decls&nbsp;type-expr]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                008&nbsp;&nbsp;&nbsp;&nbsp;(get&nbsp;decls&nbsp;type-expr))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                009&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                010&nbsp;&nbsp;(defn&nbsp;field-type
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                011&nbsp;&nbsp;&nbsp;&nbsp;[decl&nbsp;field-name]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                012&nbsp;&nbsp;&nbsp;&nbsp;(some&nbsp;(fn&nbsp;[field]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                013&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when&nbsp;(=&nbsp;field-name&nbsp;(:name&nbsp;field))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                014&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:type&nbsp;field)))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                015&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:fields&nbsp;decl)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                016&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                017&nbsp;&nbsp;(defn&nbsp;union-variant
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                018&nbsp;&nbsp;&nbsp;&nbsp;[decl&nbsp;variant-name]
+                </span><br/>
+<span class="covered" title="14 out of 14 forms covered">
+                019&nbsp;&nbsp;&nbsp;&nbsp;(some&nbsp;#(when&nbsp;(=&nbsp;(:name&nbsp;%)&nbsp;variant-name)&nbsp;%)&nbsp;(:variants&nbsp;decl)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                020&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                021&nbsp;&nbsp;(defn&nbsp;enum-variant?
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                022&nbsp;&nbsp;&nbsp;&nbsp;[decl&nbsp;variant-name]
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                023&nbsp;&nbsp;&nbsp;&nbsp;(boolean&nbsp;(some&nbsp;#{variant-name}&nbsp;(:variants&nbsp;decl))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                024&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                025&nbsp;&nbsp;(defn&nbsp;enum-pattern?
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                026&nbsp;&nbsp;&nbsp;&nbsp;[pattern&nbsp;target-type&nbsp;decls]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                027&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[decl&nbsp;(decl-for-type&nbsp;decls&nbsp;target-type)]
+                </span><br/>
+<span class="partial" title="13 out of 14 forms covered">
+                028&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(and&nbsp;(=&nbsp;:binder-pattern&nbsp;(:op&nbsp;pattern))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                029&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(=&nbsp;:enum&nbsp;(:op&nbsp;decl))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                030&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(enum-variant?&nbsp;decl&nbsp;(:name&nbsp;pattern)))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                031&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                032&nbsp;&nbsp;(defn-&nbsp;options
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                033&nbsp;&nbsp;&nbsp;&nbsp;[bind-binder&nbsp;bind-literal&nbsp;fail!]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                034&nbsp;&nbsp;&nbsp;&nbsp;{:bind-binder&nbsp;bind-binder
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                035&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:bind-literal&nbsp;bind-literal
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                036&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:fail!&nbsp;fail!})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                037&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                038&nbsp;&nbsp;(defn-&nbsp;bind-union-pattern
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                039&nbsp;&nbsp;&nbsp;&nbsp;[ctx&nbsp;pattern&nbsp;target-type&nbsp;decls&nbsp;opts]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                040&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[decl&nbsp;(decl-for-type&nbsp;decls&nbsp;target-type)]
+                </span><br/>
+<span class="partial" title="7 out of 8 forms covered">
+                041&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when-not&nbsp;(=&nbsp;:union&nbsp;(:op&nbsp;decl))
+                </span><br/>
+<span class="not-covered" title="0 out of 5 forms covered">
+                042&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((:fail!&nbsp;opts)&nbsp;&quot;Expected&nbsp;union&nbsp;type.&quot;
+                </span><br/>
+<span class="not-covered" title="0 out of 4 forms covered">
+                043&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:pattern&nbsp;pattern
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                044&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:type&nbsp;target-type}))
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                045&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[variant&nbsp;(union-variant&nbsp;decl&nbsp;(:name&nbsp;pattern))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                046&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;expected-count&nbsp;(count&nbsp;(:fields&nbsp;variant))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                047&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;actual-count&nbsp;(count&nbsp;(:args&nbsp;pattern))]
+                </span><br/>
+<span class="partial" title="3 out of 4 forms covered">
+                048&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when-not&nbsp;variant
+                </span><br/>
+<span class="not-covered" title="0 out of 5 forms covered">
+                049&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((:fail!&nbsp;opts)&nbsp;&quot;Unknown&nbsp;variant.&quot;
+                </span><br/>
+<span class="not-covered" title="0 out of 4 forms covered">
+                050&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:pattern&nbsp;pattern
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                051&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:type&nbsp;target-type}))
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                052&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when-not&nbsp;(=&nbsp;expected-count&nbsp;actual-count)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                053&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((:fail!&nbsp;opts)&nbsp;&quot;Arity&nbsp;mismatch.&quot;
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                054&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:pattern&nbsp;pattern
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                055&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:type&nbsp;target-type
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                056&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:expected&nbsp;expected-count
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                057&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:actual&nbsp;actual-count}))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                058&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(reduce&nbsp;(fn&nbsp;[acc&nbsp;[field&nbsp;nested-pattern]]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                059&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(bind-pattern&nbsp;acc
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                060&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nested-pattern
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                061&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:type&nbsp;field)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                062&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;decls
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                063&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;opts))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                064&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                065&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(map&nbsp;vector&nbsp;(:fields&nbsp;variant)&nbsp;(:args&nbsp;pattern))))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                066&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                067&nbsp;&nbsp;(defn-&nbsp;bind-record-field
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                068&nbsp;&nbsp;&nbsp;&nbsp;[ctx&nbsp;record-decl&nbsp;field-pattern&nbsp;decls&nbsp;opts&nbsp;target-type]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                069&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[matched-type&nbsp;(field-type&nbsp;record-decl&nbsp;(:name&nbsp;field-pattern))]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                070&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when-not&nbsp;matched-type
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                071&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((:fail!&nbsp;opts)&nbsp;&quot;Unknown&nbsp;field.&quot;
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                072&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:type&nbsp;target-type
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                073&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:field&nbsp;(:name&nbsp;field-pattern)}))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                074&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(bind-pattern&nbsp;ctx
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                075&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:pattern&nbsp;field-pattern)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                076&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;matched-type
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                077&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;decls
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                078&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;opts)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                079&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                080&nbsp;&nbsp;(defn-&nbsp;bind-record-pattern
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                081&nbsp;&nbsp;&nbsp;&nbsp;[ctx&nbsp;pattern&nbsp;target-type&nbsp;decls&nbsp;opts]
+                </span><br/>
+<span class="partial" title="7 out of 8 forms covered">
+                082&nbsp;&nbsp;&nbsp;&nbsp;(when-not&nbsp;(=&nbsp;(:type&nbsp;pattern)&nbsp;target-type)
+                </span><br/>
+<span class="not-covered" title="0 out of 5 forms covered">
+                083&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((:fail!&nbsp;opts)&nbsp;&quot;Type&nbsp;mismatch.&quot;
+                </span><br/>
+<span class="not-covered" title="0 out of 5 forms covered">
+                084&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:pattern&nbsp;pattern
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                085&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:expected&nbsp;target-type
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                086&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:actual&nbsp;(:type&nbsp;pattern)}))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                087&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[record-decl&nbsp;(decl-for-type&nbsp;decls&nbsp;target-type)]
+                </span><br/>
+<span class="partial" title="7 out of 8 forms covered">
+                088&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when-not&nbsp;(=&nbsp;:data&nbsp;(:op&nbsp;record-decl))
+                </span><br/>
+<span class="not-covered" title="0 out of 5 forms covered">
+                089&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((:fail!&nbsp;opts)&nbsp;&quot;Expected&nbsp;record&nbsp;type.&quot;
+                </span><br/>
+<span class="not-covered" title="0 out of 4 forms covered">
+                090&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:pattern&nbsp;pattern
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                091&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:type&nbsp;target-type}))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                092&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(reduce&nbsp;(fn&nbsp;[acc&nbsp;field-pattern]
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                093&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(bind-record-field&nbsp;acc&nbsp;record-decl&nbsp;field-pattern&nbsp;decls&nbsp;opts&nbsp;target-type))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                094&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                095&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:fields&nbsp;pattern))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                096&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                097&nbsp;&nbsp;(defn&nbsp;bind-pattern
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                098&nbsp;&nbsp;&nbsp;&nbsp;[ctx&nbsp;pattern&nbsp;target-type&nbsp;decls&nbsp;{:keys&nbsp;[bind-binder&nbsp;bind-literal&nbsp;fail!]}]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                099&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[opts&nbsp;(options&nbsp;bind-binder&nbsp;bind-literal&nbsp;fail!)]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                100&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(case&nbsp;(:op&nbsp;pattern)
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                101&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:wildcard-pattern&nbsp;ctx
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                102&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:literal-pattern&nbsp;(bind-literal&nbsp;ctx&nbsp;pattern&nbsp;target-type)
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                103&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:binder-pattern&nbsp;(bind-binder&nbsp;ctx&nbsp;pattern&nbsp;target-type&nbsp;decls)
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                104&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:union-pattern&nbsp;(bind-union-pattern&nbsp;ctx&nbsp;pattern&nbsp;target-type&nbsp;decls&nbsp;opts)
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                105&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:record-pattern&nbsp;(bind-record-pattern&nbsp;ctx&nbsp;pattern&nbsp;target-type&nbsp;decls&nbsp;opts)
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                106&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fail!&nbsp;&quot;Unsupported&nbsp;pattern.&quot;
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                107&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:pattern&nbsp;pattern}))))
+                </span><br/>
+ </body>
+</html>

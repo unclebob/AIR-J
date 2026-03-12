@@ -1,0 +1,341 @@
+<html>
+ <head>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <link rel="stylesheet" href="../coverage.css"/>  <title> airj/jvm_emit_try.clj </title>
+ </head>
+ <body>
+<span class="covered" title="1 out of 1 forms covered">
+                001&nbsp;&nbsp;(ns&nbsp;airj.jvm-emit-try
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                002&nbsp;&nbsp;&nbsp;&nbsp;(:import&nbsp;(clojure.asm&nbsp;Label&nbsp;MethodVisitor&nbsp;Opcodes)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                003&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                004&nbsp;&nbsp;(defn-&nbsp;try-layout
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                005&nbsp;&nbsp;&nbsp;&nbsp;[expr&nbsp;env&nbsp;temp-slot]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                006&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[result-needed?&nbsp;(not=&nbsp;:void&nbsp;(:jvm-type&nbsp;expr))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                007&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;result-slot&nbsp;(when&nbsp;result-needed?
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                008&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(temp-slot&nbsp;env&nbsp;(:jvm-type&nbsp;expr)))
+                </span><br/>
+<span class="partial" title="7 out of 8 forms covered">
+                009&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;env-after-result&nbsp;(or&nbsp;(:env&nbsp;result-slot)&nbsp;env)
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                010&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throwable-slot&nbsp;(when&nbsp;(:finally&nbsp;expr)
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                011&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(temp-slot&nbsp;env-after-result&nbsp;&quot;java&#x2F;lang&#x2F;Throwable&quot;))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                012&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;catch-count&nbsp;(count&nbsp;(:catches&nbsp;expr))]
+                </span><br/>
+<span class="covered" title="11 out of 11 forms covered">
+                013&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:start-label&nbsp;(Label.)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                014&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:end-label&nbsp;(Label.)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                015&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:done-label&nbsp;(Label.)
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                016&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:finally-label&nbsp;(when&nbsp;(:finally&nbsp;expr)&nbsp;(Label.))
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                017&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:catch-labels&nbsp;(vec&nbsp;(repeatedly&nbsp;catch-count&nbsp;#(Label.)))
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                018&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:catch-ranges&nbsp;(vec&nbsp;(repeatedly&nbsp;catch-count
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                019&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#(when&nbsp;(:finally&nbsp;expr)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                020&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[(Label.)&nbsp;(Label.)])))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                021&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:result-slot&nbsp;result-slot
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                022&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:throwable-slot&nbsp;throwable-slot
+                </span><br/>
+<span class="partial" title="7 out of 13 forms covered">
+                023&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:base-env&nbsp;(or&nbsp;(:env&nbsp;throwable-slot)&nbsp;env-after-result&nbsp;env)}))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                024&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                025&nbsp;&nbsp;(defn-&nbsp;emit-try-registrations
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                026&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;{:keys&nbsp;[start-label&nbsp;end-label&nbsp;finally-label&nbsp;catch-labels&nbsp;catch-ranges]}]
+                </span><br/>
+<span class="partial" title="32 out of 37 forms covered">
+                027&nbsp;&nbsp;&nbsp;&nbsp;(doseq&nbsp;[[handler&nbsp;catch-clause]&nbsp;(map&nbsp;vector&nbsp;catch-labels&nbsp;(:catches&nbsp;expr))]
+                </span><br/>
+<span class="partial" title="7 out of 14 forms covered">
+                028&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitTryCatchBlock&nbsp;mv&nbsp;start-label&nbsp;end-label&nbsp;handler&nbsp;(:type&nbsp;catch-clause)))
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                029&nbsp;&nbsp;&nbsp;&nbsp;(when&nbsp;finally-label
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                030&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitTryCatchBlock&nbsp;mv&nbsp;start-label&nbsp;end-label&nbsp;finally-label&nbsp;nil)
+                </span><br/>
+<span class="partial" title="26 out of 31 forms covered">
+                031&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(doseq&nbsp;[[catch-start&nbsp;catch-end]&nbsp;catch-ranges]
+                </span><br/>
+<span class="partial" title="5 out of 10 forms covered">
+                032&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitTryCatchBlock&nbsp;mv&nbsp;catch-start&nbsp;catch-end&nbsp;finally-label&nbsp;nil))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                033&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                034&nbsp;&nbsp;(defn-&nbsp;emit-result-store
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                035&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;result-slot&nbsp;jvm-type&nbsp;store-opcode]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                036&nbsp;&nbsp;&nbsp;&nbsp;(when&nbsp;result-slot
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                037&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitVarInsn&nbsp;mv&nbsp;(store-opcode&nbsp;jvm-type)&nbsp;(:slot&nbsp;result-slot))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                038&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                039&nbsp;&nbsp;(defn-&nbsp;emit-result-load
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                040&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;result-slot&nbsp;jvm-type&nbsp;load-opcode]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                041&nbsp;&nbsp;&nbsp;&nbsp;(when&nbsp;result-slot
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                042&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitVarInsn&nbsp;mv&nbsp;(load-opcode&nbsp;jvm-type)&nbsp;(:slot&nbsp;result-slot))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                043&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                044&nbsp;&nbsp;(defn-&nbsp;catch-env
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                045&nbsp;&nbsp;&nbsp;&nbsp;[base-env&nbsp;catch-clause&nbsp;throwable-slot]
+                </span><br/>
+<span class="partial" title="8 out of 10 forms covered">
+                046&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[slot-index&nbsp;(or&nbsp;(:slot&nbsp;throwable-slot)
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                047&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:next-slot&nbsp;base-env))
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                048&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;env-with-slot&nbsp;(if&nbsp;throwable-slot
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                049&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;base-env
+                </span><br/>
+<span class="not-covered" title="0 out of 5 forms covered">
+                050&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(update&nbsp;base-env&nbsp;:next-slot&nbsp;inc))]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                051&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:slot-index&nbsp;slot-index
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                052&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:env&nbsp;(assoc-in&nbsp;env-with-slot
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                053&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[:slots&nbsp;(:name&nbsp;catch-clause)]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                054&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:slot&nbsp;slot-index
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                055&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:jvm-type&nbsp;(:type&nbsp;catch-clause)})}))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                056&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                057&nbsp;&nbsp;(defn-&nbsp;emit-try-success
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                058&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;layout&nbsp;tools]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                059&nbsp;&nbsp;&nbsp;&nbsp;(.visitLabel&nbsp;mv&nbsp;(:start-label&nbsp;layout))
+                </span><br/>
+<span class="covered" title="11 out of 11 forms covered">
+                060&nbsp;&nbsp;&nbsp;&nbsp;((:emit-expr&nbsp;tools)&nbsp;mv&nbsp;(:body&nbsp;expr)&nbsp;(:base-env&nbsp;layout))
+                </span><br/>
+<span class="covered" title="12 out of 12 forms covered">
+                061&nbsp;&nbsp;&nbsp;&nbsp;(emit-result-store&nbsp;mv&nbsp;(:result-slot&nbsp;layout)&nbsp;(:jvm-type&nbsp;expr)&nbsp;(:store-opcode&nbsp;tools))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                062&nbsp;&nbsp;&nbsp;&nbsp;(.visitLabel&nbsp;mv&nbsp;(:end-label&nbsp;layout))
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                063&nbsp;&nbsp;&nbsp;&nbsp;(when-let&nbsp;[finally-expr&nbsp;(:finally&nbsp;expr)]
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                064&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((:emit-discarded&nbsp;tools)&nbsp;mv&nbsp;finally-expr&nbsp;(:base-env&nbsp;layout)))
+                </span><br/>
+<span class="covered" title="12 out of 12 forms covered">
+                065&nbsp;&nbsp;&nbsp;&nbsp;(emit-result-load&nbsp;mv&nbsp;(:result-slot&nbsp;layout)&nbsp;(:jvm-type&nbsp;expr)&nbsp;(:load-opcode&nbsp;tools))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                066&nbsp;&nbsp;&nbsp;&nbsp;(.visitJumpInsn&nbsp;mv&nbsp;Opcodes&#x2F;GOTO&nbsp;(:done-label&nbsp;layout)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                067&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                068&nbsp;&nbsp;(defn-&nbsp;emit-try-catch
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                069&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;layout&nbsp;catch-clause&nbsp;handler-label&nbsp;catch-range&nbsp;tools]
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                070&nbsp;&nbsp;&nbsp;&nbsp;(.visitLabel&nbsp;mv&nbsp;handler-label)
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                071&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[{:keys&nbsp;[slot-index&nbsp;env]}&nbsp;(catch-env&nbsp;(:base-env&nbsp;layout)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                072&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;catch-clause
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                073&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:throwable-slot&nbsp;layout))]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                074&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitVarInsn&nbsp;mv&nbsp;Opcodes&#x2F;ASTORE&nbsp;slot-index)
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                075&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when-let&nbsp;[[catch-start&nbsp;_]&nbsp;catch-range]
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                076&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitLabel&nbsp;mv&nbsp;catch-start))
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                077&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((:emit-expr&nbsp;tools)&nbsp;mv&nbsp;(:body&nbsp;catch-clause)&nbsp;env)
+                </span><br/>
+<span class="covered" title="12 out of 12 forms covered">
+                078&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-result-store&nbsp;mv&nbsp;(:result-slot&nbsp;layout)&nbsp;(:jvm-type&nbsp;expr)&nbsp;(:store-opcode&nbsp;tools))
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                079&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when-let&nbsp;[[_&nbsp;catch-end]&nbsp;catch-range]
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                080&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitLabel&nbsp;mv&nbsp;catch-end))
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                081&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when-let&nbsp;[finally-expr&nbsp;(:finally&nbsp;expr)]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                082&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((:emit-discarded&nbsp;tools)&nbsp;mv&nbsp;finally-expr&nbsp;env))
+                </span><br/>
+<span class="covered" title="12 out of 12 forms covered">
+                083&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-result-load&nbsp;mv&nbsp;(:result-slot&nbsp;layout)&nbsp;(:jvm-type&nbsp;expr)&nbsp;(:load-opcode&nbsp;tools))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                084&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitJumpInsn&nbsp;mv&nbsp;Opcodes&#x2F;GOTO&nbsp;(:done-label&nbsp;layout))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                085&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                086&nbsp;&nbsp;(defn-&nbsp;emit-try-finally-handler
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                087&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;layout&nbsp;tools]
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                088&nbsp;&nbsp;&nbsp;&nbsp;(when-let&nbsp;[finally-expr&nbsp;(:finally&nbsp;expr)]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                089&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitLabel&nbsp;mv&nbsp;(:finally-label&nbsp;layout))
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                090&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitVarInsn&nbsp;mv&nbsp;Opcodes&#x2F;ASTORE&nbsp;(:slot&nbsp;(:throwable-slot&nbsp;layout)))
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                091&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((:emit-discarded&nbsp;tools)&nbsp;mv&nbsp;finally-expr&nbsp;(:base-env&nbsp;layout))
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                092&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitVarInsn&nbsp;mv&nbsp;Opcodes&#x2F;ALOAD&nbsp;(:slot&nbsp;(:throwable-slot&nbsp;layout)))
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                093&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitInsn&nbsp;mv&nbsp;Opcodes&#x2F;ATHROW)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                094&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                095&nbsp;&nbsp;(defn&nbsp;emit-try
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                096&nbsp;&nbsp;&nbsp;&nbsp;[^MethodVisitor&nbsp;mv&nbsp;expr&nbsp;env&nbsp;tools]
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                097&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[layout&nbsp;(try-layout&nbsp;expr&nbsp;env&nbsp;(:temp-slot&nbsp;tools))]
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                098&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-try-registrations&nbsp;mv&nbsp;expr&nbsp;layout)
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                099&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-try-success&nbsp;mv&nbsp;expr&nbsp;layout&nbsp;tools)
+                </span><br/>
+<span class="partial" title="25 out of 30 forms covered">
+                100&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(doseq&nbsp;[[catch-clause&nbsp;handler-label&nbsp;catch-range]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                101&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(map&nbsp;vector
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                102&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:catches&nbsp;expr)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                103&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:catch-labels&nbsp;layout)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                104&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:catch-ranges&nbsp;layout))]
+                </span><br/>
+<span class="partial" title="9 out of 18 forms covered">
+                105&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-try-catch&nbsp;mv&nbsp;expr&nbsp;layout&nbsp;catch-clause&nbsp;handler-label&nbsp;catch-range&nbsp;tools))
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                106&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(emit-try-finally-handler&nbsp;mv&nbsp;expr&nbsp;layout&nbsp;tools)
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                107&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.visitLabel&nbsp;mv&nbsp;(:done-label&nbsp;layout))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                108&nbsp;&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                109&nbsp;&nbsp;;;&nbsp;clj-mutate-manifest-begin
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                110&nbsp;&nbsp;;;&nbsp;{:version&nbsp;1,&nbsp;:tested-at&nbsp;&quot;2026-03-12T10:22:10.984689-05:00&quot;,&nbsp;:module-hash&nbsp;&quot;-1033971699&quot;,&nbsp;:forms&nbsp;[{:id&nbsp;&quot;form&#x2F;0&#x2F;ns&quot;,&nbsp;:kind&nbsp;&quot;ns&quot;,&nbsp;:line&nbsp;1,&nbsp;:end-line&nbsp;2,&nbsp;:hash&nbsp;&quot;1679852136&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;try-layout&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;4,&nbsp;:end-line&nbsp;23,&nbsp;:hash&nbsp;&quot;21833502&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-try-registrations&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;25,&nbsp;:end-line&nbsp;32,&nbsp;:hash&nbsp;&quot;-1993258922&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-result-store&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;34,&nbsp;:end-line&nbsp;37,&nbsp;:hash&nbsp;&quot;-1701649778&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-result-load&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;39,&nbsp;:end-line&nbsp;42,&nbsp;:hash&nbsp;&quot;201184486&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;catch-env&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;44,&nbsp;:end-line&nbsp;55,&nbsp;:hash&nbsp;&quot;1751921815&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-try-success&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;57,&nbsp;:end-line&nbsp;66,&nbsp;:hash&nbsp;&quot;1875174106&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-try-catch&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;68,&nbsp;:end-line&nbsp;84,&nbsp;:hash&nbsp;&quot;-667113241&quot;}&nbsp;{:id&nbsp;&quot;defn-&#x2F;emit-try-finally-handler&quot;,&nbsp;:kind&nbsp;&quot;defn-&quot;,&nbsp;:line&nbsp;86,&nbsp;:end-line&nbsp;93,&nbsp;:hash&nbsp;&quot;-1070537968&quot;}&nbsp;{:id&nbsp;&quot;defn&#x2F;emit-try&quot;,&nbsp;:kind&nbsp;&quot;defn&quot;,&nbsp;:line&nbsp;95,&nbsp;:end-line&nbsp;107,&nbsp;:hash&nbsp;&quot;1018454071&quot;}]}
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                111&nbsp;&nbsp;;;&nbsp;clj-mutate-manifest-end
+                </span><br/>
+ </body>
+</html>

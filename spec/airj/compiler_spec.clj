@@ -1,0 +1,739 @@
+(ns airj.compiler-spec
+  (:require [airj.compiler :as sut]
+            [clojure.java.io :as io]
+            [speclj.core :refer :all]))
+
+(defn- define-class
+  [class-name bytecode]
+  (let [loader (clojure.lang.DynamicClassLoader.)]
+    (.defineClass loader class-name bytecode nil)))
+
+(defn- binary-name
+  [internal-name]
+  (.replace ^String internal-name \/ \.))
+
+(defn- define-classes
+  [bytecode-map]
+  (let [loader (clojure.lang.DynamicClassLoader.)]
+    (into {}
+          (map (fn [[internal-name bytecode]]
+                 [internal-name
+                  (.defineClass loader (binary-name internal-name) bytecode nil)]))
+          (sort-by key bytecode-map))))
+
+(defn- load-class-from-dir
+  [output-dir class-name]
+  (let [url (.toURL (.toURI (io/file output-dir)))
+        loader (java.net.URLClassLoader.
+                (into-array java.net.URL [url]))]
+    (.loadClass loader class-name)))
+
+(defn- java-command
+  []
+  (str (System/getProperty "java.home")
+       java.io.File/separator
+       "bin"
+       java.io.File/separator
+       "java"))
+
+(defn- run-main-process
+  [output-dir class-name & args]
+  (let [process (.start (ProcessBuilder.
+                         (into-array String
+                                     (concat [(java-command) "-cp" output-dir class-name]
+                                             args))))]
+    (.waitFor process)))
+
+(describe "compiler"
+  (it "compiles AIR-J source into executable module class bytes"
+    (let [source "(module example/build
+                    (imports)
+                    (export forty-two)
+                    (fn forty-two
+                      (params)
+                      (returns Int)
+                      (effects ())
+                      (requires true)
+                      (ensures true)
+                      42))"
+          bundle (sut/compile-source source)
+          klass (define-class "example.build" (get bundle "example/build"))
+          method (.getMethod klass "forty_two" (into-array Class []))]
+      (should= #{"example/build"} (set (keys bundle)))
+      (should= 42 (.invoke method nil (object-array [])))))
+
+  (it "compiles AIR-J source with Java static calls into executable bytes"
+    (let [source "(module example/java-abs
+                    (imports
+                      (java java.lang.Math))
+                    (export abs)
+                    (fn abs
+                      (params (value Int))
+                      (returns Int)
+                      (effects (Foreign.Throw))
+                      (requires true)
+                      (ensures true)
+          (java/static-call
+                        java.lang.Math
+                        abs
+                        (signature (Int) Int)
+                        (local value))))"
+          bundle (sut/compile-source source)
+          klass (define-class "example.java-abs" (get bundle "example/java-abs"))
+          method (.getMethod klass "abs" (into-array Class [Integer/TYPE]))]
+      (should= 4 (.invoke method nil (object-array [(int -4)])))))
+
+  (it "compiles AIR-J source with simple conditionals into executable bytes"
+    (let [source "(module example/choose
+                    (imports)
+                    (export choose)
+                    (fn choose
+                      (params (flag Bool))
+                      (returns Int)
+                      (effects ())
+                      (requires true)
+                      (ensures true)
+                      (if
+                        (local flag)
+                        1
+                        0)))"
+          bundle (sut/compile-source source)
+          klass (define-class "example.choose" (get bundle "example/choose"))
+          method (.getMethod klass "choose" (into-array Class [Boolean/TYPE]))]
+      (should= 1 (.invoke method nil (object-array [true])))
+      (should= 0 (.invoke method nil (object-array [false])))))
+
+  (it "writes compiled class files to disk"
+    (let [source "(module example/write
+                    (imports)
+                    (export forty-two)
+                    (fn forty-two
+                      (params)
+                      (returns Int)
+                      (effects ())
+                      (requires true)
+                      (ensures true)
+                      42))"
+          output-dir (.toString (java.nio.file.Files/createTempDirectory "airj-classes"
+                                                                         (make-array java.nio.file.attribute.FileAttribute 0)))
+          written (sut/build-source! source output-dir)
+          class-file (io/file output-dir "example/write.class")]
+      (should= (.getPath class-file) (get written "example/write"))
+      (should (.exists class-file))
+      (should (< 0 (.length class-file)))))
+
+  (it "loads emitted class files from disk and executes them"
+    (let [source "(module example/on-disk
+                    (imports)
+                    (export forty-two)
+                    (fn forty-two
+                      (params)
+                      (returns Int)
+                      (effects ())
+                      (requires true)
+                      (ensures true)
+                      42))"
+          output-dir (.toString (java.nio.file.Files/createTempDirectory "airj-on-disk"
+                                                                         (make-array java.nio.file.attribute.FileAttribute 0)))
+          _ (sut/build-source! source output-dir)
+          klass (load-class-from-dir output-dir "example.on-disk")
+          method (.getMethod klass "forty_two" (into-array Class []))]
+      (should= 42 (.invoke method nil (object-array [])))))
+
+  (it "extracts exported checked module interfaces from source"
+    (let [source "(module example/interface
+                    (imports
+                      (airj alpha/math add))
+                    (export Result main)
+                    (union Result
+                      (variant Ok
+                        (field value Int))
+                      (variant Err))
+                    (fn main
+                      (params)
+                      (returns Int)
+                      (effects ())
+                      (requires true)
+                      (ensures true)
+                      0)
+                    (fn helper
+                      (params)
+                      (returns Int)
+                      (effects ())
+                      (requires true)
+                      (ensures true)
+                      1))"]
+      (should= {:name 'example/interface
+                :imports [{:op :airj-import
+                           :module 'alpha/math
+                           :symbols ['add]}]
+                :exports ['Result 'main]
+                :decls [{:op :union
+                         :name 'Result
+                         :type-params []
+                         :variants [{:name 'Ok
+                                     :fields [{:name 'value
+                                               :type 'Int}]}
+                                    {:name 'Err
+                                     :fields []}]}
+                        {:op :fn
+                         :name 'main
+                         :params []
+                         :return-type 'Int
+                         :effects []}]}
+               (sut/interface-source source))))
+
+  (it "compiles source using explicit imported AIR-J interfaces"
+    (let [source "(module example/import-use
+                    (imports
+                      (airj alpha/math tick))
+                    (export program)
+                    (fn program
+                      (params)
+                      (returns Int)
+                      (effects (Clock.Read))
+                      (requires true)
+                      (ensures true)
+                      (call (local tick) 1)))"
+          interfaces {'alpha/math {:name 'alpha/math
+                                   :imports []
+                                   :exports ['tick]
+                                   :decls [{:op :fn
+                                            :name 'tick
+                                            :params [{:name 'x :type 'Int}]
+                                            :return-type 'Int
+                                            :effects ['Clock.Read]}]}}
+          bundle (sut/compile-source source {:interfaces interfaces})]
+      (should (contains? bundle "example/import-use"))))
+
+  (it "compiles source using imported AIR-J interface sources"
+    (let [source "(module example/import-use
+                    (imports
+                      (airj alpha/math tick))
+                    (export program)
+                    (fn program
+                      (params)
+                      (returns Int)
+                      (effects (Clock.Read))
+                      (requires true)
+                      (ensures true)
+                      (call (local tick) 1)))"
+          interface-sources {'alpha/math "(module alpha/math
+                                           (imports)
+                                           (export tick)
+                                           (fn tick
+                                             (params (x Int))
+                                             (returns Int)
+                                             (effects (Clock.Read))
+                                             (requires true)
+                                             (ensures true)
+                                             (local x)))"}
+          bundle (sut/compile-source source {:interface-sources interface-sources})]
+      (should (contains? bundle "example/import-use"))))
+
+  (it "compiles a root module using sibling project sources"
+    (let [project-sources {'alpha/math "(module alpha/math
+                                          (imports)
+                                          (export tick)
+                                          (fn tick
+                                            (params (x Int))
+                                            (returns Int)
+                                            (effects (Clock.Read))
+                                            (requires true)
+                                            (ensures true)
+                                            (local x)))"
+                           'example/use "(module example/use
+                                           (imports
+                                             (airj alpha/math tick))
+                                           (export program)
+                                           (fn program
+                                             (params)
+                                             (returns Int)
+                                             (effects (Clock.Read))
+                                             (requires true)
+                                             (ensures true)
+                                             (call (local tick) 1)))"}
+          bundle (sut/compile-project-source project-sources 'example/use)]
+      (should (contains? bundle "example/use"))))
+
+  (it "runs a root module using sibling project sources"
+    (let [project-sources {'alpha/math "(module alpha/math
+                                          (imports)
+                                          (export tick)
+                                          (fn tick
+                                            (params (x Int))
+                                            (returns Int)
+                                            (effects (Clock.Read))
+                                            (requires true)
+                                            (ensures true)
+                                            (local x)))"
+                           'example/use "(module example/use
+                                           (imports
+                                             (airj alpha/math tick))
+                                           (export main)
+                                           (fn main
+                                             (params)
+                                             (returns Int)
+                                             (effects (Clock.Read))
+                                             (requires true)
+                                             (ensures true)
+                                             (call (local tick) 1)))"}]
+      (should= 1
+               (sut/run-project-source! project-sources 'example/use []))))
+
+  (it "runs a root module from project sources without compiling unreachable broken modules"
+    (let [project-sources {'alpha/math "(module alpha/math
+                                          (imports)
+                                          (export tick)
+                                          (fn tick
+                                            (params (x Int))
+                                            (returns Int)
+                                            (effects ())
+                                            (requires true)
+                                            (ensures true)
+                                            (local x)))"
+                           'example/use "(module example/use
+                                           (imports
+                                             (airj alpha/math tick))
+                                           (export main)
+                                           (fn main
+                                             (params)
+                                             (returns Int)
+                                             (effects ())
+                                             (requires true)
+                                             (ensures true)
+                                             (call (local tick) 1)))"
+                           'broken/unused "(module broken/unused
+                                             (imports)
+                                             (export main)
+                                             (fn main
+                                               (params)
+                                               (returns Int)
+                                               (effects ())
+                                               (requires true)
+                                               (ensures true)
+                                               (local nope)))"}]
+      (should= 1
+               (sut/run-project-source! project-sources 'example/use []))))
+
+  (it "runs a root module using AIR-J project files on disk"
+    (let [project-dir (.toString (java.nio.file.Files/createTempDirectory "airj-project-dir"
+                                                                          (make-array java.nio.file.attribute.FileAttribute 0)))
+          _ (spit (io/file project-dir "math.airj")
+                  "(module alpha/math
+                     (imports)
+                     (export tick)
+                     (fn tick
+                       (params (x Int))
+                       (returns Int)
+                       (effects (Clock.Read))
+                       (requires true)
+                       (ensures true)
+                       (local x)))")
+          _ (spit (io/file project-dir "use.airj")
+                  "(module example/use
+                     (imports
+                       (airj alpha/math tick))
+                     (export main)
+                     (fn main
+                       (params)
+                       (returns Int)
+                       (effects (Clock.Read))
+                       (requires true)
+                       (ensures true)
+                       (call (local tick) 1)))")]
+      (should= 1
+               (sut/run-project-dir! project-dir 'example/use []))))
+
+  (it "runs a root module from project files without compiling unreachable broken modules"
+    (let [project-dir (.toString (java.nio.file.Files/createTempDirectory "airj-project-dir-pruned"
+                                                                          (make-array java.nio.file.attribute.FileAttribute 0)))
+          _ (spit (io/file project-dir "math.airj")
+                  "(module alpha/math
+                     (imports)
+                     (export tick)
+                     (fn tick
+                       (params (x Int))
+                       (returns Int)
+                       (effects ())
+                       (requires true)
+                       (ensures true)
+                       (local x)))")
+          _ (spit (io/file project-dir "use.airj")
+                  "(module example/use
+                     (imports
+                       (airj alpha/math tick))
+                     (export main)
+                     (fn main
+                       (params)
+                       (returns Int)
+                       (effects ())
+                       (requires true)
+                       (ensures true)
+                       (call (local tick) 1)))")
+          _ (spit (io/file project-dir "broken.airj")
+                  "(module broken/unused
+                     (imports)
+                     (export main)
+                     (fn main
+                       (params)
+                       (returns Int)
+                       (effects ())
+                       (requires true)
+                       (ensures true)
+                       (local nope)))")]
+      (should= 1
+               (sut/run-project-dir! project-dir 'example/use []))))
+
+  (it "writes a JVM main wrapper for exported AIR-J main"
+    (let [source "(module example/entry
+                    (imports)
+                    (export main)
+                    (fn main
+                      (params)
+                      (returns Int)
+                      (effects ())
+                      (requires true)
+                      (ensures true)
+                      42))"
+          output-dir (.toString (java.nio.file.Files/createTempDirectory "airj-main"
+                                                                         (make-array java.nio.file.attribute.FileAttribute 0)))
+          _ (sut/build-source! source output-dir)
+          klass (load-class-from-dir output-dir "example.entry")
+          jvm-main (.getMethod klass "main" (into-array Class [(class (into-array String []))]))]
+      (should jvm-main)))
+
+  (it "runs exported AIR-J main functions"
+    (let [property-name "airj.compiler-spec.main"
+          _ (System/clearProperty property-name)
+          source "(module example/run
+                    (imports
+                      (java java.lang.System))
+                    (export main)
+                    (fn main
+                      (params)
+                      (returns Int)
+                      (effects (Foreign.Throw))
+                      (requires true)
+                      (ensures true)
+                      (seq
+                        (java/static-call
+                          java.lang.System
+                          setProperty
+                          (signature (String String) (Java java.lang.String))
+                          \"airj.compiler-spec.main\"
+                          \"ran\")
+                        0)))"]
+      (should= 0 (sut/run-source! source []))
+      (should= "ran" (System/getProperty property-name))
+      (System/clearProperty property-name)))
+
+  (it "passes run arguments into exported AIR-J main"
+    (let [property-name "airj.compiler-spec.args"
+          _ (System/clearProperty property-name)
+          args ["a" "b"]
+          expected (str (java.util.Arrays/hashCode (object-array args)))
+          source "(module example/run-args
+                    (imports
+                      (java java.lang.System)
+                      (java java.lang.String)
+                      (java java.util.Arrays))
+                    (export main)
+                    (fn main
+                      (params (args (Java \"[Ljava.lang.String;\")))
+                      (returns Int)
+                      (effects (Foreign.Throw))
+                      (requires true)
+                      (ensures true)
+                      (seq
+                        (java/static-call
+                          java.lang.System
+                          setProperty
+                          (signature (String String) (Java java.lang.String))
+                          \"airj.compiler-spec.args\"
+                          (java/static-call
+                            java.lang.String
+                            valueOf
+                            (signature (Int) String)
+                            (java/static-call
+                              java.util.Arrays
+                              hashCode
+                              (signature ((Java \"[Ljava.lang.Object;\")) Int)
+                              (local args))))
+                        0)))"]
+      (should= 0 (sut/run-source! source args))
+      (should= expected (System/getProperty property-name))
+      (System/clearProperty property-name)))
+
+  (it "uses AIR-J main Int returns as JVM process exit codes on disk"
+    (let [source "(module example/run_args
+                    (imports
+                      (java java.util.Arrays))
+                    (export main)
+                    (fn main
+                      (params (args (Java \"[Ljava.lang.String;\")))
+                      (returns Int)
+                      (effects (Foreign.Throw))
+                      (requires true)
+                      (ensures true)
+                      (java/static-call
+                        java.util.Arrays
+                        hashCode
+                        (signature ((Java \"[Ljava.lang.Object;\")) Int)
+                        (local args))))"
+          output-dir (.toString (java.nio.file.Files/createTempDirectory "airj-main-from-disk"
+                                                                         (make-array java.nio.file.attribute.FileAttribute 0)))
+          _ (sut/build-source! source output-dir)
+          exit-code (run-main-process output-dir "example.run_args" "a" "b")]
+      (should= (bit-and 0xFF (java.util.Arrays/hashCode (object-array ["a" "b"])))
+                exit-code)))
+
+  (it "compiles loops and recur into executable bytes"
+    (let [source "(module example/looping
+                    (imports)
+                    (export Step program)
+                    (union Step
+                      (variant Continue (field value Int))
+                      (variant Done (field value Int)))
+                    (fn program
+                      (params)
+                      (returns Int)
+                      (effects ())
+                      (requires true)
+                      (ensures true)
+                      (loop ((state (variant Step Continue 3)))
+                        (match (local state)
+                          (case (Continue value)
+                            (recur (variant Step Done (local value))))
+                          (case (Done value)
+                            (local value))))))"
+          bundle (sut/compile-source source)
+          classes (define-classes bundle)
+          klass (get classes "example/looping")
+          method (.getMethod klass "program" (into-array Class []))]
+      (should= 3 (.invoke method nil (object-array [])))))
+
+  (it "compiles direct local lambda calls into executable bytes"
+    (let [source "(module example/lambdas
+                    (imports)
+                    (export program)
+                    (fn program
+                      (params (flag Bool) (x Int))
+                      (returns Int)
+                      (effects ())
+                      (requires true)
+                      (ensures true)
+                      (let ((f (lambda
+                                  (params (y Int))
+                                  (returns Int)
+                                  (effects ())
+                                  (if
+                                    (local flag)
+                                    (local y)
+                                    0))))
+                        (call (local f) (local x)))))"
+          bundle (sut/compile-source source)
+          klass (define-class "example.lambdas" (get bundle "example/lambdas"))
+          method (.getMethod klass "program" (into-array Class [Boolean/TYPE Integer/TYPE]))]
+      (should= 9 (.invoke method nil (object-array [true (int 9)])))
+      (should= 0 (.invoke method nil (object-array [false (int 9)])))))
+
+  (it "compiles non-capturing lambda values into executable bytes"
+    (let [source "(module example/closures
+                    (imports)
+                    (export program)
+                    (fn program
+                      (params (flag Bool) (x Int))
+                      (returns Int)
+                      (effects ())
+                      (requires true)
+                      (ensures true)
+                      (let ((chooser
+                              (if
+                                (local flag)
+                                (lambda
+                                  (params (y Int))
+                                  (returns Int)
+                                  (effects ())
+                                  (local y))
+                                (lambda
+                                  (params (y Int))
+                                  (returns Int)
+                                  (effects ())
+                                  0))))
+                        (call (local chooser) (local x)))))"
+          bundle (sut/compile-source source)
+          classes (define-classes bundle)
+          klass (get classes "example/closures")
+          method (.getMethod klass "program" (into-array Class [Boolean/TYPE Integer/TYPE]))]
+      (should= 8 (.invoke method nil (object-array [true (int 8)])))
+      (should= 0 (.invoke method nil (object-array [false (int 8)])))))
+
+  (it "compiles multi-arg lambda values into executable bytes"
+    (let [source "(module example/multi_closures
+                    (imports)
+                    (export program)
+                    (fn program
+                      (params (x Int) (y Int))
+                      (returns Int)
+                      (effects ())
+                      (requires true)
+                      (ensures true)
+                      (let ((chooser
+                              (if
+                                true
+                                (lambda
+                                  (params (a Int) (b Int))
+                                  (returns Int)
+                                  (effects ())
+                                  (local a))
+                                (lambda
+                                  (params (a Int) (b Int))
+                                  (returns Int)
+                                  (effects ())
+                                  (local b)))))
+                        (call (local chooser) (local x) (local y)))))"
+          bundle (sut/compile-source source)
+          classes (define-classes bundle)
+          klass (get classes "example/multi_closures")
+          method (.getMethod klass "program" (into-array Class [Integer/TYPE Integer/TYPE]))]
+      (should= 7 (.invoke method nil (object-array [(int 7) (int 9)])))))
+
+  (it "compiles same-module function values into executable bytes"
+    (let [source "(module example/function_values
+                    (imports)
+                    (export helper program)
+                    (fn helper
+                      (params (a Int) (b Int))
+                      (returns Int)
+                      (effects ())
+                      (requires true)
+                      (ensures true)
+                      (local a))
+                    (fn program
+                      (params (x Int) (y Int))
+                      (returns Int)
+                      (effects ())
+                      (requires true)
+                      (ensures true)
+                      (let ((chooser (local helper)))
+                        (call (local chooser) (local x) (local y)))))"
+          bundle (sut/compile-source source)
+          classes (define-classes bundle)
+          klass (get classes "example/function_values")
+          method (.getMethod klass "program" (into-array Class [Integer/TYPE Integer/TYPE]))]
+      (should= 7 (.invoke method nil (object-array [(int 7) (int 9)])))))
+
+  (it "compiles capturing lambda values into executable bytes"
+    (let [source "(module example/capturing_closures
+                    (imports)
+                    (export program)
+                    (fn program
+                      (params (x Int))
+                      (returns Int)
+                      (effects ())
+                      (requires true)
+                      (ensures true)
+                      (let ((base 5)
+                            (adder
+                              (if
+                                true
+                                (lambda
+                                  (params (y Int))
+                                  (returns Int)
+                                  (effects ())
+                                  (if true (local base) (local y)))
+                                (lambda
+                                  (params (y Int))
+                                  (returns Int)
+                                  (effects ())
+                                  (local y)))))
+                        (call (local adder) (local x)))))"
+          bundle (sut/compile-source source)
+          classes (define-classes bundle)
+          klass (get classes "example/capturing_closures")
+          method (.getMethod klass "program" (into-array Class [Integer/TYPE]))]
+      (should= 5 (.invoke method nil (object-array [(int 8)])))))
+
+  (it "compiles mutable capturing lambda values into executable bytes"
+    (let [source "(module example/mutable_capturing_closures
+                    (imports)
+                    (export program)
+                    (fn program
+                      (params (x Int))
+                      (returns Int)
+                      (effects (State.Write))
+                      (requires true)
+                      (ensures true)
+                      (seq
+                        (var base Int 5)
+                        (let ((adder
+                                (if
+                                  true
+                                  (lambda
+                                    (params (y Int))
+                                    (returns Int)
+                                    (effects (State.Write))
+                                    (local base))
+                                  (lambda
+                                    (params (y Int))
+                                    (returns Int)
+                                    (effects (State.Write))
+                                    (local y)))))
+                          (seq
+                            (set base 9)
+                            (call (local adder) (local x)))))))"
+          bundle (sut/compile-source source)
+          classes (define-classes bundle)
+          klass (get classes "example/mutable_capturing_closures")
+          method (.getMethod klass "program" (into-array Class [Integer/TYPE]))]
+      (should= 9 (.invoke method nil (object-array [(int 8)])))))
+
+  (it "compiles try catch finally and raise into executable bytes"
+    (let [property-name "airj.compiler-spec.finally"
+          _ (System/clearProperty property-name)
+          source "(module example/raising
+                    (imports
+                      (java java.lang.RuntimeException)
+                      (java java.lang.System))
+                    (export program)
+                    (fn program
+                      (params)
+                      (returns Int)
+                      (effects (Foreign.Throw))
+                      (requires true)
+                      (ensures true)
+                      (try
+                        (raise
+                          (java/new java.lang.RuntimeException \"boom\"))
+                        (catch (Java java.lang.RuntimeException) ex 7)
+                        (finally
+                          (seq
+                            (java/static-call
+                              java.lang.System
+                              setProperty
+                              (signature (String String) String)
+                              \"airj.compiler-spec.finally\"
+                              \"done\")
+                            0)))))"
+          bundle (sut/compile-source source)
+          klass (define-class "example.raising" (get bundle "example/raising"))
+          method (.getMethod klass "program" (into-array Class []))]
+      (should= 7 (.invoke method nil (object-array [])))
+      (should= "done" (System/getProperty property-name))
+      (System/clearProperty property-name)))
+
+  (it "rejects running modules without an exported AIR-J main"
+    (let [source "(module example/no-run
+                    (imports)
+                    (export forty-two)
+                    (fn forty-two
+                      (params)
+                      (returns Int)
+                      (effects ())
+                      (requires true)
+                      (ensures true)
+                      42))"]
+      (should-throw clojure.lang.ExceptionInfo
+                    "Missing AIR-J main entrypoint."
+                    (sut/run-source! source [])))))
