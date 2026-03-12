@@ -66,6 +66,7 @@
                                   :member-id 'abs
                                   :parameter-types [:int]
                                   :return-type :int
+                                  :jvm-type :int
                                   :args [{:op :jvm-local
                                           :name 'value
                                           :jvm-type :int}]}}]}
@@ -1228,6 +1229,7 @@
                                             :member-id 'gc
                                             :parameter-types []
                                             :return-type :void
+                                            :jvm-type :void
                                             :args []}
                                   :jvm-type :int}}]}
                (sut/lower-module module))))

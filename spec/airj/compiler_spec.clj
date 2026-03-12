@@ -723,6 +723,44 @@
       (should= "done" (System/getProperty property-name))
       (System/clearProperty property-name)))
 
+  (it "enforces failing preconditions at runtime"
+    (let [source "(module example/preconditions
+                    (imports)
+                    (export main)
+                    (fn main
+                      (params)
+                      (returns Int)
+                      (effects ())
+                      (requires false)
+                      (ensures true)
+                      42))"]
+      (try
+        (sut/run-source! source [])
+        (should false)
+        (catch java.lang.reflect.InvocationTargetException e
+          (should (instance? IllegalStateException (.getCause e)))
+          (should= "Precondition failed: main"
+                   (.getMessage (.getCause e)))))))
+
+  (it "enforces failing postconditions at runtime"
+    (let [source "(module example/postconditions
+                    (imports)
+                    (export main)
+                    (fn main
+                      (params)
+                      (returns Int)
+                      (effects ())
+                      (requires true)
+                      (ensures false)
+                      42))"]
+      (try
+        (sut/run-source! source [])
+        (should false)
+        (catch java.lang.reflect.InvocationTargetException e
+          (should (instance? IllegalStateException (.getCause e)))
+          (should= "Postcondition failed: main"
+                   (.getMessage (.getCause e)))))))
+
   (it "rejects running modules without an exported AIR-J main"
     (let [source "(module example/no-run
                     (imports)
