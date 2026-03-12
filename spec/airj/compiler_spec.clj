@@ -83,6 +83,38 @@
           method (.getMethod klass "abs" (into-array Class [Integer/TYPE]))]
       (should= 4 (.invoke method nil (object-array [(int -4)])))))
 
+  (it "compiles AIR-J source with Java instance calls and fields into executable bytes"
+    (let [source "(module example/java_instance
+                    (imports
+                      (java java.lang.StringBuilder)
+                      (java java.awt.Point))
+                    (export interop)
+                    (fn interop
+                      (params)
+                      (returns Int)
+                      (effects (State.Write Foreign.Throw))
+                      (requires true)
+                      (ensures true)
+                      (seq
+                        (java/call
+                          (java/new java.lang.StringBuilder \"a\")
+                          append
+                          (signature (String) (Java java.lang.StringBuilder))
+                          \"b\")
+                        (java/set-field
+                          (java/new java.awt.Point 1 2)
+                          x
+                          Int
+                          9)
+                        (java/get-field
+                          (java/new java.awt.Point 1 2)
+                          x
+                          Int))))"
+          bundle (sut/compile-source source)
+          klass (define-class "example.java_instance" (get bundle "example/java_instance"))
+          method (.getMethod klass "interop" (into-array Class []))]
+      (should= 1 (.invoke method nil (object-array [])))))
+
   (it "compiles AIR-J source with simple conditionals into executable bytes"
     (let [source "(module example/choose
                     (imports)

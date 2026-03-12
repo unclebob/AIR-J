@@ -72,6 +72,95 @@
                                           :jvm-type :int}]}}]}
                (sut/lower-module module))))
 
+  (it "lowers instance java calls and fields into JVM plan nodes"
+    (let [module {:name 'example/java_instance
+                  :imports []
+                  :exports ['interop]
+                  :decls [{:op :fn
+                           :name 'interop
+                           :params []
+                           :return-type 'Int
+                           :effects ['State.Write 'Foreign.Throw]
+                           :requires [true]
+                           :ensures [true]
+                           :body {:op :seq
+                                  :exprs [{:op :java-call
+                                           :target {:op :java-new
+                                                    :class-name 'java.lang.StringBuilder
+                                                    :type-args []
+                                                    :args ["a"]}
+                                           :member-id 'append
+                                           :signature {:params ['String]
+                                                       :return-type '(Java java.lang.StringBuilder)}
+                                           :args ["b"]}
+                                          {:op :java-set-field
+                                           :target {:op :java-new
+                                                    :class-name 'java.awt.Point
+                                                    :type-args []
+                                                    :args [1 2]}
+                                           :field-name 'x
+                                           :field-type 'Int
+                                           :expr 9}
+                                          {:op :java-get-field
+                                           :target {:op :java-new
+                                                    :class-name 'java.awt.Point
+                                                    :type-args []
+                                                    :args [1 2]}
+                                           :field-name 'x
+                                           :field-type 'Int}]}}]}]
+      (should= {:op :jvm-seq
+                :exprs [{:op :jvm-java-call
+                         :target {:op :jvm-java-new
+                                  :class-name "java/lang/StringBuilder"
+                                  :parameter-types ["java/lang/String"]
+                                  :args [{:op :jvm-string
+                                          :value "a"
+                                          :jvm-type "java/lang/String"}]
+                                  :jvm-type "java/lang/StringBuilder"}
+                         :member-id 'append
+                         :parameter-types ["java/lang/String"]
+                         :return-type "java/lang/StringBuilder"
+                         :args [{:op :jvm-string
+                                 :value "b"
+                                 :jvm-type "java/lang/String"}]
+                         :jvm-type "java/lang/StringBuilder"}
+                        {:op :jvm-java-set-field
+                         :target {:op :jvm-java-new
+                                  :class-name "java/awt/Point"
+                                  :parameter-types [:int :int]
+                                  :args [{:op :jvm-int
+                                          :value 1
+                                          :jvm-type :int}
+                                         {:op :jvm-int
+                                          :value 2
+                                          :jvm-type :int}]
+                                  :jvm-type "java/awt/Point"}
+                         :field-name 'x
+                         :field-type :int
+                         :expr {:op :jvm-int
+                                :value 9
+                                :jvm-type :int}
+                         :jvm-type :void}
+                        {:op :jvm-java-get-field
+                         :target {:op :jvm-java-new
+                                  :class-name "java/awt/Point"
+                                  :parameter-types [:int :int]
+                                  :args [{:op :jvm-int
+                                          :value 1
+                                          :jvm-type :int}
+                                         {:op :jvm-int
+                                          :value 2
+                                          :jvm-type :int}]
+                                  :jvm-type "java/awt/Point"}
+                         :field-name 'x
+                         :field-type :int
+                         :jvm-type :int}]
+                :jvm-type :int}
+               (-> (sut/lower-module module)
+                   :methods
+                   first
+                   :body))))
+
   (it "lowers Bool Unit and Java types"
     (let [module {:name 'example/types
                   :imports []

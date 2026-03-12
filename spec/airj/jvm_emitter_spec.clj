@@ -124,6 +124,75 @@
           method (.getMethod klass "abs" (into-array Class [Integer/TYPE]))]
       (should= 4 (.invoke method nil (object-array [(int -4)])))))
 
+  (it "emits Java instance calls and field access"
+    (let [plan {:op :jvm-module
+                :module-name 'example/java_instance
+                :internal-name "example/java_instance"
+                :exports ['interop]
+                :records []
+                :enums []
+                :unions []
+                :methods [{:name 'interop
+                           :owner "example/java_instance"
+                           :params []
+                           :return-type :int
+                           :effects ['State.Write 'Foreign.Throw]
+                           :body {:op :jvm-seq
+                                  :exprs [{:op :jvm-java-call
+                                           :target {:op :jvm-java-new
+                                                    :class-name "java/lang/StringBuilder"
+                                                    :parameter-types ["java/lang/String"]
+                                                    :args [{:op :jvm-string
+                                                            :value "a"
+                                                            :jvm-type "java/lang/String"}]
+                                                    :jvm-type "java/lang/StringBuilder"}
+                                           :member-id 'append
+                                           :parameter-types ["java/lang/String"]
+                                           :return-type "java/lang/StringBuilder"
+                                           :args [{:op :jvm-string
+                                                   :value "b"
+                                                   :jvm-type "java/lang/String"}]
+                                           :jvm-type "java/lang/StringBuilder"}
+                                          {:op :jvm-java-set-field
+                                           :target {:op :jvm-java-new
+                                                    :class-name "java/awt/Point"
+                                                    :parameter-types [:int :int]
+                                                    :args [{:op :jvm-int
+                                                            :value 1
+                                                            :jvm-type :int}
+                                                           {:op :jvm-int
+                                                            :value 2
+                                                            :jvm-type :int}]
+                                                    :jvm-type "java/awt/Point"}
+                                           :field-name 'x
+                                           :field-type :int
+                                           :expr {:op :jvm-int
+                                                  :value 9
+                                                  :jvm-type :int}
+                                           :jvm-type :void}
+                                          {:op :jvm-java-get-field
+                                           :target {:op :jvm-java-new
+                                                    :class-name "java/awt/Point"
+                                                    :parameter-types [:int :int]
+                                                    :args [{:op :jvm-int
+                                                            :value 1
+                                                            :jvm-type :int}
+                                                           {:op :jvm-int
+                                                            :value 2
+                                                            :jvm-type :int}]
+                                                    :jvm-type "java/awt/Point"}
+                                           :field-name 'x
+                                           :field-type :int
+                                           :jvm-type :int}
+                                          {:op :jvm-int
+                                           :value 0
+                                           :jvm-type :int}]
+                                  :jvm-type :int}}]}
+          bytes (sut/emit-module-bytes plan)
+          klass (define-class "example.java_instance" bytes)
+          method (.getMethod klass "interop" (into-array Class []))]
+      (should= 0 (.invoke method nil (object-array [])))))
+
   (it "emits simple boolean conditionals"
     (let [plan {:op :jvm-module
                 :module-name 'example/branch
