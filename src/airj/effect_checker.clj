@@ -219,6 +219,14 @@
              {:fn (:name decl)
               :contract contract}))))
 
+(defn- check-invariants
+  [decl ctx decls]
+  (doseq [invariant (:invariants decl)]
+    (when (seq (expr-effects* invariant ctx decls))
+      (fail! "Invariants must be pure."
+             {:decl (:name decl)
+              :invariant invariant}))))
+
 (defn- check-fn-decl
   [decl ctx decls]
   (check-contracts decl ctx decls)
@@ -231,10 +239,13 @@
   (let [decls (decl-map module)
         ctx (make-ctx module decls)]
     (doseq [decl (:decls module)]
-      (when (= :fn (:op decl))
-        (check-fn-decl decl ctx decls)))
+      (case (:op decl)
+        :fn (check-fn-decl decl ctx decls)
+        :data (check-invariants decl ctx decls)
+        :union (check-invariants decl ctx decls)
+        nil))
     module))
 
 ;; clj-mutate-manifest-begin
-;; {:version 1, :tested-at "2026-03-12T12:51:14.690254-05:00", :module-hash "29862318", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line 8, :hash "-1684993418"} {:id "defn-/fail!", :kind "defn-", :line 10, :end-line 12, :hash "879938479"} {:id "defn-/decl-map", :kind "defn-", :line 14, :end-line 16, :hash "1732448350"} {:id "defn-/ensure-subset", :kind "defn-", :line 18, :end-line 25, :hash "736755596"} {:id "defn-/make-ctx", :kind "defn-", :line 27, :end-line 39, :hash "-572541941"} {:id "defn-/bind-call-effects", :kind "defn-", :line 41, :end-line 43, :hash "-198491742"} {:id "form/6/declare", :kind "declare", :line 45, :end-line 45, :hash "1302116001"} {:id "defn-/local-callable-effects", :kind "defn-", :line 47, :end-line 56, :hash "75363154"} {:id "defn-/if-callable-effects", :kind "defn-", :line 58, :end-line 63, :hash "765082213"} {:id "defn-/callable-effects", :kind "defn-", :line 65, :end-line 80, :hash "138662341"} {:id "defn-/binding-call-effects", :kind "defn-", :line 82, :end-line 84, :hash "1627316679"} {:id "defn-/effect-union", :kind "defn-", :line 86, :end-line 88, :hash "-1296346923"} {:id "defn-/call-effects", :kind "defn-", :line 90, :end-line 94, :hash "899417580"} {:id "defn-/lambda-effects", :kind "defn-", :line 96, :end-line 102, :hash "1258837400"} {:id "defn-/try-effects", :kind "defn-", :line 104, :end-line 110, :hash "-1431839658"} {:id "defn-/let-effects", :kind "defn-", :line 112, :end-line 126, :hash "-1072935542"} {:id "defn-/expr-effect-handlers", :kind "defn-", :line 128, :end-line 202, :hash "2031043611"} {:id "defn/expr-effects*", :kind "defn", :line 204, :end-line 207, :hash "1640622703"} {:id "defn/expr-effects", :kind "defn", :line 209, :end-line 212, :hash "-425404032"} {:id "defn-/check-contracts", :kind "defn-", :line 214, :end-line 220, :hash "-190924871"} {:id "defn-/check-fn-decl", :kind "defn-", :line 222, :end-line 227, :hash "1943037450"} {:id "defn/check-module", :kind "defn", :line 229, :end-line 236, :hash "2040875463"}]}
+;; {:version 1, :tested-at "2026-03-12T16:03:36.795962-05:00", :module-hash "-2103016785", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line 8, :hash "-1684993418"} {:id "defn-/fail!", :kind "defn-", :line 10, :end-line 12, :hash "879938479"} {:id "defn-/decl-map", :kind "defn-", :line 14, :end-line 16, :hash "1732448350"} {:id "defn-/ensure-subset", :kind "defn-", :line 18, :end-line 25, :hash "736755596"} {:id "defn-/make-ctx", :kind "defn-", :line 27, :end-line 39, :hash "-572541941"} {:id "defn-/bind-call-effects", :kind "defn-", :line 41, :end-line 43, :hash "-198491742"} {:id "form/6/declare", :kind "declare", :line 45, :end-line 45, :hash "1302116001"} {:id "defn-/local-callable-effects", :kind "defn-", :line 47, :end-line 56, :hash "75363154"} {:id "defn-/if-callable-effects", :kind "defn-", :line 58, :end-line 63, :hash "765082213"} {:id "defn-/callable-effects", :kind "defn-", :line 65, :end-line 80, :hash "138662341"} {:id "defn-/binding-call-effects", :kind "defn-", :line 82, :end-line 84, :hash "1627316679"} {:id "defn-/effect-union", :kind "defn-", :line 86, :end-line 88, :hash "-1296346923"} {:id "defn-/call-effects", :kind "defn-", :line 90, :end-line 94, :hash "899417580"} {:id "defn-/lambda-effects", :kind "defn-", :line 96, :end-line 102, :hash "1258837400"} {:id "defn-/try-effects", :kind "defn-", :line 104, :end-line 110, :hash "-1431839658"} {:id "defn-/let-effects", :kind "defn-", :line 112, :end-line 126, :hash "-1072935542"} {:id "defn-/expr-effect-handlers", :kind "defn-", :line 128, :end-line 202, :hash "2031043611"} {:id "defn/expr-effects*", :kind "defn", :line 204, :end-line 207, :hash "1640622703"} {:id "defn/expr-effects", :kind "defn", :line 209, :end-line 212, :hash "-425404032"} {:id "defn-/check-contracts", :kind "defn-", :line 214, :end-line 220, :hash "-190924871"} {:id "defn-/check-invariants", :kind "defn-", :line 222, :end-line 228, :hash "1932510517"} {:id "defn-/check-fn-decl", :kind "defn-", :line 230, :end-line 235, :hash "1943037450"} {:id "defn/check-module", :kind "defn", :line 237, :end-line 247, :hash "1481191546"}]}
 ;; clj-mutate-manifest-end

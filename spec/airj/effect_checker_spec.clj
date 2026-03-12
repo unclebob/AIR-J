@@ -63,6 +63,22 @@
                              :ensures [true]
                              :body 1}]})))
 
+  (it "rejects effectful invariants"
+    (should-throw clojure.lang.ExceptionInfo
+                  "Invariants must be pure."
+                  (sut/check-module
+                   {:name 'example/invariant-effect
+                    :imports []
+                    :exports []
+                    :decls [{:op :data
+                             :name 'Response
+                             :type-params []
+                             :invariants [{:op :var
+                                           :name 'counter
+                                           :type 'Int
+                                           :init 0}]
+                             :fields [{:name 'status :type 'Int}]}]})))
+
   (it "uses declared callee effects for direct same-module calls"
     (let [module {:name 'example/call-effects
                   :imports []

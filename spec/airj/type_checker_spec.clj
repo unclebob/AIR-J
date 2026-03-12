@@ -154,6 +154,19 @@
                              :ensures [true]
                              :body 1}]})))
 
+  (it "rejects non-boolean data invariants"
+    (should-throw clojure.lang.ExceptionInfo
+                  "Expected Bool."
+                  (sut/check-module
+                   {:name 'example/bad-invariant
+                    :imports []
+                    :exports []
+                    :decls [{:op :data
+                             :name 'Response
+                             :type-params []
+                             :invariants [1]
+                             :fields [{:name 'status :type 'Int}]}]})))
+
   (it "accepts direct same-module function calls"
     (let [module {:name 'example/direct-call
                   :imports []
