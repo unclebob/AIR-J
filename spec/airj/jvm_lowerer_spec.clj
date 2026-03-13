@@ -491,6 +491,63 @@
                    first
                    :body))))
 
+  (it "lowers string sequence primitives into JVM plan nodes"
+    (let [module {:name 'example/text_seq
+                  :imports []
+                  :exports ['metric]
+                  :decls [{:op :fn
+                           :name 'metric
+                           :params [{:name 'line :type 'String}]
+                           :return-type 'Int
+                           :effects []
+                           :requires [true]
+                           :ensures [true]
+                           :body {:op :if
+                                  :test {:op :string-empty?
+                                         :arg {:op :string-trim
+                                               :arg {:op :local :name 'line}}}
+                                  :then 0
+                                  :else {:op :string-length
+                                         :arg {:op :seq-get
+                                               :args [{:op :string-split-on
+                                                       :args [{:op :string-trim
+                                                               :arg {:op :local :name 'line}}
+                                                              ","]}
+                                                      1]}}}}]}]
+      (should= {:op :jvm-if
+                :test {:op :jvm-string-empty
+                       :arg {:op :jvm-string-trim
+                             :arg {:op :jvm-local
+                                   :name 'line
+                                   :jvm-type "java/lang/String"}
+                             :jvm-type "java/lang/String"}
+                       :jvm-type :boolean}
+                :then {:op :jvm-int
+                       :value 0
+                       :jvm-type :int}
+                :else {:op :jvm-string-length
+                       :arg {:op :jvm-seq-get
+                             :args [{:op :jvm-string-split-on
+                                     :args [{:op :jvm-string-trim
+                                             :arg {:op :jvm-local
+                                                   :name 'line
+                                                   :jvm-type "java/lang/String"}
+                                             :jvm-type "java/lang/String"}
+                                            {:op :jvm-string
+                                             :value ","
+                                             :jvm-type "java/lang/String"}]
+                                     :jvm-type "[Ljava/lang/String;"}
+                                    {:op :jvm-int
+                                     :value 1
+                                     :jvm-type :int}]
+                             :jvm-type "java/lang/String"}
+                       :jvm-type :int}
+                :jvm-type :int}
+               (-> (sut/lower-module module)
+                   :methods
+                   first
+                   :body))))
+
   (it "lowers imported function calls to the imported module owner"
     (let [module {:name 'example/imported
                   :imports [{:op :airj-import

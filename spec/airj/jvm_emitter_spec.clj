@@ -444,6 +444,54 @@
           (java.lang.System/setOut original-out)
           (java.lang.System/setIn original-in)))))
 
+  (it "emits string sequence primitives"
+    (let [plan {:op :jvm-module
+                :module-name 'example/text_seq
+                :internal-name "example/text_seq"
+                :exports ['metric]
+                :records []
+                :enums []
+                :unions []
+                :methods [{:name 'metric
+                           :owner "example/text_seq"
+                           :params [{:name 'line :jvm-type "java/lang/String"}]
+                           :return-type :int
+                           :effects []
+                           :body {:op :jvm-if
+                                  :test {:op :jvm-string-empty
+                                         :arg {:op :jvm-string-trim
+                                               :arg {:op :jvm-local
+                                                     :name 'line
+                                                     :jvm-type "java/lang/String"}
+                                               :jvm-type "java/lang/String"}
+                                         :jvm-type :boolean}
+                                  :then {:op :jvm-int
+                                         :value 0
+                                         :jvm-type :int}
+                                  :else {:op :jvm-string-length
+                                         :arg {:op :jvm-seq-get
+                                               :args [{:op :jvm-string-split-on
+                                                       :args [{:op :jvm-string-trim
+                                                               :arg {:op :jvm-local
+                                                                     :name 'line
+                                                                     :jvm-type "java/lang/String"}
+                                                               :jvm-type "java/lang/String"}
+                                                              {:op :jvm-string
+                                                               :value ","
+                                                               :jvm-type "java/lang/String"}]
+                                                       :jvm-type "[Ljava/lang/String;"}
+                                                      {:op :jvm-int
+                                                       :value 1
+                                                       :jvm-type :int}]
+                                               :jvm-type "java/lang/String"}
+                                         :jvm-type :int}
+                                  :jvm-type :int}}]}
+          bytes (sut/emit-module-bytes plan)
+          klass (define-class "example.text_seq" bytes)
+          method (.getMethod klass "metric" (into-array Class [String]))]
+      (should= 2 (.invoke method nil (object-array [" a,bb "])))
+      (should= 0 (.invoke method nil (object-array ["   "])))))
+
   (it "emits static Java field access"
     (let [plan {:op :jvm-module
                 :module-name 'example/java_static_field

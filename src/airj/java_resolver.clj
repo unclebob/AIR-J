@@ -262,12 +262,24 @@
    :string-concat (fn [expr ctx walk]
                     (doseq [arg (:args expr)]
                       (walk arg ctx)))
+   :string-split-on (fn [expr ctx walk]
+                      (doseq [arg (:args expr)]
+                        (walk arg ctx)))
    :int->string (fn [expr ctx walk]
                   (walk (:arg expr) ctx))
    :string->int (fn [expr ctx walk]
                   (walk (:arg expr) ctx))
    :string-length (fn [expr ctx walk]
                     (walk (:arg expr) ctx))
+   :string-trim (fn [expr ctx walk]
+                  (walk (:arg expr) ctx))
+   :string-empty? (fn [expr ctx walk]
+                    (walk (:arg expr) ctx))
+   :seq-length (fn [expr ctx walk]
+                 (walk (:arg expr) ctx))
+   :seq-get (fn [expr ctx walk]
+              (doseq [arg (:args expr)]
+                (walk arg ctx)))
    :io-read-line (fn [_expr _ctx _walk] nil)
    :io-print (fn [expr ctx walk]
                (walk (:arg expr) ctx))
@@ -364,5 +376,5 @@
     module))
 
 ;; clj-mutate-manifest-begin
-;; {:version 1, :tested-at "2026-03-13T12:55:09.195239-05:00", :module-hash "-1588151709", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line 6, :hash "1958592209"} {:id "defn-/fail!", :kind "defn-", :line 8, :end-line 10, :hash "879938479"} {:id "defn-/decl-map", :kind "defn-", :line 12, :end-line 14, :hash "1732448350"} {:id "defn-/imported-java-classes", :kind "defn-", :line 16, :end-line 21, :hash "-76540671"} {:id "defn-/require-java-import!", :kind "defn-", :line 23, :end-line 27, :hash "-900571965"} {:id "defn-/load-class", :kind "defn-", :line 29, :end-line 35, :hash "-546840002"} {:id "defn/resolve-type", :kind "defn", :line 37, :end-line 41, :hash "-2002111120"} {:id "defn-/java-class-type?", :kind "defn-", :line 43, :end-line 45, :hash "-1231681719"} {:id "defn-/target-class", :kind "defn-", :line 47, :end-line 54, :hash "1738177563"} {:id "defn-/validate-java-new", :kind "defn-", :line 56, :end-line 65, :hash "1815754689"} {:id "defn-/validate-java-call", :kind "defn-", :line 67, :end-line 77, :hash "311048070"} {:id "defn-/validate-java-static-call", :kind "defn-", :line 79, :end-line 89, :hash "325162171"} {:id "defn-/validate-java-get-field", :kind "defn-", :line 91, :end-line 101, :hash "25960113"} {:id "defn-/validate-java-set-field", :kind "defn-", :line 103, :end-line 113, :hash "-434496599"} {:id "defn-/validate-java-static-get-field", :kind "defn-", :line 115, :end-line 125, :hash "373500458"} {:id "defn-/validate-java-static-set-field", :kind "defn-", :line 127, :end-line 137, :hash "1207156350"} {:id "defn-/bind-local", :kind "defn-", :line 139, :end-line 141, :hash "1658319653"} {:id "defn-/bind-pattern-local", :kind "defn-", :line 143, :end-line 145, :hash "-357983377"} {:id "defn-/bind-pattern-locals", :kind "defn-", :line 147, :end-line 155, :hash "-954573492"} {:id "defn-/binding-ctx", :kind "defn-", :line 157, :end-line 161, :hash "959377042"} {:id "defn-/let-handler", :kind "defn-", :line 163, :end-line 170, :hash "1021191117"} {:id "defn-/seq-handler", :kind "defn-", :line 172, :end-line 181, :hash "176826092"} {:id "defn-/loop-handler", :kind "defn-", :line 183, :end-line 190, :hash "282383021"} {:id "defn-/handlers", :kind "defn-", :line 192, :end-line 332, :hash "-622279400"} {:id "defn-/fn-ctx", :kind "defn-", :line 334, :end-line 349, :hash "-1589872182"} {:id "defn-/check-fn-decl", :kind "defn-", :line 351, :end-line 355, :hash "-1251467863"} {:id "defn/check-module", :kind "defn", :line 357, :end-line 364, :hash "756817389"}]}
+;; {:version 1, :tested-at "2026-03-13T13:47:20.585838-05:00", :module-hash "-5252090", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line 6, :hash "1958592209"} {:id "defn-/fail!", :kind "defn-", :line 8, :end-line 10, :hash "879938479"} {:id "defn-/decl-map", :kind "defn-", :line 12, :end-line 14, :hash "1732448350"} {:id "defn-/imported-java-classes", :kind "defn-", :line 16, :end-line 21, :hash "-76540671"} {:id "defn-/require-java-import!", :kind "defn-", :line 23, :end-line 27, :hash "-900571965"} {:id "defn-/load-class", :kind "defn-", :line 29, :end-line 35, :hash "-546840002"} {:id "defn/resolve-type", :kind "defn", :line 37, :end-line 41, :hash "-2002111120"} {:id "defn-/java-class-type?", :kind "defn-", :line 43, :end-line 45, :hash "-1231681719"} {:id "defn-/target-class", :kind "defn-", :line 47, :end-line 54, :hash "1738177563"} {:id "defn-/validate-java-new", :kind "defn-", :line 56, :end-line 65, :hash "1815754689"} {:id "defn-/validate-java-call", :kind "defn-", :line 67, :end-line 77, :hash "311048070"} {:id "defn-/validate-java-static-call", :kind "defn-", :line 79, :end-line 89, :hash "325162171"} {:id "defn-/validate-java-get-field", :kind "defn-", :line 91, :end-line 101, :hash "25960113"} {:id "defn-/validate-java-set-field", :kind "defn-", :line 103, :end-line 113, :hash "-434496599"} {:id "defn-/validate-java-static-get-field", :kind "defn-", :line 115, :end-line 125, :hash "373500458"} {:id "defn-/validate-java-static-set-field", :kind "defn-", :line 127, :end-line 137, :hash "1207156350"} {:id "defn-/bind-local", :kind "defn-", :line 139, :end-line 141, :hash "1658319653"} {:id "defn-/bind-pattern-local", :kind "defn-", :line 143, :end-line 145, :hash "-357983377"} {:id "defn-/bind-pattern-locals", :kind "defn-", :line 147, :end-line 155, :hash "-954573492"} {:id "defn-/binding-ctx", :kind "defn-", :line 157, :end-line 161, :hash "959377042"} {:id "defn-/let-handler", :kind "defn-", :line 163, :end-line 170, :hash "1021191117"} {:id "defn-/seq-handler", :kind "defn-", :line 172, :end-line 181, :hash "176826092"} {:id "defn-/loop-handler", :kind "defn-", :line 183, :end-line 190, :hash "282383021"} {:id "defn-/handlers", :kind "defn-", :line 192, :end-line 344, :hash "-1336823148"} {:id "defn-/fn-ctx", :kind "defn-", :line 346, :end-line 361, :hash "-1589872182"} {:id "defn-/check-fn-decl", :kind "defn-", :line 363, :end-line 367, :hash "-1251467863"} {:id "defn/check-module", :kind "defn", :line 369, :end-line 376, :hash "756817389"}]}
 ;; clj-mutate-manifest-end

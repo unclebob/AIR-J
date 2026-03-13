@@ -481,6 +481,38 @@
                                  :arg "7"}]}]}
                (-> ast :decls first :body))))
 
+  (it "parses string splitting trimming emptiness and sequence access primitives"
+    (let [source "(module example/text-seq
+                    (imports)
+                    (export metric)
+                    (fn metric
+                      (params (line String))
+                      (returns Int)
+                      (effects ())
+                      (requires true)
+                      (ensures true)
+                      (if
+                        (string-empty? (string-trim (local line)))
+                        0
+                        (string-length
+                          (seq-get
+                            (string-split-on (string-trim (local line)) \",\")
+                            1)))))"
+          ast (sut/parse-module source)]
+      (should= {:op :if
+                :test {:op :string-empty?
+                       :arg {:op :string-trim
+                             :arg {:op :local :name 'line}}}
+                :then 0
+                :else {:op :string-length
+                       :arg {:op :seq-get
+                             :args [{:op :string-split-on
+                                     :args [{:op :string-trim
+                                             :arg {:op :local :name 'line}}
+                                            ","]}
+                                    1]}}}
+               (-> ast :decls first :body))))
+
   (it "rejects when as a non-canonical persisted form"
     (should-throw clojure.lang.ExceptionInfo
                   "Unsupported expression."

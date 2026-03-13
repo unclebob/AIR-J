@@ -237,6 +237,29 @@
           (java.lang.System/setOut original-out)
           (java.lang.System/setIn original-in)))))
 
+  (it "compiles AIR-J source with string sequence primitives"
+    (let [source "(module example/text-seq
+                    (imports)
+                    (export metric)
+                    (fn metric
+                      (params (line String))
+                      (returns Int)
+                      (effects ())
+                      (requires true)
+                      (ensures true)
+                      (if
+                        (string-empty? (string-trim (local line)))
+                        0
+                        (string-length
+                          (seq-get
+                            (string-split-on (string-trim (local line)) \",\")
+                            1)))))"
+          bundle (sut/compile-source source)
+          klass (define-class "example.text-seq" (get bundle "example/text-seq"))
+          method (.getMethod klass "metric" (into-array Class [String]))]
+      (should= 2 (.invoke method nil (object-array [" a,bb "])))
+      (should= 0 (.invoke method nil (object-array ["   "])))))
+
   (it "writes compiled class files to disk"
     (let [source "(module example/write
                     (imports)

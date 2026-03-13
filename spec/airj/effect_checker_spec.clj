@@ -330,6 +330,31 @@
                                                    :arg "7"}]}]}}]}]
       (should= module (sut/check-module module))))
 
+  (it "treats string sequence primitives as pure while preserving operand effects"
+    (let [module {:name 'example/text-seq
+                  :imports []
+                  :exports ['metric]
+                  :decls [{:op :fn
+                           :name 'metric
+                           :params [{:name 'line :type 'String}]
+                           :return-type 'Int
+                           :effects []
+                           :requires [true]
+                           :ensures [true]
+                           :body {:op :if
+                                  :test {:op :string-empty?
+                                         :arg {:op :string-trim
+                                               :arg {:op :local :name 'line}}}
+                                  :then 0
+                                  :else {:op :string-length
+                                         :arg {:op :seq-get
+                                               :args [{:op :string-split-on
+                                                       :args [{:op :string-trim
+                                                               :arg {:op :local :name 'line}}
+                                                              ","]}
+                                                      1]}}}}]}]
+      (should= module (sut/check-module module))))
+
   (it "rejects missing effects for fallible text I/O primitives"
     (should-throw clojure.lang.ExceptionInfo
                   "Effect mismatch."
