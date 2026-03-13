@@ -140,3 +140,31 @@
       (should-throw clojure.lang.ExceptionInfo
                     "Unknown Java field."
                     (sut/check-module module)))))
+
+  (it "accepts java interop over loop-bound locals"
+    (let [module {:name 'example/loop-builder
+                  :imports [{:op :java-import
+                             :class-name 'java.lang.StringBuilder}]
+                  :exports ['main]
+                  :decls [{:op :fn
+                           :name 'main
+                           :params []
+                           :return-type 'String
+                           :effects ['Foreign.Throw 'State.Write]
+                           :requires [true]
+                           :ensures [true]
+                           :body {:op :loop
+                                  :bindings [{:name 'builder
+                                              :expr {:op :java-new
+                                                     :class-name 'java.lang.StringBuilder
+                                                     :type-args []
+                                                     :args []}}]
+                                  :body {:op :java-call
+                                         :target {:op :local
+                                                  :name 'builder}
+                                         :member-id 'toString
+                                         :signature {:params []
+                                                     :return-type 'String}
+                                         :args []}}}]}]
+      (should= module
+               (sut/check-module module))))

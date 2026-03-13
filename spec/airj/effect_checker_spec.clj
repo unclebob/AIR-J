@@ -101,7 +101,7 @@
                            :body {:op :call
                                   :callee {:op :local :name 'tick}
                                   :args []}}]}]
-      (should= module (sut/check-module module)))))
+      (should= module (sut/check-module module))))
 
   (it "uses imported function effects from supplied interfaces"
     (let [module {:name 'example/imported-effects
@@ -128,6 +128,87 @@
                                   :callee {:op :local :name 'tick}
                                   :args []}}]}]
       (should= module (sut/check-module module))))
+
+  (it "accepts Java interop over function parameters"
+    (let [module {:name 'example/java-param
+                  :imports [{:op :java-import
+                             :class-name 'java.lang.StringBuilder}]
+                  :exports ['helper]
+                  :decls [{:op :fn
+                           :name 'helper
+                           :params [{:name 'acc
+                                     :type 'String}]
+                           :return-type 'String
+                           :effects ['Foreign.Throw 'State.Write]
+                           :requires [true]
+                           :ensures [true]
+                           :body {:op :java-call
+                                  :target {:op :java-new
+                                           :class-name 'java.lang.StringBuilder
+                                           :type-args []
+                                           :args [{:op :local
+                                                   :name 'acc}]}
+                                  :member-id 'toString
+                                  :signature {:params []
+                                              :return-type 'String}
+                                  :args []}}]}]
+      (should= module (sut/check-module module))))
+
+  (it "accepts Java interop over loop-bound locals"
+    (let [module {:name 'example/java-loop
+                  :imports [{:op :java-import
+                             :class-name 'java.lang.Math}]
+                  :exports ['program]
+                  :decls [{:op :fn
+                           :name 'program
+                           :params []
+                           :return-type 'Int
+                           :effects ['Foreign.Throw]
+                           :requires [true]
+                           :ensures [true]
+                           :body {:op :loop
+                                  :bindings [{:name 'n
+                                              :expr 1}]
+                                  :body {:op :java-static-call
+                                         :class-name 'java.lang.Math
+                                         :member-id 'abs
+                                         :signature {:params ['Int]
+                                                     :return-type 'Int}
+                                         :args [{:op :local
+                                                 :name 'n}]}}}]}]
+      (should= module (sut/check-module module))))
+
+  (it "accepts loop bindings that call same-module functions"
+    (let [module {:name 'example/fn-loop
+                  :imports []
+                  :exports ['main]
+                  :decls [{:op :fn
+                           :name 'arg0
+                           :params [{:name 'args
+                                     :type '(Java "[Ljava.lang.String;")}]
+                           :return-type 'Int
+                           :effects []
+                           :requires [true]
+                           :ensures [true]
+                           :body 1}
+                          {:op :fn
+                           :name 'main
+                           :params [{:name 'args
+                                     :type '(Java "[Ljava.lang.String;")}]
+                           :return-type 'Int
+                           :effects []
+                           :requires [true]
+                           :ensures [true]
+                           :body {:op :loop
+                                  :bindings [{:name 'n
+                                              :expr {:op :call
+                                                     :callee {:op :local
+                                                              :name 'arg0}
+                                                     :args [{:op :local
+                                                             :name 'args}]}}]
+                                  :body {:op :local
+                                         :name 'n}}}]}]
+      (should= module (sut/check-module module)))))
 
 (describe "expr-effects"
   (it "treats lambda creation as pure but checks the lambda body against declared effects"

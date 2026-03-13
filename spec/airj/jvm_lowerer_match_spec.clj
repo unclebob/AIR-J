@@ -43,6 +43,11 @@
                                    (= 'Int type-expr) :int
                                    (= 'String type-expr) "java/lang/String"
                                    (= 'Result type-expr) "example/match$Result"))
+                   :lower-expr-type (fn lower-expr-type [type-expr _]
+                                      (cond
+                                        (= 'Int type-expr) :int
+                                        (= 'String type-expr) "java/lang/String"
+                                        (= 'Result type-expr) "example/match$Result"))
                    :union-variant (fn [subctx union-name variant-name]
                                     (->> (get-in subctx [:decls union-name :variants])
                                          (some #(when (= variant-name (:name %)) %))))

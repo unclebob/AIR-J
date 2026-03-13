@@ -316,6 +316,45 @@
                (sut/run ["run" "--project-sources-edn" (.getPath sources-file) "example/use"] "ignored"))
       (.delete sources-file)))
 
+  (it "surfaces imported type invariant failures when running from project sources"
+    (let [sources-file (java.io.File/createTempFile "airj-project-sources-invariant" ".edn")
+          _ (spit sources-file
+                  (pr-str
+                    {'alpha/math "(module alpha/math
+                                    (imports)
+                                    (export Counter make-bad)
+                                    (data Counter
+                                     (invariants
+                                       (local valid))
+                                     (field valid Bool))
+                                     (fn make-bad
+                                       (params)
+                                      (returns Counter)
+                                     (effects ())
+                                     (requires true)
+                                     (ensures true)
+                                     (construct Counter false)))"
+                    'example/use "(module example/use
+                                    (imports
+                                      (airj alpha/math Counter make-bad))
+                                    (export main)
+                                    (fn main
+                                      (params)
+                                      (returns Int)
+                                      (effects ())
+                                      (requires true)
+                                      (ensures true)
+                                      (seq
+                                        (call (local make-bad))
+                                        0)))"}))]
+      (try
+        (sut/run ["run" "--project-sources-edn" (.getPath sources-file) "example/use"] "ignored")
+        (should false)
+        (catch java.lang.reflect.InvocationTargetException e
+          (should= "Invariant failed: Counter"
+                   (.getMessage (.getTargetException e)))))
+      (.delete sources-file)))
+
   (it "adds project command context to missing-module failures from project sources"
     (let [sources-file (java.io.File/createTempFile "airj-project-sources-missing" ".edn")
           _ (spit sources-file
@@ -405,6 +444,45 @@
                        (call (local tick) 1)))")]
       (should= "1"
                (sut/run ["run" "--project-dir" project-dir "example/use"] "ignored"))))
+
+  (it "surfaces imported type invariant failures when running from a project directory"
+    (let [project-dir (.toString (java.nio.file.Files/createTempDirectory "airj-cli-project-invariant"
+                                                                          (make-array java.nio.file.attribute.FileAttribute 0)))
+          _ (spit (java.io.File. project-dir "math.airj")
+                  "(module alpha/math
+                     (imports)
+                     (export Counter make-bad)
+                     (data Counter
+                       (invariants
+                         (local valid))
+                       (field valid Bool))
+                     (fn make-bad
+                       (params)
+                       (returns Counter)
+                       (effects ())
+                       (requires true)
+                       (ensures true)
+                       (construct Counter false)))")
+          _ (spit (java.io.File. project-dir "use.airj")
+                  "(module example/use
+                     (imports
+                       (airj alpha/math Counter make-bad))
+                     (export main)
+                     (fn main
+                       (params)
+                       (returns Int)
+                       (effects ())
+                       (requires true)
+                       (ensures true)
+                       (seq
+                         (call (local make-bad))
+                         0)))")]
+      (try
+        (sut/run ["run" "--project-dir" project-dir "example/use"] "ignored")
+        (should false)
+        (catch java.lang.reflect.InvocationTargetException e
+          (should= "Invariant failed: Counter"
+                   (.getMessage (.getTargetException e)))))))
 
   (it "adds project command context to missing-module failures from a project directory"
     (let [project-dir (.toString (java.nio.file.Files/createTempDirectory "airj-cli-project-missing"

@@ -4,6 +4,7 @@
             [airj.java-effects :as java-effects]
             [airj.java-members :as java-members]
             [airj.java-types :as java-types]
+            [airj.patterns :as patterns]
             [airj.type-checker :as type-checker]
             [clojure.set :as set]))
 
@@ -14,6 +15,32 @@
 (defn- decl-map
   [module]
   (into {} (map (juxt :name identity) (:decls module))))
+
+(defn- fn-type
+  [params return-type effects]
+  {:op :fn-type
+   :params (vec params)
+   :return-type return-type
+   :effects (vec effects)})
+
+(defn- module-fn-env
+  [module decls]
+  (merge
+   (into {}
+         (map (fn [decl]
+                [(:name decl)
+                 (fn-type (map :type (:params decl))
+                          (:return-type decl)
+                          (:effects decl))])
+              (filter #(= :fn (:op %)) (vals decls))))
+   (into {}
+         (keep (fn [[symbol {:keys [decl]}]]
+                 (when (= :fn (:op decl))
+                   [symbol
+                    (fn-type (map :type (:params decl))
+                             (:return-type decl)
+                             (:effects decl))])))
+         (imported-interfaces/imported-decls module))))
 
 (defn- ensure-subset
   [actual expected data]
@@ -26,7 +53,8 @@
 
 (defn- make-ctx
   [module decls]
-  {:call-effects
+  {:locals (module-fn-env module decls)
+   :call-effects
    (merge
     (into {}
           (map (fn [decl]
@@ -41,6 +69,24 @@
 (defn- bind-call-effects
   [ctx name effects]
   (assoc-in ctx [:call-effects name] (set effects)))
+
+(defn- bind-local
+  [ctx name type-expr]
+  (assoc-in ctx [:locals name] type-expr))
+
+(defn- bind-pattern-local
+  [ctx pattern target-type _decls]
+  (bind-local ctx (:name pattern) target-type))
+
+(defn- bind-pattern-locals
+  [ctx pattern target-type decls]
+  (patterns/bind-pattern ctx
+                         pattern
+                         target-type
+                         decls
+                         {:bind-binder bind-pattern-local
+                          :bind-literal (fn [current _pattern _target-type] current)
+                          :fail! fail!}))
 
 (declare callable-effects)
 
@@ -95,7 +141,11 @@
 
 (defn- lambda-effects
   [expr ctx walk]
-  (let [body-effects (walk (:body expr) ctx)]
+  (let [lambda-ctx (reduce (fn [current param]
+                             (bind-local current (:name param) (:type param)))
+                           ctx
+                           (:params expr))
+        body-effects (walk (:body expr) lambda-ctx)]
     (ensure-subset body-effects
                    (:effects expr)
                    {:lambda expr})
@@ -104,19 +154,58 @@
 (defn- try-effects
   [expr ctx walk]
   (set/union (walk (:body expr) ctx)
-             (effect-union (map :body (:catches expr)) ctx walk)
+             (apply set/union
+                    #{}
+                    (map (fn [catch]
+                           (walk (:body catch)
+                                 (bind-local ctx (:name catch) (:type catch))))
+                         (:catches expr)))
              (if-let [finally-expr (:finally expr)]
                (walk finally-expr ctx)
                #{})))
+
+(defn- binding-ctx
+  [ctx binding decls]
+  (let [binding-type (type-checker/infer-expr-type (:expr binding) ctx decls)
+        local-ctx (bind-local ctx (:name binding) binding-type)]
+    (if-let [bound-effects (binding-call-effects binding ctx decls)]
+      (bind-call-effects local-ctx (:name binding) bound-effects)
+      local-ctx)))
 
 (defn- let-effects
   [expr ctx decls walk]
   (let [{:keys [effects ctx]}
         (reduce (fn [acc binding]
                   (let [binding-effects (walk (:expr binding) (:ctx acc))
-                        updated-ctx (if-let [bound-effects (binding-call-effects binding (:ctx acc) decls)]
-                                      (bind-call-effects (:ctx acc) (:name binding) bound-effects)
-                                      (:ctx acc))]
+                        updated-ctx (binding-ctx (:ctx acc) binding decls)]
+                    {:effects (set/union (:effects acc) binding-effects)
+                     :ctx updated-ctx}))
+                {:effects #{}
+                 :ctx ctx}
+                (:bindings expr))]
+    (set/union effects
+               (walk (:body expr) ctx))))
+
+(defn- seq-effects
+  [expr ctx walk]
+  (:effects
+   (reduce (fn [{:keys [effects ctx]} part]
+             (let [part-effects (walk part ctx)
+                   updated-ctx (if (= :var (:op part))
+                                 (bind-local ctx (:name part) (:type part))
+                                 ctx)]
+               {:effects (set/union effects part-effects)
+                :ctx updated-ctx}))
+           {:effects #{}
+            :ctx ctx}
+           (:exprs expr))))
+
+(defn- loop-effects
+  [expr ctx decls walk]
+  (let [{:keys [effects ctx]}
+        (reduce (fn [acc binding]
+                  (let [binding-effects (walk (:expr binding) (:ctx acc))
+                        updated-ctx (binding-ctx (:ctx acc) binding decls)]
                     {:effects (set/union (:effects acc) binding-effects)
                      :ctx updated-ctx}))
                 {:effects #{}
@@ -139,10 +228,20 @@
                     (walk (:then expr) ctx)
                     (walk (:else expr) ctx)))
    :match (fn [expr ctx walk]
-            (set/union (walk (:target expr) ctx)
-                       (effect-union (map :body (:cases expr)) ctx walk)))
+            (let [target-effects (walk (:target expr) ctx)
+                  target-type (type-checker/infer-expr-type (:target expr) ctx decls)]
+              (set/union target-effects
+                         (apply set/union
+                                #{}
+                                (map (fn [case]
+                                       (walk (:body case)
+                                             (bind-pattern-locals ctx
+                                                                  (:pattern case)
+                                                                  target-type
+                                                                  decls)))
+                                     (:cases expr))))))
    :let (fn [expr ctx walk] (let-effects expr ctx decls walk))
-   :seq (fn [expr ctx walk] (effect-union (:exprs expr) ctx walk))
+   :seq (fn [expr ctx walk] (seq-effects expr ctx walk))
    :lambda lambda-effects
    :try try-effects
    :var (fn [expr ctx walk]
@@ -151,9 +250,7 @@
    :set (fn [expr ctx walk]
           (set/union #{'State.Write}
                      (walk (:expr expr) ctx)))
-   :loop (fn [expr ctx walk]
-           (set/union (effect-union (map :expr (:bindings expr)) ctx walk)
-                      (walk (:body expr) ctx)))
+   :loop (fn [expr ctx walk] (loop-effects expr ctx decls walk))
    :recur (fn [expr ctx walk] (effect-union (:args expr) ctx walk))
    :raise (fn [expr ctx walk]
             (set/union #{'Foreign.Throw}
@@ -219,20 +316,34 @@
              {:fn (:name decl)
               :contract contract}))))
 
+(defn- invariant-ctx
+  [decl ctx]
+  (case (:op decl)
+    :data (reduce (fn [current field]
+                    (bind-local current (:name field) (:type field)))
+                  ctx
+                  (:fields decl))
+    :union (bind-local ctx 'self (:name decl))
+    ctx))
+
 (defn- check-invariants
   [decl ctx decls]
   (doseq [invariant (:invariants decl)]
-    (when (seq (expr-effects* invariant ctx decls))
+    (when (seq (expr-effects* invariant (invariant-ctx decl ctx) decls))
       (fail! "Invariants must be pure."
              {:decl (:name decl)
               :invariant invariant}))))
 
 (defn- check-fn-decl
   [decl ctx decls]
-  (check-contracts decl ctx decls)
-  (ensure-subset (expr-effects* (:body decl) ctx decls)
+  (let [fn-ctx (reduce (fn [current param]
+                         (bind-local current (:name param) (:type param)))
+                       ctx
+                       (:params decl))]
+    (check-contracts decl fn-ctx decls)
+    (ensure-subset (expr-effects* (:body decl) fn-ctx decls)
                  (:effects decl)
-                 {:fn (:name decl)}))
+                 {:fn (:name decl)})))
 
 (defn check-module
   [module]
@@ -247,5 +358,5 @@
     module))
 
 ;; clj-mutate-manifest-begin
-;; {:version 1, :tested-at "2026-03-12T16:03:36.795962-05:00", :module-hash "-2103016785", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line 8, :hash "-1684993418"} {:id "defn-/fail!", :kind "defn-", :line 10, :end-line 12, :hash "879938479"} {:id "defn-/decl-map", :kind "defn-", :line 14, :end-line 16, :hash "1732448350"} {:id "defn-/ensure-subset", :kind "defn-", :line 18, :end-line 25, :hash "736755596"} {:id "defn-/make-ctx", :kind "defn-", :line 27, :end-line 39, :hash "-572541941"} {:id "defn-/bind-call-effects", :kind "defn-", :line 41, :end-line 43, :hash "-198491742"} {:id "form/6/declare", :kind "declare", :line 45, :end-line 45, :hash "1302116001"} {:id "defn-/local-callable-effects", :kind "defn-", :line 47, :end-line 56, :hash "75363154"} {:id "defn-/if-callable-effects", :kind "defn-", :line 58, :end-line 63, :hash "765082213"} {:id "defn-/callable-effects", :kind "defn-", :line 65, :end-line 80, :hash "138662341"} {:id "defn-/binding-call-effects", :kind "defn-", :line 82, :end-line 84, :hash "1627316679"} {:id "defn-/effect-union", :kind "defn-", :line 86, :end-line 88, :hash "-1296346923"} {:id "defn-/call-effects", :kind "defn-", :line 90, :end-line 94, :hash "899417580"} {:id "defn-/lambda-effects", :kind "defn-", :line 96, :end-line 102, :hash "1258837400"} {:id "defn-/try-effects", :kind "defn-", :line 104, :end-line 110, :hash "-1431839658"} {:id "defn-/let-effects", :kind "defn-", :line 112, :end-line 126, :hash "-1072935542"} {:id "defn-/expr-effect-handlers", :kind "defn-", :line 128, :end-line 202, :hash "2031043611"} {:id "defn/expr-effects*", :kind "defn", :line 204, :end-line 207, :hash "1640622703"} {:id "defn/expr-effects", :kind "defn", :line 209, :end-line 212, :hash "-425404032"} {:id "defn-/check-contracts", :kind "defn-", :line 214, :end-line 220, :hash "-190924871"} {:id "defn-/check-invariants", :kind "defn-", :line 222, :end-line 228, :hash "1932510517"} {:id "defn-/check-fn-decl", :kind "defn-", :line 230, :end-line 235, :hash "1943037450"} {:id "defn/check-module", :kind "defn", :line 237, :end-line 247, :hash "1481191546"}]}
+;; {:version 1, :tested-at "2026-03-12T17:22:21.394018-05:00", :module-hash "983441627", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line 9, :hash "-1748354227"} {:id "defn-/fail!", :kind "defn-", :line 11, :end-line 13, :hash "879938479"} {:id "defn-/decl-map", :kind "defn-", :line 15, :end-line 17, :hash "1732448350"} {:id "defn-/fn-type", :kind "defn-", :line 19, :end-line 24, :hash "1095575499"} {:id "defn-/module-fn-env", :kind "defn-", :line 26, :end-line 43, :hash "-1947641570"} {:id "defn-/ensure-subset", :kind "defn-", :line 45, :end-line 52, :hash "736755596"} {:id "defn-/make-ctx", :kind "defn-", :line 54, :end-line 67, :hash "-499784192"} {:id "defn-/bind-call-effects", :kind "defn-", :line 69, :end-line 71, :hash "-198491742"} {:id "defn-/bind-local", :kind "defn-", :line 73, :end-line 75, :hash "1658319653"} {:id "defn-/bind-pattern-local", :kind "defn-", :line 77, :end-line 79, :hash "-357983377"} {:id "defn-/bind-pattern-locals", :kind "defn-", :line 81, :end-line 89, :hash "-954573492"} {:id "form/11/declare", :kind "declare", :line 91, :end-line 91, :hash "1302116001"} {:id "defn-/local-callable-effects", :kind "defn-", :line 93, :end-line 102, :hash "75363154"} {:id "defn-/if-callable-effects", :kind "defn-", :line 104, :end-line 109, :hash "765082213"} {:id "defn-/callable-effects", :kind "defn-", :line 111, :end-line 126, :hash "138662341"} {:id "defn-/binding-call-effects", :kind "defn-", :line 128, :end-line 130, :hash "1627316679"} {:id "defn-/effect-union", :kind "defn-", :line 132, :end-line 134, :hash "-1290187251"} {:id "defn-/call-effects", :kind "defn-", :line 136, :end-line 140, :hash "899417580"} {:id "defn-/lambda-effects", :kind "defn-", :line 142, :end-line 152, :hash "-660105978"} {:id "defn-/try-effects", :kind "defn-", :line 154, :end-line 165, :hash "-700469701"} {:id "defn-/binding-ctx", :kind "defn-", :line 167, :end-line 173, :hash "542892397"} {:id "defn-/let-effects", :kind "defn-", :line 175, :end-line 187, :hash "-1106430720"} {:id "defn-/seq-effects", :kind "defn-", :line 189, :end-line 201, :hash "-1853656406"} {:id "defn-/loop-effects", :kind "defn-", :line 203, :end-line 215, :hash "1753178605"} {:id "defn-/expr-effect-handlers", :kind "defn-", :line 217, :end-line 299, :hash "-1749351333"} {:id "defn/expr-effects*", :kind "defn", :line 301, :end-line 304, :hash "1640622703"} {:id "defn/expr-effects", :kind "defn", :line 306, :end-line 309, :hash "-425404032"} {:id "defn-/check-contracts", :kind "defn-", :line 311, :end-line 317, :hash "-190924871"} {:id "defn-/invariant-ctx", :kind "defn-", :line 319, :end-line 327, :hash "-1341369256"} {:id "defn-/check-invariants", :kind "defn-", :line 329, :end-line 335, :hash "-1140560710"} {:id "defn-/check-fn-decl", :kind "defn-", :line 337, :end-line 346, :hash "254737222"} {:id "defn/check-module", :kind "defn", :line 348, :end-line 358, :hash "1481191546"}]}
 ;; clj-mutate-manifest-end

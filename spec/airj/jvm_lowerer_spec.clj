@@ -1260,6 +1260,36 @@
                                   :jvm-type :int}}]}
                (sut/lower-module module))))
 
+  (it "lowers bottom-typed if expressions inside loops as void JVM nodes"
+    (let [module {:name 'example/recur_if
+                  :imports []
+                  :exports ['program]
+                  :decls [{:op :fn
+                           :name 'program
+                           :params []
+                           :return-type 'Int
+                           :effects []
+                           :requires [true]
+                           :ensures [true]
+                           :body {:op :loop
+                                  :bindings [{:name 'n
+                                              :expr 1}]
+                                  :body {:op :if
+                                         :test true
+                                         :then {:op :recur
+                                                :args [{:op :local
+                                                        :name 'n}]}
+                                         :else {:op :recur
+                                                :args [{:op :local
+                                                        :name 'n}]}}}}]}]
+      (should= :void
+               (-> (sut/lower-module module)
+                   :methods
+                   first
+                   :body
+                   :body
+                   :jvm-type))))
+
   (it "lowers try catch finally and raise into JVM plan nodes"
     (let [module {:name 'example/raising
                   :imports []
