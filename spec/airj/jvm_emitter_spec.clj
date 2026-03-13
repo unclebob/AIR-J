@@ -294,6 +294,54 @@
       (should= true (.invoke method nil (object-array [(int 3) (int 4) false])))
       (should= false (.invoke method nil (object-array [(int 8) (int 5) true])))))
 
+  (it "emits additional comparisons and boolean equality"
+    (let [plan {:op :jvm-module
+                :module-name 'example/more_operators
+                :internal-name "example/more_operators"
+                :exports ['compare]
+                :records []
+                :enums []
+                :unions []
+                :methods [{:name 'compare
+                           :owner "example/more_operators"
+                           :params [{:name 'x :jvm-type :int}
+                                    {:name 'y :jvm-type :int}]
+                           :return-type :boolean
+                           :effects []
+                           :body {:op :jvm-bool-eq
+                                  :args [{:op :jvm-int-ge
+                                          :args [{:op :jvm-local
+                                                  :name 'x
+                                                  :jvm-type :int}
+                                                 {:op :jvm-local
+                                                  :name 'y
+                                                  :jvm-type :int}]
+                                          :jvm-type :boolean}
+                                         {:op :jvm-bool-and
+                                          :args [{:op :jvm-int-gt
+                                                  :args [{:op :jvm-local
+                                                          :name 'x
+                                                          :jvm-type :int}
+                                                         {:op :jvm-int
+                                                          :value 0
+                                                          :jvm-type :int}]
+                                                  :jvm-type :boolean}
+                                                 {:op :jvm-int-le
+                                                  :args [{:op :jvm-local
+                                                          :name 'x
+                                                          :jvm-type :int}
+                                                         {:op :jvm-local
+                                                          :name 'y
+                                                          :jvm-type :int}]
+                                                  :jvm-type :boolean}]
+                                          :jvm-type :boolean}]
+                                  :jvm-type :boolean}}]}
+          bytes (sut/emit-module-bytes plan)
+          klass (define-class "example.more_operators" bytes)
+          method (.getMethod klass "compare" (into-array Class [Integer/TYPE Integer/TYPE]))]
+      (should= true (.invoke method nil (object-array [(int 4) (int 4)])))
+      (should= false (.invoke method nil (object-array [(int 2) (int 9)])))))
+
   (it "emits static Java field access"
     (let [plan {:op :jvm-module
                 :module-name 'example/java_static_field

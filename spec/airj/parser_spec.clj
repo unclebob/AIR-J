@@ -389,12 +389,41 @@
                                                 :args [{:op :local :name 'y}
                                                        1]}]}]}
                                {:op :int-eq
-                                :args [{:op :int-mod
+                               :args [{:op :int-mod
                                         :args [{:op :local :name 'x}
                                                2]}
                                        {:op :int-div
                                         :args [{:op :local :name 'y}
                                                2]}]}]}]}
+               (-> ast :decls first :body))))
+
+  (it "parses additional comparison operators"
+    (let [source "(module example/more-ops
+                    (imports)
+                    (export compare)
+                    (fn compare
+                      (params (x Int) (y Int) (flag Bool))
+                      (returns Bool)
+                      (effects ())
+                      (requires true)
+                      (ensures true)
+                      (bool-eq
+                        (int-ge (local x) (local y))
+                        (bool-or
+                          (int-gt (local x) 0)
+                          (int-le (local y) 10)))))"
+          ast (sut/parse-module source)]
+      (should= {:op :bool-eq
+                :args [{:op :int-ge
+                        :args [{:op :local :name 'x}
+                               {:op :local :name 'y}]}
+                       {:op :bool-or
+                        :args [{:op :int-gt
+                                :args [{:op :local :name 'x}
+                                       0]}
+                               {:op :int-le
+                                :args [{:op :local :name 'y}
+                                       10]}]}]}
                (-> ast :decls first :body))))
 
   (it "parses structured AIR-J imports"

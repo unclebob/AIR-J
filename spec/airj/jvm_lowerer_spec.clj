@@ -334,6 +334,62 @@
                    first
                    :body))))
 
+  (it "lowers additional comparisons and boolean equality"
+    (let [module {:name 'example/more-operators
+                  :imports []
+                  :exports ['compare]
+                  :decls [{:op :fn
+                           :name 'compare
+                           :params [{:name 'x :type 'Int}
+                                    {:name 'y :type 'Int}]
+                           :return-type 'Bool
+                           :effects []
+                           :requires [true]
+                           :ensures [true]
+                           :body {:op :bool-eq
+                                  :args [{:op :int-ge
+                                          :args [{:op :local :name 'x}
+                                                 {:op :local :name 'y}]}
+                                         {:op :bool-and
+                                          :args [{:op :int-gt
+                                                  :args [{:op :local :name 'x}
+                                                         0]}
+                                                 {:op :int-le
+                                                  :args [{:op :local :name 'x}
+                                                         {:op :local :name 'y}]}]}]}}]}]
+      (should= {:op :jvm-bool-eq
+                :args [{:op :jvm-int-ge
+                        :args [{:op :jvm-local
+                                :name 'x
+                                :jvm-type :int}
+                               {:op :jvm-local
+                                :name 'y
+                                :jvm-type :int}]
+                        :jvm-type :boolean}
+                       {:op :jvm-bool-and
+                        :args [{:op :jvm-int-gt
+                                :args [{:op :jvm-local
+                                        :name 'x
+                                        :jvm-type :int}
+                                       {:op :jvm-int
+                                        :value 0
+                                        :jvm-type :int}]
+                                :jvm-type :boolean}
+                               {:op :jvm-int-le
+                                :args [{:op :jvm-local
+                                        :name 'x
+                                        :jvm-type :int}
+                                       {:op :jvm-local
+                                        :name 'y
+                                        :jvm-type :int}]
+                                :jvm-type :boolean}]
+                        :jvm-type :boolean}]
+                :jvm-type :boolean}
+               (-> (sut/lower-module module)
+                   :methods
+                   first
+                   :body))))
+
   (it "lowers imported function calls to the imported module owner"
     (let [module {:name 'example/imported
                   :imports [{:op :airj-import

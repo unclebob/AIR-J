@@ -158,6 +158,27 @@
       (should= true (.invoke method nil (object-array [(int 3) (int 4) false])))
       (should= false (.invoke method nil (object-array [(int 8) (int 5) true])))))
 
+  (it "compiles AIR-J source with additional comparisons into executable bytes"
+    (let [source "(module example/more-operators
+                    (imports)
+                    (export compare)
+                    (fn compare
+                      (params (x Int) (y Int))
+                      (returns Bool)
+                      (effects ())
+                      (requires true)
+                      (ensures true)
+                      (bool-eq
+                        (int-ge (local x) (local y))
+                        (bool-and
+                          (int-gt (local x) 0)
+                          (int-le (local x) (local y))))))"
+          bundle (sut/compile-source source)
+          klass (define-class "example.more-operators" (get bundle "example/more-operators"))
+          method (.getMethod klass "compare" (into-array Class [Integer/TYPE Integer/TYPE]))]
+      (should= true (.invoke method nil (object-array [(int 4) (int 4)])))
+      (should= false (.invoke method nil (object-array [(int 2) (int 9)])))))
+
   (it "writes compiled class files to disk"
     (let [source "(module example/write
                     (imports)

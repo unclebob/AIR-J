@@ -315,6 +315,34 @@
                                     :args [{:op :local :name 'flag}
                                            1]}}]})))
 
+  (it "accepts additional comparisons and boolean equality"
+    (let [module {:name 'example/more-operators
+                  :imports []
+                  :exports ['compare]
+                  :decls [{:op :fn
+                           :name 'compare
+                           :params [{:name 'x :type 'Int}
+                                    {:name 'y :type 'Int}
+                                    {:name 'flag :type 'Bool}]
+                           :return-type 'Bool
+                           :effects []
+                           :requires [true]
+                           :ensures [true]
+                           :body {:op :bool-eq
+                                  :args [{:op :int-ge
+                                          :args [{:op :local :name 'x}
+                                                 {:op :local :name 'y}]}
+                                         {:op :bool-or
+                                          :args [{:op :local :name 'flag}
+                                                 {:op :bool-and
+                                                  :args [{:op :int-gt
+                                                          :args [{:op :local :name 'y}
+                                                                 0]}
+                                                         {:op :int-le
+                                                          :args [{:op :local :name 'x}
+                                                                 {:op :local :name 'y}]}]}]}]}}]}]
+      (should= module (sut/check-module module))))
+
   (it "accepts calls to imported functions from supplied interfaces"
     (let [module {:name 'example/imported-call
                   :imports [{:op :airj-import

@@ -255,6 +255,32 @@
                                                       :return-type 'Int}
                                           :args [{:op :local :name 'value}]}
                                          1]}}]}]
+      (should= module (sut/check-module module))))
+
+  (it "treats comparison operators and boolean equality as pure"
+    (let [module {:name 'example/compare-effects
+                  :imports [{:op :java-import
+                             :class-name 'java.lang.Math}]
+                  :exports ['compare]
+                  :decls [{:op :fn
+                           :name 'compare
+                           :params [{:name 'value :type 'Int}]
+                           :return-type 'Bool
+                           :effects ['Foreign.Throw]
+                           :requires [true]
+                           :ensures [true]
+                           :body {:op :bool-eq
+                                  :args [{:op :int-ge
+                                          :args [{:op :java-static-call
+                                                  :class-name 'java.lang.Math
+                                                  :member-id 'abs
+                                                  :signature {:params ['Int]
+                                                              :return-type 'Int}
+                                                  :args [{:op :local :name 'value}]}
+                                                 1]}
+                                         {:op :int-le
+                                          :args [{:op :local :name 'value}
+                                                 10]}]}}]}]
       (should= module (sut/check-module module)))))
 
 (describe "expr-effects"
