@@ -4,6 +4,7 @@
             [airj.jvm-emit-cells :as jvm-emit-cells]
             [airj.jvm-emit-closures :as jvm-emit-closures]
             [airj.jvm-emit-entry :as jvm-emit-entry]
+            [airj.jvm-emit-text :as jvm-emit-text]
             [airj.jvm-emit-try :as jvm-emit-try])
   (:import (clojure.asm ClassWriter Label MethodVisitor Opcodes)))
 
@@ -202,110 +203,6 @@
   (emit-expr mv (:arg expr) env)
   (.visitInsn mv Opcodes/ICONST_1)
   (.visitInsn mv Opcodes/IXOR))
-
-(defn- emit-int->string
-  [^MethodVisitor mv expr env]
-  (emit-expr mv (:arg expr) env)
-  (.visitMethodInsn mv
-                    Opcodes/INVOKESTATIC
-                    "java/lang/String"
-                    "valueOf"
-                    "(I)Ljava/lang/String;"
-                    false))
-
-(defn- emit-string-eq
-  [^MethodVisitor mv expr env]
-  (emit-expr mv (first (:args expr)) env)
-  (emit-expr mv (second (:args expr)) env)
-  (.visitMethodInsn mv
-                    Opcodes/INVOKEVIRTUAL
-                    "java/lang/String"
-                    "equals"
-                    "(Ljava/lang/Object;)Z"
-                    false))
-
-(defn- emit-string-concat
-  [^MethodVisitor mv expr env]
-  (emit-expr mv (first (:args expr)) env)
-  (emit-expr mv (second (:args expr)) env)
-  (.visitMethodInsn mv
-                    Opcodes/INVOKEVIRTUAL
-                    "java/lang/String"
-                    "concat"
-                    "(Ljava/lang/String;)Ljava/lang/String;"
-                    false))
-
-(defn- emit-string->int
-  [^MethodVisitor mv expr env]
-  (emit-expr mv (:arg expr) env)
-  (.visitMethodInsn mv
-                    Opcodes/INVOKESTATIC
-                    "java/lang/Integer"
-                    "parseInt"
-                    "(Ljava/lang/String;)I"
-                    false))
-
-(defn- emit-string-length
-  [^MethodVisitor mv expr env]
-  (emit-expr mv (:arg expr) env)
-  (.visitMethodInsn mv
-                    Opcodes/INVOKEVIRTUAL
-                    "java/lang/String"
-                    "length"
-                    "()I"
-                    false))
-
-(defn- emit-io-read-line
-  [^MethodVisitor mv]
-  (.visitTypeInsn mv Opcodes/NEW "java/util/Scanner")
-  (.visitInsn mv Opcodes/DUP)
-  (.visitFieldInsn mv
-                   Opcodes/GETSTATIC
-                   "java/lang/System"
-                   "in"
-                   "Ljava/io/InputStream;")
-  (.visitMethodInsn mv
-                    Opcodes/INVOKESPECIAL
-                    "java/util/Scanner"
-                    "<init>"
-                    "(Ljava/io/InputStream;)V"
-                    false)
-  (.visitMethodInsn mv
-                    Opcodes/INVOKEVIRTUAL
-                    "java/util/Scanner"
-                    "nextLine"
-                    "()Ljava/lang/String;"
-                    false))
-
-(defn- emit-io-print
-  [^MethodVisitor mv expr env]
-  (.visitFieldInsn mv
-                   Opcodes/GETSTATIC
-                   "java/lang/System"
-                   "out"
-                   "Ljava/io/PrintStream;")
-  (emit-expr mv (:arg expr) env)
-  (.visitMethodInsn mv
-                    Opcodes/INVOKEVIRTUAL
-                    "java/io/PrintStream"
-                    "print"
-                    "(Ljava/lang/String;)V"
-                    false))
-
-(defn- emit-io-println
-  [^MethodVisitor mv expr env]
-  (.visitFieldInsn mv
-                   Opcodes/GETSTATIC
-                   "java/lang/System"
-                   "out"
-                   "Ljava/io/PrintStream;")
-  (emit-expr mv (:arg expr) env)
-  (.visitMethodInsn mv
-                    Opcodes/INVOKEVIRTUAL
-                    "java/io/PrintStream"
-                    "println"
-                    "(Ljava/lang/String;)V"
-                    false))
 
 (defn- pop-opcode
   [jvm-type]
@@ -632,17 +529,29 @@
    :jvm-int-ge (fn [mv expr env] (emit-primitive-comparison mv expr env Opcodes/IF_ICMPGE))
    :jvm-bool-eq (fn [mv expr env] (emit-primitive-comparison mv expr env Opcodes/IF_ICMPEQ))
    :jvm-int-ne (fn [mv expr env] (emit-primitive-comparison mv expr env Opcodes/IF_ICMPNE))
-   :jvm-string-eq emit-string-eq
-   :jvm-string-concat emit-string-concat
-   :jvm-int->string emit-int->string
-   :jvm-string->int emit-string->int
-   :jvm-string-length emit-string-length
-   :jvm-io-read-line (fn [mv _expr _env] (emit-io-read-line mv))
-   :jvm-io-print emit-io-print
+   :jvm-string-eq (fn [mv expr env]
+                    (jvm-emit-text/emit-string-eq mv expr env {:emit-expr emit-expr}))
+   :jvm-string-concat (fn [mv expr env]
+                        (jvm-emit-text/emit-string-concat mv expr env {:emit-expr emit-expr}))
+   :jvm-int->string (fn [mv expr env]
+                      (jvm-emit-text/emit-int->string mv expr env {:emit-expr emit-expr}))
+   :jvm-string->int (fn [mv expr env]
+                      (jvm-emit-text/emit-string->int mv expr env {:emit-expr emit-expr}))
+   :jvm-string-length (fn [mv expr env]
+                        (jvm-emit-text/emit-string-length mv expr env {:emit-expr emit-expr}))
+   :jvm-io-read-line (fn [mv expr env]
+                       (jvm-emit-text/emit-io-read-line mv expr env nil))
+   :jvm-io-print (fn [mv expr env]
+                   (jvm-emit-text/emit-io-print mv expr env
+                                                {:emit-expr emit-expr
+                                                 :method-name "print"}))
    :jvm-bool-not emit-bool-not
    :jvm-bool-and (fn [mv expr env] (emit-primitive-binary mv expr env Opcodes/IAND))
    :jvm-bool-or (fn [mv expr env] (emit-primitive-binary mv expr env Opcodes/IOR))
-   :jvm-io-println emit-io-println
+   :jvm-io-println (fn [mv expr env]
+                     (jvm-emit-text/emit-io-print mv expr env
+                                                  {:emit-expr emit-expr
+                                                   :method-name "println"}))
    :jvm-java-call emit-java-call
    :jvm-java-static-call emit-java-static-call
    :jvm-java-new emit-java-new
@@ -879,5 +788,5 @@
                (:unions module)))))
 
 ;; clj-mutate-manifest-begin
-;; {:version 1, :tested-at "2026-03-13T12:58:41.034411-05:00", :module-hash "1718926854", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line 8, :hash "-1034326435"} {:id "form/1/declare", :kind "declare", :line 10, :end-line 10, :hash "-351869103"} {:id "form/2/declare", :kind "declare", :line 11, :end-line 11, :hash "1069961042"} {:id "form/3/declare", :kind "declare", :line 12, :end-line 12, :hash "-2053214757"} {:id "form/4/declare", :kind "declare", :line 13, :end-line 13, :hash "2098266977"} {:id "form/5/declare", :kind "declare", :line 14, :end-line 14, :hash "963731763"} {:id "form/6/declare", :kind "declare", :line 15, :end-line 15, :hash "-1905695466"} {:id "def/type-descriptors", :kind "def", :line 17, :end-line 20, :hash "-1455056336"} {:id "def/load-opcodes", :kind "def", :line 22, :end-line 24, :hash "-950703340"} {:id "def/store-opcodes", :kind "def", :line 26, :end-line 28, :hash "-997842127"} {:id "def/return-opcodes", :kind "def", :line 30, :end-line 33, :hash "1506270588"} {:id "defn-/fail!", :kind "defn-", :line 35, :end-line 37, :hash "879938479"} {:id "defn-/method-name", :kind "defn-", :line 39, :end-line 43, :hash "1072728380"} {:id "defn-/init-descriptor", :kind "defn-", :line 45, :end-line 49, :hash "-591391110"} {:id "defn-/descriptor", :kind "defn-", :line 51, :end-line 53, :hash "799112538"} {:id "defn-/method-descriptor", :kind "defn-", :line 55, :end-line 60, :hash "-1082052598"} {:id "defn-/load-opcode", :kind "defn-", :line 62, :end-line 64, :hash "501460056"} {:id "defn-/store-opcode", :kind "defn-", :line 66, :end-line 68, :hash "234024341"} {:id "defn-/return-opcode", :kind "defn-", :line 70, :end-line 72, :hash "1071593654"} {:id "defn-/local-slots", :kind "defn-", :line 74, :end-line 81, :hash "-1480289965"} {:id "defn-/instance-local-slots", :kind "defn-", :line 83, :end-line 90, :hash "-1377007891"} {:id "defn-/emit-int", :kind "defn-", :line 92, :end-line 94, :hash "682918505"} {:id "defn-/emit-string", :kind "defn-", :line 96, :end-line 98, :hash "-364387159"} {:id "defn-/emit-boolean", :kind "defn-", :line 100, :end-line 102, :hash "-818404463"} {:id "defn-/emit-local", :kind "defn-", :line 104, :end-line 109, :hash "435457023"} {:id "defn-/emit-invoke-static", :kind "defn-", :line 111, :end-line 123, :hash "1482752229"} {:id "defn-/emit-java-static-call", :kind "defn-", :line 125, :end-line 137, :hash "-738935078"} {:id "defn-/emit-java-call", :kind "defn-", :line 139, :end-line 152, :hash "19941248"} {:id "defn-/emit-java-new", :kind "defn-", :line 154, :end-line 167, :hash "1581399000"} {:id "defn-/emit-if", :kind "defn-", :line 169, :end-line 179, :hash "-2016458095"} {:id "defn-/emit-primitive-binary", :kind "defn-", :line 181, :end-line 185, :hash "853246371"} {:id "defn-/emit-primitive-comparison", :kind "defn-", :line 187, :end-line 198, :hash "328881796"} {:id "defn-/emit-bool-not", :kind "defn-", :line 200, :end-line 204, :hash "-644687160"} {:id "defn-/emit-int->string", :kind "defn-", :line 206, :end-line 214, :hash "-804111936"} {:id "defn-/emit-string-eq", :kind "defn-", :line 216, :end-line 225, :hash "-357827818"} {:id "defn-/emit-string-concat", :kind "defn-", :line 227, :end-line 236, :hash "1926976367"} {:id "defn-/emit-string->int", :kind "defn-", :line 238, :end-line 246, :hash "234666467"} {:id "defn-/emit-string-length", :kind "defn-", :line 248, :end-line 256, :hash "1629739222"} {:id "defn-/emit-io-read-line", :kind "defn-", :line 258, :end-line 278, :hash "999915306"} {:id "defn-/emit-io-print", :kind "defn-", :line 280, :end-line 293, :hash "-1915671455"} {:id "defn-/emit-io-println", :kind "defn-", :line 295, :end-line 308, :hash "73189585"} {:id "defn-/pop-opcode", :kind "defn-", :line 310, :end-line 314, :hash "-1145579462"} {:id "defn-/emit-discarded", :kind "defn-", :line 316, :end-line 320, :hash "-373415048"} {:id "defn-/emit-seq", :kind "defn-", :line 322, :end-line 335, :hash "1569148183"} {:id "defn-/bind-let-slots", :kind "defn-", :line 337, :end-line 345, :hash "1114237883"} {:id "defn-/bind-typed-slots", :kind "defn-", :line 347, :end-line 355, :hash "-21831128"} {:id "defn-/bind-var-slot", :kind "defn-", :line 357, :end-line 363, :hash "-1136329942"} {:id "defn-/emit-var", :kind "defn-", :line 365, :end-line 372, :hash "879920388"} {:id "defn-/emit-set", :kind "defn-", :line 374, :end-line 382, :hash "1326112789"} {:id "defn-/emit-let", :kind "defn-", :line 384, :end-line 389, :hash "-1597708766"} {:id "defn-/constructor-descriptor", :kind "defn-", :line 391, :end-line 395, :hash "1030246641"} {:id "defn-/emit-construct", :kind "defn-", :line 397, :end-line 408, :hash "642978394"} {:id "defn-/emit-record-get", :kind "defn-", :line 410, :end-line 417, :hash "-1829411674"} {:id "defn-/emit-java-get-field", :kind "defn-", :line 419, :end-line 426, :hash "1574815784"} {:id "defn-/emit-java-static-get-field", :kind "defn-", :line 428, :end-line 434, :hash "-1082357157"} {:id "defn-/emit-java-set-field", :kind "defn-", :line 436, :end-line 444, :hash "-551071161"} {:id "defn-/emit-java-static-set-field", :kind "defn-", :line 446, :end-line 453, :hash "1083253080"} {:id "defn-/emit-variant", :kind "defn-", :line 455, :end-line 457, :hash "897327167"} {:id "defn-/emit-instance-of", :kind "defn-", :line 459, :end-line 462, :hash "1555891405"} {:id "defn-/emit-variant-field", :kind "defn-", :line 464, :end-line 472, :hash "828168694"} {:id "defn-/emit-literal-test", :kind "defn-", :line 474, :end-line 485, :hash "1011164584"} {:id "defn-/emit-always-true", :kind "defn-", :line 487, :end-line 489, :hash "415683512"} {:id "defn-/bind-local-slots", :kind "defn-", :line 491, :end-line 499, :hash "844729401"} {:id "defn-/bind-loop-slots", :kind "defn-", :line 501, :end-line 503, :hash "-1190078791"} {:id "defn-/emit-binding", :kind "defn-", :line 505, :end-line 509, :hash "-167414695"} {:id "defn-/emit-match", :kind "defn-", :line 511, :end-line 528, :hash "1586201505"} {:id "defn-/recur-frame", :kind "defn-", :line 530, :end-line 534, :hash "-1921183736"} {:id "defn-/temp-slots", :kind "defn-", :line 536, :end-line 544, :hash "-1804676158"} {:id "defn-/emit-recur", :kind "defn-", :line 546, :end-line 562, :hash "-640909028"} {:id "defn-/temp-slot", :kind "defn-", :line 564, :end-line 568, :hash "-730167867"} {:id "defn-/emit-raise", :kind "defn-", :line 570, :end-line 574, :hash "476518000"} {:id "defn-/emit-try", :kind "defn-", :line 576, :end-line 585, :hash "1119462693"} {:id "defn-/emit-loop", :kind "defn-", :line 587, :end-line 609, :hash "193454205"} {:id "defn-/emit-literal", :kind "defn-", :line 611, :end-line 618, :hash "596586998"} {:id "def/emit-expr-handlers", :kind "def", :line 620, :end-line 685, :hash "1865478996"} {:id "defn-/emit-expr", :kind "defn-", :line 687, :end-line 693, :hash "749449684"} {:id "defn-/emit-default-constructor", :kind "defn-", :line 695, :end-line 705, :hash "240160418"} {:id "defn-/field-slot", :kind "defn-", :line 707, :end-line 711, :hash "-1567189554"} {:id "defn-/emit-record-constructor", :kind "defn-", :line 713, :end-line 729, :hash "-316497366"} {:id "defn-/emit-record-class-bytes", :kind "defn-", :line 731, :end-line 751, :hash "-382850934"} {:id "defn-/emit-union-base-class-bytes", :kind "defn-", :line 753, :end-line 765, :hash "861277052"} {:id "defn-/emit-union-variant-class-bytes", :kind "defn-", :line 767, :end-line 800, :hash "944748988"} {:id "defn-/emit-method", :kind "defn-", :line 802, :end-line 816, :hash "-1558709303"} {:id "defn/emit-module-bytes", :kind "defn", :line 818, :end-line 835, :hash "1831727313"} {:id "defn/emit-class-bytes", :kind "defn", :line 837, :end-line 879, :hash "-1403240972"}]}
+;; {:version 1, :tested-at "2026-03-13T13:06:57.978999-05:00", :module-hash "-900630714", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line 9, :hash "716573190"} {:id "form/1/declare", :kind "declare", :line 11, :end-line 11, :hash "-351869103"} {:id "form/2/declare", :kind "declare", :line 12, :end-line 12, :hash "1069961042"} {:id "form/3/declare", :kind "declare", :line 13, :end-line 13, :hash "-2053214757"} {:id "form/4/declare", :kind "declare", :line 14, :end-line 14, :hash "2098266977"} {:id "form/5/declare", :kind "declare", :line 15, :end-line 15, :hash "963731763"} {:id "form/6/declare", :kind "declare", :line 16, :end-line 16, :hash "-1905695466"} {:id "def/type-descriptors", :kind "def", :line 18, :end-line 21, :hash "-1455056336"} {:id "def/load-opcodes", :kind "def", :line 23, :end-line 25, :hash "-950703340"} {:id "def/store-opcodes", :kind "def", :line 27, :end-line 29, :hash "-997842127"} {:id "def/return-opcodes", :kind "def", :line 31, :end-line 34, :hash "1506270588"} {:id "defn-/fail!", :kind "defn-", :line 36, :end-line 38, :hash "879938479"} {:id "defn-/method-name", :kind "defn-", :line 40, :end-line 44, :hash "1072728380"} {:id "defn-/init-descriptor", :kind "defn-", :line 46, :end-line 50, :hash "-591391110"} {:id "defn-/descriptor", :kind "defn-", :line 52, :end-line 54, :hash "799112538"} {:id "defn-/method-descriptor", :kind "defn-", :line 56, :end-line 61, :hash "-1082052598"} {:id "defn-/load-opcode", :kind "defn-", :line 63, :end-line 65, :hash "501460056"} {:id "defn-/store-opcode", :kind "defn-", :line 67, :end-line 69, :hash "234024341"} {:id "defn-/return-opcode", :kind "defn-", :line 71, :end-line 73, :hash "1071593654"} {:id "defn-/local-slots", :kind "defn-", :line 75, :end-line 82, :hash "-1480289965"} {:id "defn-/instance-local-slots", :kind "defn-", :line 84, :end-line 91, :hash "-1377007891"} {:id "defn-/emit-int", :kind "defn-", :line 93, :end-line 95, :hash "682918505"} {:id "defn-/emit-string", :kind "defn-", :line 97, :end-line 99, :hash "-364387159"} {:id "defn-/emit-boolean", :kind "defn-", :line 101, :end-line 103, :hash "-818404463"} {:id "defn-/emit-local", :kind "defn-", :line 105, :end-line 110, :hash "435457023"} {:id "defn-/emit-invoke-static", :kind "defn-", :line 112, :end-line 124, :hash "1482752229"} {:id "defn-/emit-java-static-call", :kind "defn-", :line 126, :end-line 138, :hash "-738935078"} {:id "defn-/emit-java-call", :kind "defn-", :line 140, :end-line 153, :hash "19941248"} {:id "defn-/emit-java-new", :kind "defn-", :line 155, :end-line 168, :hash "1581399000"} {:id "defn-/emit-if", :kind "defn-", :line 170, :end-line 180, :hash "-2016458095"} {:id "defn-/emit-primitive-binary", :kind "defn-", :line 182, :end-line 186, :hash "853246371"} {:id "defn-/emit-primitive-comparison", :kind "defn-", :line 188, :end-line 199, :hash "328881796"} {:id "defn-/emit-bool-not", :kind "defn-", :line 201, :end-line 205, :hash "-644687160"} {:id "defn-/pop-opcode", :kind "defn-", :line 207, :end-line 211, :hash "-1145579462"} {:id "defn-/emit-discarded", :kind "defn-", :line 213, :end-line 217, :hash "-373415048"} {:id "defn-/emit-seq", :kind "defn-", :line 219, :end-line 232, :hash "1569148183"} {:id "defn-/bind-let-slots", :kind "defn-", :line 234, :end-line 242, :hash "1114237883"} {:id "defn-/bind-typed-slots", :kind "defn-", :line 244, :end-line 252, :hash "-21831128"} {:id "defn-/bind-var-slot", :kind "defn-", :line 254, :end-line 260, :hash "-1136329942"} {:id "defn-/emit-var", :kind "defn-", :line 262, :end-line 269, :hash "879920388"} {:id "defn-/emit-set", :kind "defn-", :line 271, :end-line 279, :hash "1326112789"} {:id "defn-/emit-let", :kind "defn-", :line 281, :end-line 286, :hash "-1597708766"} {:id "defn-/constructor-descriptor", :kind "defn-", :line 288, :end-line 292, :hash "1030246641"} {:id "defn-/emit-construct", :kind "defn-", :line 294, :end-line 305, :hash "642978394"} {:id "defn-/emit-record-get", :kind "defn-", :line 307, :end-line 314, :hash "-1829411674"} {:id "defn-/emit-java-get-field", :kind "defn-", :line 316, :end-line 323, :hash "1574815784"} {:id "defn-/emit-java-static-get-field", :kind "defn-", :line 325, :end-line 331, :hash "-1082357157"} {:id "defn-/emit-java-set-field", :kind "defn-", :line 333, :end-line 341, :hash "-551071161"} {:id "defn-/emit-java-static-set-field", :kind "defn-", :line 343, :end-line 350, :hash "1083253080"} {:id "defn-/emit-variant", :kind "defn-", :line 352, :end-line 354, :hash "897327167"} {:id "defn-/emit-instance-of", :kind "defn-", :line 356, :end-line 359, :hash "1555891405"} {:id "defn-/emit-variant-field", :kind "defn-", :line 361, :end-line 369, :hash "828168694"} {:id "defn-/emit-literal-test", :kind "defn-", :line 371, :end-line 382, :hash "1011164584"} {:id "defn-/emit-always-true", :kind "defn-", :line 384, :end-line 386, :hash "415683512"} {:id "defn-/bind-local-slots", :kind "defn-", :line 388, :end-line 396, :hash "844729401"} {:id "defn-/bind-loop-slots", :kind "defn-", :line 398, :end-line 400, :hash "-1190078791"} {:id "defn-/emit-binding", :kind "defn-", :line 402, :end-line 406, :hash "-167414695"} {:id "defn-/emit-match", :kind "defn-", :line 408, :end-line 425, :hash "1586201505"} {:id "defn-/recur-frame", :kind "defn-", :line 427, :end-line 431, :hash "-1921183736"} {:id "defn-/temp-slots", :kind "defn-", :line 433, :end-line 441, :hash "-1804676158"} {:id "defn-/emit-recur", :kind "defn-", :line 443, :end-line 459, :hash "-640909028"} {:id "defn-/temp-slot", :kind "defn-", :line 461, :end-line 465, :hash "-730167867"} {:id "defn-/emit-raise", :kind "defn-", :line 467, :end-line 471, :hash "476518000"} {:id "defn-/emit-try", :kind "defn-", :line 473, :end-line 482, :hash "1119462693"} {:id "defn-/emit-loop", :kind "defn-", :line 484, :end-line 506, :hash "193454205"} {:id "defn-/emit-literal", :kind "defn-", :line 508, :end-line 515, :hash "596586998"} {:id "def/emit-expr-handlers", :kind "def", :line 517, :end-line 594, :hash "879785935"} {:id "defn-/emit-expr", :kind "defn-", :line 596, :end-line 602, :hash "749449684"} {:id "defn-/emit-default-constructor", :kind "defn-", :line 604, :end-line 614, :hash "240160418"} {:id "defn-/field-slot", :kind "defn-", :line 616, :end-line 620, :hash "-1567189554"} {:id "defn-/emit-record-constructor", :kind "defn-", :line 622, :end-line 638, :hash "-316497366"} {:id "defn-/emit-record-class-bytes", :kind "defn-", :line 640, :end-line 660, :hash "-382850934"} {:id "defn-/emit-union-base-class-bytes", :kind "defn-", :line 662, :end-line 674, :hash "861277052"} {:id "defn-/emit-union-variant-class-bytes", :kind "defn-", :line 676, :end-line 709, :hash "944748988"} {:id "defn-/emit-method", :kind "defn-", :line 711, :end-line 725, :hash "-1558709303"} {:id "defn/emit-module-bytes", :kind "defn", :line 727, :end-line 744, :hash "1831727313"} {:id "defn/emit-class-bytes", :kind "defn", :line 746, :end-line 788, :hash "-1403240972"}]}
 ;; clj-mutate-manifest-end
