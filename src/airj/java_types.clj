@@ -13,6 +13,7 @@
 
 (def ^:private named-reference-types
   {'String java.lang.String
+   'Bytes (load-class "[B")
    'StringSeq (load-class "[Ljava.lang.String;")})
 
 (defn java-type-expr?
@@ -56,5 +57,5 @@
       :else (.isAssignableFrom expected actual))))
 
 ;; clj-mutate-manifest-begin
-;; {:version 1, :tested-at "2026-03-14T08:33:50.39138-05:00", :module-hash "1852755138", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line 1, :hash "-220394871"} {:id "def/primitive-types", :kind "def", :line 3, :end-line 8, :hash "49647705"} {:id "defn/load-class", :kind "defn", :line 10, :end-line 12, :hash "1222057517"} {:id "def/named-reference-types", :kind "def", :line 14, :end-line 16, :hash "2127171633"} {:id "defn/java-type-expr?", :kind "defn", :line 18, :end-line 21, :hash "-2087947263"} {:id "defn-/seq-type?", :kind "defn-", :line 23, :end-line 26, :hash "1535070684"} {:id "defn-/map-type?", :kind "defn-", :line 28, :end-line 31, :hash "-1201869236"} {:id "defn-/special-reference-type", :kind "defn-", :line 33, :end-line 39, :hash "2072413056"} {:id "defn/resolve-type", :kind "defn", :line 41, :end-line 47, :hash "-1708781742"} {:id "defn/assignable-type-expr?", :kind "defn", :line 49, :end-line 56, :hash "648140632"}]}
+;; {:version 1, :tested-at "2026-03-14T14:34:39.593733-05:00", :module-hash "349073494", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line 1, :hash "-220394871"} {:id "def/primitive-types", :kind "def", :line 3, :end-line 8, :hash "49647705"} {:id "defn/load-class", :kind "defn", :line 10, :end-line 12, :hash "1222057517"} {:id "def/named-reference-types", :kind "def", :line 14, :end-line 17, :hash "-1066181998"} {:id "defn/java-type-expr?", :kind "defn", :line 19, :end-line 22, :hash "-2087947263"} {:id "defn-/seq-type?", :kind "defn-", :line 24, :end-line 27, :hash "1535070684"} {:id "defn-/map-type?", :kind "defn-", :line 29, :end-line 32, :hash "-1201869236"} {:id "defn-/special-reference-type", :kind "defn-", :line 34, :end-line 40, :hash "2072413056"} {:id "defn/resolve-type", :kind "defn", :line 42, :end-line 48, :hash "-1708781742"} {:id "defn/assignable-type-expr?", :kind "defn", :line 50, :end-line 57, :hash "648140632"}]}
 ;; clj-mutate-manifest-end

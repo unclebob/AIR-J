@@ -723,3 +723,28 @@
                       :arg {:op :local
                             :name 'text}}}
                (-> ast :decls first :body))))
+
+  (it "parses host environment and process primitives"
+    (let [source "(module example/host_forms
+                    (imports)
+                    (export run)
+                    (fn run
+                      (params (name String) (command (Seq String)) (stdin Bytes))
+                      (returns ProcessResult)
+                      (effects (Env.Read Process.Run Foreign.Throw))
+                      (requires true)
+                      (ensures true)
+                      (seq
+                        (env-get (local name))
+                        (process-run (local command) (local stdin)))))"
+          ast (sut/parse-module source)]
+      (should= {:op :seq
+                :exprs [{:op :env-get
+                         :arg {:op :local
+                               :name 'name}}
+                        {:op :process-run
+                         :args [{:op :local
+                                 :name 'command}
+                                {:op :local
+                                 :name 'stdin}]}]}
+               (-> ast :decls first :body))))

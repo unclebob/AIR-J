@@ -20,6 +20,8 @@
 
   (it "keeps primitive compatibility exact"
     (should (sut/assignable-type-expr? 'Int 'Int))
+    (should= (Class/forName "[B")
+             (sut/resolve-type 'Bytes))
     (should= java.util.List
              (sut/resolve-type '(Seq String)))
     (should= java.util.Map

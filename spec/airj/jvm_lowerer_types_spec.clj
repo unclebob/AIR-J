@@ -11,6 +11,8 @@
                                 :variants []}}}]
       (should= :int
                (sut/lower-type 'Int ctx))
+      (should= "[B"
+               (sut/lower-type 'Bytes ctx))
       (should= "java/lang/String"
                (sut/lower-type 'String ctx))
       (should= "java/lang/StringBuilder"
@@ -112,6 +114,29 @@
                (sut/infer-type (float 1.25) ctx))
       (should= 'Double
                (sut/infer-type 1.25 ctx))))
+
+  (it "infers host boundary primitive result types"
+    (let [ctx {:module-name 'example/host
+               :decls {'Option {:op :union
+                                :name 'Option
+                                :type-params ['T]
+                                :variants []}
+                       'ProcessResult {:op :data
+                                       :name 'ProcessResult
+                                       :type-params []
+                                       :fields []}}
+               :locals {'name 'String
+                        'command '(Seq String)
+                        'stdin 'Bytes}}]
+      (should= '(Option String)
+               (sut/infer-type {:op :env-get
+                                :arg {:op :local :name 'name}}
+                               ctx))
+      (should= 'ProcessResult
+               (sut/infer-type {:op :process-run
+                                :args [{:op :local :name 'command}
+                                       {:op :local :name 'stdin}]}
+                               ctx))))
 
   (it "rejects unsupported JVM types"
     (should-throw clojure.lang.ExceptionInfo

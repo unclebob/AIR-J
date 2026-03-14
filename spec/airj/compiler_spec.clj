@@ -1348,3 +1348,61 @@
       (should= 1 result)
       (should= "{\"planet\":\"earth\"}"
                (slurp output)))))
+
+  (it "runs a canonical tool workflow through env process bytes json and file boundaries"
+    (let [input (.toString (java.nio.file.Files/createTempFile "airj-tool-input"
+                                                               ".json"
+                                                               (make-array java.nio.file.attribute.FileAttribute 0)))
+          output (.toString (java.nio.file.Files/createTempFile "airj-tool-output"
+                                                                ".json"
+                                                                (make-array java.nio.file.attribute.FileAttribute 0)))
+          _ (spit input "{\"tool\":\"ok\"}")
+          _ (spit output "")
+          source "(module example/tool_workflow
+                    (imports
+                      (airj airj/core Diagnostic Interchange Option Result)
+                      (airj airj/bytes utf8-encode utf8-decode)
+                      (airj airj/env get)
+                      (airj airj/file read-string-result write-string-result)
+                      (airj airj/json parse-result write)
+                      (airj airj/process ProcessResult run-result))
+                    (export main)
+                    (fn main
+                      (params (args StringSeq))
+                      (returns Int)
+                      (effects (Env.Read File.Read File.Write Process.Run Foreign.Throw))
+                      (requires true)
+                      (ensures true)
+                      (match
+                        (call (local get) \"PATH\")
+                        (case (Some path)
+                          (match
+                            (call (local read-string-result) (seq-get (local args) 0))
+                            (case (Ok text)
+                              (match
+                                (call (local run-result)
+                                      (string-split-on \"/bin/cat\" \"\\u0000\")
+                                      (call (local utf8-encode) (local text)))
+                                (case (Ok process)
+                                  (match
+                                    (call (local parse-result)
+                                          (call (local utf8-decode)
+                                                (record-get (local process) stdout)))
+                                    (case (Ok payload)
+                                      (seq
+                                        (call (local write-string-result)
+                                              (seq-get (local args) 1)
+                                              (call (local write) (local payload)))
+                                        1))
+                                    (case (Err error)
+                                      0)))
+                                (case (Err error)
+                                  0)))
+                            (case (Err error)
+                              0)))
+                        (case (None)
+                          0))))"
+          result (sut/run-source! source [input output])]
+      (should= 1 result)
+      (should= "{\"tool\":\"ok\"}"
+               (slurp output))))

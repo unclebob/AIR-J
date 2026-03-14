@@ -235,6 +235,44 @@
                                   :args ["hello"]}}]}]
       (should= module (sut/check-module module))))
 
+  (it "accounts for environment and process effects"
+    (let [module {:name 'example/host-effects
+                  :imports []
+                  :exports ['run]
+                  :decls [{:op :union
+                           :name 'Option
+                           :type-params ['T]
+                           :invariants []
+                           :variants [{:name 'None
+                                       :fields []}
+                                      {:name 'Some
+                                       :fields [{:name 'value
+                                                 :type 'T}]}]}
+                          {:op :data
+                           :name 'ProcessResult
+                           :type-params []
+                           :invariants []
+                           :fields [{:name 'exit-code :type 'Int}
+                                    {:name 'stdout :type 'Bytes}
+                                    {:name 'stderr :type 'Bytes}]}
+                          {:op :fn
+                           :name 'run
+                           :params [{:name 'name :type 'String}
+                                    {:name 'command :type '(Seq String)}
+                                    {:name 'stdin :type 'Bytes}]
+                           :return-type 'ProcessResult
+                           :effects ['Env.Read 'Process.Run 'Foreign.Throw]
+                           :requires [true]
+                           :ensures [true]
+                           :body {:op :seq
+                                  :exprs [{:op :env-get
+                                           :arg {:op :local :name 'name}}
+                                          {:op :process-run
+                                           :args [{:op :local :name 'command}
+                                                  {:op :local :name 'stdin}]}]}}]}]
+      (should= module
+               (sut/check-module module))))
+
   (it "treats primitive operators as pure while including operand effects"
     (let [module {:name 'example/operator-effects
                   :imports [{:op :java-import

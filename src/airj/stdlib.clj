@@ -112,11 +112,109 @@
                                 \"Write failed.\"
                                 \"interchange\"))))))"
 
+   'airj/bytes
+   "(module airj/bytes
+      (imports
+        (java java.lang.Object)
+        (java java.lang.String)
+        (java java.lang.reflect.Array))
+      (export utf8-encode utf8-decode length)
+      (fn utf8-encode
+        (params (text String))
+        (returns Bytes)
+        (effects (Foreign.Throw))
+        (requires true)
+        (ensures true)
+        (java/call
+          (local text)
+          getBytes
+          (signature (String) Bytes)
+          \"UTF-8\"))
+      (fn utf8-decode
+        (params (bytes Bytes))
+        (returns String)
+        (effects (Foreign.Throw))
+        (requires true)
+        (ensures true)
+        (java/new java.lang.String (local bytes) \"UTF-8\"))
+      (fn length
+        (params (bytes Bytes))
+        (returns Int)
+        (effects (Foreign.Throw))
+        (requires true)
+        (ensures true)
+        (java/static-call
+          java.lang.reflect.Array
+          getLength
+          (signature ((Java java.lang.Object)) Int)
+          (local bytes))))"
+
+   'airj/env
+   "(module airj/env
+      (imports
+        (airj airj/core Option)
+        (java java.lang.System))
+      (export get cwd)
+      (fn get
+        (params (name String))
+        (returns (Option String))
+        (effects (Env.Read))
+        (requires true)
+        (ensures true)
+        (env-get (local name)))
+      (fn cwd
+        (params)
+        (returns String)
+        (effects (Env.Read Foreign.Throw))
+        (requires true)
+        (ensures true)
+        (java/static-call
+          java.lang.System
+          getProperty
+          (signature (String) String)
+          \"user.dir\")))"
+
+   'airj/process
+   "(module airj/process
+      (imports
+        (airj airj/core Diagnostic Result)
+        (java java.lang.RuntimeException))
+      (export ProcessResult run run-result)
+      (data ProcessResult
+        (field exit-code Int)
+        (field stdout Bytes)
+        (field stderr Bytes))
+      (fn run
+        (params (command (Seq String)) (stdin Bytes))
+        (returns ProcessResult)
+        (effects (Process.Run Foreign.Throw))
+        (requires true)
+        (ensures true)
+        (process-run (local command) (local stdin)))
+      (fn run-result
+        (params (command (Seq String)) (stdin Bytes))
+        (returns (Result ProcessResult Diagnostic))
+        (effects (Process.Run))
+        (requires true)
+        (ensures true)
+        (try
+          (variant (Result ProcessResult Diagnostic)
+                   Ok
+                   (call (local run) (local command) (local stdin)))
+          (catch (Java java.lang.RuntimeException) ex
+            (variant (Result ProcessResult Diagnostic)
+                     Err
+                     (construct Diagnostic
+                                \"process\"
+                                \"Process execution failed.\"
+                                \"process-run\"))))))"
+
    'airj/file
    "(module airj/file
       (imports
         (airj airj/core Diagnostic Result)
         (java java.io.File)
+        (java java.io.FileOutputStream)
         (java java.io.FileWriter)
         (java java.io.IOException)
         (java java.lang.String)
@@ -124,10 +222,14 @@
       (export exists?
               read-string
               read-string-result
+              read-bytes
+              read-bytes-result
               read-lines
               read-lines-result
               write-string
               write-string-result
+              write-bytes
+              write-bytes-result
               write-lines
               write-lines-result)
       (fn exists?
@@ -154,6 +256,20 @@
             (java/new java.io.File (local path))
             toPath
             (signature () (Java java.nio.file.Path)))))
+      (fn read-bytes
+        (params (path String))
+        (returns Bytes)
+        (effects (File.Read Foreign.Throw))
+        (requires true)
+        (ensures true)
+        (java/static-call
+          java.nio.file.Files
+          readAllBytes
+          (signature ((Java java.nio.file.Path)) Bytes)
+          (java/call
+            (java/new java.io.File (local path))
+            toPath
+            (signature () (Java java.nio.file.Path)))))
       (fn write-string
         (params (path String) (contents String))
         (returns Unit)
@@ -173,6 +289,25 @@
               (local writer)
               close
               (signature () Unit))))))
+      (fn write-bytes
+        (params (path String) (contents Bytes))
+        (returns Unit)
+        (effects (File.Write Foreign.Throw))
+        (requires true)
+        (ensures true)
+        (let ((stream
+                (java/new java.io.FileOutputStream (local path))))
+          (try
+            (java/call
+              (local stream)
+              write
+              (signature (Bytes) Unit)
+              (local contents))
+            (finally
+              (java/call
+                (local stream)
+                close
+                (signature () Unit))))))
       (fn read-lines
         (params (path String))
         (returns (Seq String))
@@ -218,6 +353,23 @@
                                 \"file\"
                                 \"Read failed.\"
                                 (local path))))))
+      (fn read-bytes-result
+        (params (path String))
+        (returns (Result Bytes Diagnostic))
+        (effects (File.Read))
+        (requires true)
+        (ensures true)
+        (try
+          (variant (Result Bytes Diagnostic)
+                   Ok
+                   (call (local read-bytes) (local path)))
+          (catch (Java java.io.IOException) ex
+            (variant (Result Bytes Diagnostic)
+                     Err
+                     (construct Diagnostic
+                                \"file\"
+                                \"Read bytes failed.\"
+                                (local path))))))
       (fn read-lines-result
         (params (path String))
         (returns (Result (Seq String) Diagnostic))
@@ -253,6 +405,25 @@
                      (construct Diagnostic
                                 \"file\"
                                 \"Write failed.\"
+                                (local path))))))
+      (fn write-bytes-result
+        (params (path String) (contents Bytes))
+        (returns (Result Bool Diagnostic))
+        (effects (File.Write))
+        (requires true)
+        (ensures true)
+        (try
+          (variant (Result Bool Diagnostic)
+                   Ok
+                   (seq
+                     (call (local write-bytes) (local path) (local contents))
+                     true))
+          (catch (Java java.io.IOException) ex
+            (variant (Result Bool Diagnostic)
+                     Err
+                     (construct Diagnostic
+                                \"file\"
+                                \"Write bytes failed.\"
                                 (local path))))))
       (fn write-lines-result
         (params (path String) (lines (Seq String)))
@@ -314,5 +485,5 @@
       seen)))
 
 ;; clj-mutate-manifest-begin
-;; {:version 1, :tested-at "2026-03-14T10:19:46.646734-05:00", :module-hash "-1093319838", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line 3, :hash "1849576384"} {:id "form/1/declare", :kind "declare", :line 5, :end-line 5, :hash "-1313016324"} {:id "def/standard-sources", :kind "def", :line 7, :end-line 275, :hash "-170213925"} {:id "defn/source-map", :kind "defn", :line 277, :end-line 279, :hash "981959532"} {:id "defn/interfaces", :kind "defn", :line 281, :end-line 283, :hash "801379587"} {:id "defn/interfaces-for-module", :kind "defn", :line 285, :end-line 287, :hash "-1218712190"} {:id "defn/stdlib-module?", :kind "defn", :line 289, :end-line 291, :hash "1879715354"} {:id "defn-/imported-stdlib-modules", :kind "defn-", :line 293, :end-line 299, :hash "667554956"} {:id "defn/reachable-source-map", :kind "defn", :line 301, :end-line 314, :hash "-1038087388"}]}
+;; {:version 1, :tested-at "2026-03-14T14:39:58.395194-05:00", :module-hash "-318991637", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line 3, :hash "1849576384"} {:id "form/1/declare", :kind "declare", :line 5, :end-line 5, :hash "-1313016324"} {:id "def/standard-sources", :kind "def", :line 7, :end-line 446, :hash "-857012571"} {:id "defn/source-map", :kind "defn", :line 448, :end-line 450, :hash "981959532"} {:id "defn/interfaces", :kind "defn", :line 452, :end-line 454, :hash "801379587"} {:id "defn/interfaces-for-module", :kind "defn", :line 456, :end-line 458, :hash "-1218712190"} {:id "defn/stdlib-module?", :kind "defn", :line 460, :end-line 462, :hash "1879715354"} {:id "defn-/imported-stdlib-modules", :kind "defn-", :line 464, :end-line 470, :hash "667554956"} {:id "defn/reachable-source-map", :kind "defn", :line 472, :end-line 485, :hash "-1038087388"}]}
 ;; clj-mutate-manifest-end

@@ -256,6 +256,63 @@
                    first
                    :body))))
 
+  (it "lowers environment and process primitives into JVM runtime nodes"
+    (let [module {:name 'example/host_runtime
+                  :imports []
+                  :exports ['run]
+                  :decls [{:op :union
+                           :name 'Option
+                           :type-params ['T]
+                           :invariants []
+                           :variants [{:name 'None
+                                       :fields []}
+                                      {:name 'Some
+                                       :fields [{:name 'value
+                                                 :type 'T}]}]}
+                          {:op :data
+                           :name 'ProcessResult
+                           :type-params []
+                           :invariants []
+                           :fields [{:name 'exit-code :type 'Int}
+                                    {:name 'stdout :type 'Bytes}
+                                    {:name 'stderr :type 'Bytes}]}
+                          {:op :fn
+                           :name 'run
+                           :params [{:name 'name :type 'String}
+                                    {:name 'command :type '(Seq String)}
+                                    {:name 'stdin :type 'Bytes}]
+                           :return-type 'ProcessResult
+                           :effects ['Env.Read 'Process.Run 'Foreign.Throw]
+                           :requires [true]
+                           :ensures [true]
+                           :body {:op :seq
+                                  :exprs [{:op :env-get
+                                           :arg {:op :local :name 'name}}
+                                          {:op :process-run
+                                           :args [{:op :local :name 'command}
+                                                  {:op :local :name 'stdin}]}]}}]}]
+      (should= {:op :jvm-seq
+                :exprs [{:op :jvm-env-get
+                         :arg {:op :jvm-local
+                               :name 'name
+                               :jvm-type "java/lang/String"}
+                         :root-class-name "example/host_runtime$Option"
+                         :jvm-type "example/host_runtime$Option"}
+                        {:op :jvm-process-run
+                         :args [{:op :jvm-local
+                                 :name 'command
+                                 :jvm-type "java/util/List"}
+                                {:op :jvm-local
+                                 :name 'stdin
+                                 :jvm-type "[B"}]
+                         :root-class-name "example/host_runtime$ProcessResult"
+                         :jvm-type "example/host_runtime$ProcessResult"}]
+                :jvm-type "example/host_runtime$ProcessResult"}
+               (-> (sut/lower-module module)
+                   :methods
+                   first
+                   :body))))
+
   (it "lowers Bool Unit and Java types"
     (let [module {:name 'example/types
                   :imports []

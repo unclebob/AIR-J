@@ -2098,4 +2098,64 @@
       (should= (java.util.Arrays/hashCode (into-array Object ["a" "b"]))
                 (.invoke airj-main nil (object-array [args])))
       (should= expected (.invoke airj-main nil (object-array [args])))
-      (should jvm-main))))
+      (should jvm-main)))
+
+  (it "emits host runtime environment and process helpers"
+    (let [plan {:op :jvm-module
+                :module-name 'example/host_runtime
+                :internal-name "example/host_runtime"
+                :exports ['run]
+                :records [{:name 'ProcessResult
+                           :class-name "example/host_runtime$ProcessResult"
+                           :fields [{:name 'exit-code :jvm-type :int}
+                                    {:name 'stdout :jvm-type "[B"}
+                                    {:name 'stderr :jvm-type "[B"}]}]
+                :enums []
+                :unions [{:name 'Option
+                          :base-class "example/host_runtime$Option"
+                          :variants [{:name 'None
+                                      :class-name "example/host_runtime$Option$None"
+                                      :fields []}
+                                     {:name 'Some
+                                      :class-name "example/host_runtime$Option$Some"
+                                      :fields [{:name 'value
+                                                :jvm-type "java/lang/Object"}]}]}]
+                :methods [{:name 'run
+                           :owner "example/host_runtime"
+                           :params [{:name 'name :jvm-type "java/lang/String"}
+                                    {:name 'command :jvm-type "java/util/List"}
+                                    {:name 'stdin :jvm-type "[B"}]
+                           :return-type "example/host_runtime$ProcessResult"
+                           :effects ['Env.Read 'Process.Run 'Foreign.Throw]
+                           :body {:op :jvm-seq
+                                  :exprs [{:op :jvm-env-get
+                                           :arg {:op :jvm-local
+                                                 :name 'name
+                                                 :jvm-type "java/lang/String"}
+                                           :root-class-name "example/host_runtime$Option"
+                                           :jvm-type "example/host_runtime$Option"}
+                                          {:op :jvm-process-run
+                                           :args [{:op :jvm-local
+                                                   :name 'command
+                                                   :jvm-type "java/util/List"}
+                                                  {:op :jvm-local
+                                                   :name 'stdin
+                                                   :jvm-type "[B"}]
+                                           :root-class-name "example/host_runtime$ProcessResult"
+                                           :jvm-type "example/host_runtime$ProcessResult"}]
+                                  :jvm-type "example/host_runtime$ProcessResult"}}]}
+          classes (define-classes (sut/emit-class-bytes plan))
+          module-class (get classes "example/host_runtime")
+          method (.getMethod module-class
+                             "run"
+                             (into-array Class [String java.util.List (Class/forName "[B")]))
+          command (java.util.ArrayList.)
+          _ (.add command "/bin/cat")
+          result (.invoke method nil (object-array ["PATH" command (.getBytes "{\"tool\":\"ok\"}" "UTF-8")]))
+          fields (vec (.getFields (class result)))
+          exit-code (.get (first (filter #(= Integer/TYPE (.getType %)) fields)) result)
+          byte-values (map #(.get % result)
+                           (filter #(= (Class/forName "[B") (.getType %)) fields))]
+      (should= 0 exit-code)
+      (should= #{"{\"tool\":\"ok\"}" ""}
+               (set (map #(String. ^bytes % "UTF-8") byte-values))))))

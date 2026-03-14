@@ -1254,3 +1254,41 @@
       (should-throw clojure.lang.ExceptionInfo
                     "Type mismatch."
                     (sut/check-module module))))
+
+  (it "type-checks canonical host environment and process primitives"
+    (let [module {:name 'example/host_type
+                  :imports []
+                  :exports ['run]
+                  :decls [{:op :union
+                           :name 'Option
+                           :type-params ['T]
+                           :invariants []
+                           :variants [{:name 'None
+                                       :fields []}
+                                      {:name 'Some
+                                       :fields [{:name 'value
+                                                 :type 'T}]}]}
+                          {:op :data
+                           :name 'ProcessResult
+                           :type-params []
+                           :invariants []
+                           :fields [{:name 'exit-code :type 'Int}
+                                    {:name 'stdout :type 'Bytes}
+                                    {:name 'stderr :type 'Bytes}]}
+                          {:op :fn
+                           :name 'run
+                           :params [{:name 'name :type 'String}
+                                    {:name 'command :type '(Seq String)}
+                                    {:name 'stdin :type 'Bytes}]
+                           :return-type 'ProcessResult
+                           :effects ['Env.Read 'Process.Run 'Foreign.Throw]
+                           :requires [true]
+                           :ensures [true]
+                           :body {:op :seq
+                                  :exprs [{:op :env-get
+                                           :arg {:op :local :name 'name}}
+                                          {:op :process-run
+                                           :args [{:op :local :name 'command}
+                                                  {:op :local :name 'stdin}]}]}}]}]
+      (should= module
+               (sut/check-module module))))

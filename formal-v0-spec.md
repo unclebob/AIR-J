@@ -22,6 +22,7 @@ Version 0 includes:
 - explicit Java interop
 - direct lowering to JVM bytecode
 - canonical primitive operators and text/sequence built-ins where they reduce interop churn for agents
+- canonical host-boundary modules for bytes, files, environment reads, subprocess execution, and JSON interchange where they reduce ambiguity for agents
 
 Version 0 excludes:
 - macros
@@ -922,8 +923,12 @@ Version 0 assumes, but does not fully specify, a minimal library surface providi
 - boolean and numeric operators as ordinary functions
 - explicit numeric conversions
 - canonical `Option`, `Result`, and `Diagnostic` carriers in `airj/core`
+- canonical `Bytes` values for raw host data
 - wrapper functions that convert common recoverable failures into `Result`
 - a minimal filesystem boundary in `airj/file`
+- a minimal environment boundary in `airj/env`
+- a minimal subprocess boundary in `airj/process`
+- a canonical JSON interchange boundary in `airj/json`
 - canonical sequence operations over `(Seq T)` when sequence values are exposed
 - canonical keyed structures over `(Map String T)` when named lookup is exposed
 - line-oriented filesystem helpers only when they still return canonical AIR-J data such as `(Seq String)` and `Result`

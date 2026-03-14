@@ -11,6 +11,22 @@ The point of the design is not "make programming nicer." The point is:
 
 Principle: one meaning, one representation.
 
+## Canonical Host Boundary
+
+AIR-J should expose the minimum host-environment surface an agent needs through canonical modules and value carriers, not through arbitrary Java APIs by default.
+
+That boundary now includes:
+- `Bytes` as the canonical raw-data type
+- `airj/env` for explicit environment reads
+- `airj/process` for explicit subprocess execution with canonical `ProcessResult`
+- `airj/file` and `airj/json` returning `Result` plus `Diagnostic` where failure transport should stay machine-readable
+
+The intent is:
+- one canonical representation for raw bytes
+- one canonical representation for subprocess results
+- one canonical failure carrier at the standard-module boundary
+- no default drift into multiple Java process or environment APIs for the same semantic job
+
 ## Design target
 
 AIR-J should behave like a writable canonical IR with a stable surface syntax.
