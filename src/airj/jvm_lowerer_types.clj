@@ -1,96 +1,21 @@
 (ns airj.jvm-lowerer-types
-  (:require [airj.jvm-closures :as closures]
-            [airj.jvm-lowerer-match :as lowerer-match]))
+  (:require [airj.jvm-lowerer-match :as lowerer-match]
+            [airj.jvm-type-info :as type-info]))
 
 (def recur-type ::recur)
 (def raise-type ::raise)
 (def bottom-types #{recur-type raise-type})
 
-(def ^:private primitive-types
-  {'Int :int
-   'Float :float
-   'Double :double
-   'Bool :boolean
-   'Unit :void})
-
-(def ^:private named-reference-types
-  {'String "java/lang/String"
-   'StringSeq "[Ljava/lang/String;"})
-
-(defn declared-type-root
-  [type-expr]
-  (if (seq? type-expr)
-    (first type-expr)
-    type-expr))
-
-(defn- type-bindings
-  [decl type-expr]
-  (zipmap (:type-params decl)
-          (if (seq? type-expr)
-            (rest type-expr)
-            [])))
-
-(defn- instantiate-type
-  [type-expr bindings]
-  (cond
-    (symbol? type-expr) (get bindings type-expr type-expr)
-    (seq? type-expr) (apply list (map #(instantiate-type % bindings) type-expr))
-    :else type-expr))
-
-(defn fail!
-  [message data]
-  (throw (ex-info message data)))
-
-(defn internal-name
-  [module-name]
-  (str module-name))
-
-(defn nested-class-name
-  [module-name decl-name]
-  (str (internal-name module-name) "$" decl-name))
-
-(defn union-variant-class-name
-  [module-name union-name variant-name]
-  (str (nested-class-name module-name union-name) "$" variant-name))
-
-(defn java-type?
-  [type-expr]
-  (and (seq? type-expr)
-       (= 'Java (first type-expr))))
-
-(defn java-internal-name
-  [type-expr]
-  (-> type-expr second str (.replace "." "/")))
-
-(defn- declared-type-op?
-  [decl]
-  (contains? #{:data :enum :union} (:op decl)))
-
-(defn- declared-class-name
-  [module-name decl]
-  (when (declared-type-op? decl)
-    (nested-class-name module-name (:name decl))))
-
-(defn- local-declared-type-name
-  [type-expr ctx]
-  (some->> (get (:decls ctx) (declared-type-root type-expr))
-           (declared-class-name (:module-name ctx))))
-
-(defn- imported-declared-type-name
-  [type-expr ctx]
-  (some (fn [[_ {:keys [module decl]}]]
-          (when (= (declared-type-root type-expr) (:name decl))
-            (declared-class-name module decl)))
-        (:imported-decls ctx)))
-
-(defn declared-type-name
-  [type-expr ctx]
-  (or (local-declared-type-name type-expr ctx)
-      (imported-declared-type-name type-expr ctx)))
-
-(defn runtime-union-variant-class-name
-  [ctx union-name variant-name]
-  (str (declared-type-name union-name ctx) "$" variant-name))
+(def declared-type-root type-info/declared-type-root)
+(def instantiate-type type-info/instantiate-type)
+(def fail! type-info/fail!)
+(def internal-name type-info/internal-name)
+(def nested-class-name type-info/nested-class-name)
+(def union-variant-class-name type-info/union-variant-class-name)
+(def java-type? type-info/java-type?)
+(def java-internal-name type-info/java-internal-name)
+(def declared-type-name type-info/declared-type-name)
+(def runtime-union-variant-class-name type-info/runtime-union-variant-class-name)
 
 (declare lower-type)
 (declare infer-type)
@@ -98,217 +23,36 @@
 (declare local-lambda)
 (declare local-fn-type)
 
-(defn- seq-type?
-  [type-expr]
-  (and (seq? type-expr)
-       (= 'Seq (first type-expr))))
-
-(defn- map-type?
-  [type-expr]
-  (and (seq? type-expr)
-       (= 'Map (first type-expr))
-       (= 'String (second type-expr))))
-
-(defn- primitive-or-special-type
-  [type-expr]
-  (or (get primitive-types type-expr)
-      (get named-reference-types type-expr)
-      (when (seq-type? type-expr)
-        "java/util/List")
-      (when (map-type? type-expr)
-        "java/util/Map")))
-
-(defn seq-element-type
-  [type-expr]
-  (cond
-    (= 'StringSeq type-expr) 'String
-    (and (seq? type-expr)
-         (= 'Seq (first type-expr))
-         (= 2 (count type-expr))) (second type-expr)
-    :else (fail! "Expected lowered sequence type."
-                 {:type type-expr})))
-
-(defn map-value-type
-  [type-expr]
-  (if (and (seq? type-expr)
-           (= 'Map (first type-expr))
-           (= 3 (count type-expr))
-           (= 'String (second type-expr)))
-    (nth type-expr 2)
-    (fail! "Expected lowered canonical map type."
-           {:type type-expr})))
-
-(defn- type-param-runtime-type
-  [type-expr ctx]
-  (when (and ctx
-             (contains? (:type-params ctx) type-expr))
-    "java/lang/Object"))
-
-(defn- declared-or-java-type
-  [type-expr ctx]
-  (or (when (java-type? type-expr)
-        (java-internal-name type-expr))
-      (when (= :fn-type (:op type-expr))
-        (closures/lower-closure-type type-expr ctx lower-type fail!))
-      (when ctx
-        (declared-type-name type-expr ctx))))
-
-(defn lower-type
-  ([type-expr]
-   (lower-type type-expr nil))
-  ([type-expr ctx]
-   (or (primitive-or-special-type type-expr)
-       (type-param-runtime-type type-expr ctx)
-       (declared-or-java-type type-expr ctx)
-       (fail! "Unsupported JVM type."
-              {:type type-expr}))))
+(def seq-element-type type-info/seq-element-type)
+(def map-value-type type-info/map-value-type)
+(def lower-type type-info/lower-type)
 
 (defn lower-expr-type
   [type-expr ctx]
   (if (bottom-types type-expr)
     :void
-    (lower-type type-expr ctx)))
+    (type-info/lower-expr-type type-expr bottom-types ctx)))
 
-(defn decl-map
-  [module]
-  (into {} (map (juxt :name identity) (:decls module))))
-
-(defn decl-for-type
-  [ctx type-expr]
-  (or (get (:decls ctx) (declared-type-root type-expr))
-      (get-in ctx [:imported-decls (declared-type-root type-expr) :decl])))
-
-(defn bind-local
-  [ctx name type-expr]
-  (assoc-in ctx [:locals name] type-expr))
-
-(defn bind-mutable-local
-  [ctx name type-expr]
-  (-> ctx
-      (bind-local name type-expr)
-      (assoc-in [:mutable-locals name] type-expr)))
-
-(defn bind-lambda
-  [ctx name lambda-expr]
-  (assoc-in ctx [:lambdas name] lambda-expr))
-
-(defn with-loop-types
-  [ctx loop-types]
-  (assoc ctx :loop-types (vec loop-types)))
-
-(defn local-type
-  [ctx name]
-  (or (get-in ctx [:locals name])
-      (when-let [decl (fn-decl ctx name)]
-        {:op :fn-type
-         :params (mapv :type (:params decl))
-         :return-type (:return-type decl)
-         :effects (vec (:effects decl))})
-      (fail! "Unknown lowered local."
-             {:name name})))
-
-(defn mutable-local-type
-  [ctx name]
-  (get-in ctx [:mutable-locals name]))
-
-(defn field-type
-  ([decl field-name]
-   (field-type decl field-name (:name decl)))
-  ([decl field-name type-expr]
-   (or (some (fn [field]
-               (when (= field-name (:name field))
-                 (instantiate-type (:type field)
-                                   (type-bindings decl type-expr))))
-             (:fields decl))
-      (fail! "Unknown lowered field."
-             {:field field-name
-              :decl (:name decl)}))))
-
-(defn- decl-runtime-ctx
-  [ctx decl]
-  (assoc ctx :type-params (set (:type-params decl))))
-
-(defn runtime-field-jvm-types
-  [ctx type-expr]
-  (let [decl (decl-for-type ctx type-expr)]
-    (mapv #(lower-type (:type %) (decl-runtime-ctx ctx decl))
-          (:fields decl))))
-
-(defn runtime-field-jvm-type
-  [ctx type-expr field-name]
-  (let [decl (decl-for-type ctx type-expr)]
-    (or (some (fn [field]
-                (when (= field-name (:name field))
-                  (lower-type (:type field) (decl-runtime-ctx ctx decl))))
-              (:fields decl))
-        (fail! "Unknown lowered field."
-               {:field field-name
-                :decl (:name decl)}))))
-
-(defn record-class-name
-  [ctx type-name]
-  (declared-type-name type-name ctx))
-
-(defn fn-decl
-  [ctx name]
-  (if-let [decl (get (:decls ctx) name)]
-    (when (= :fn (:op decl))
-      (assoc decl :owner-module (:module-name ctx)))
-    (when-let [{:keys [module decl]} (get (:imported-decls ctx) name)]
-      (when (= :fn (:op decl))
-        (assoc decl :owner-module module)))))
-
-(defn local-lambda
-  [ctx name]
-  (get-in ctx [:lambdas name]))
-
-(defn local-fn-type
-  [ctx name]
-  (let [type-expr (get-in ctx [:locals name])]
-    (when (= :fn-type (:op type-expr))
-      type-expr)))
-
-(defn union-variant
-  [ctx union-name variant-name]
-  (let [decl (decl-for-type ctx union-name)]
-    (or (some (fn [variant]
-                (when (= variant-name (:name variant))
-                  (update variant
-                          :fields
-                          (fn [fields]
-                            (mapv (fn [field]
-                                    (update field
-                                            :type
-                                            instantiate-type
-                                            (type-bindings decl union-name)))
-                                  fields)))))
-              (:variants decl))
-      (fail! "Unknown lowered variant."
-             {:type union-name
-              :variant variant-name}))))
-
-(defn runtime-union-variant-field-jvm-types
-  [ctx union-name variant-name]
-  (let [decl (decl-for-type ctx union-name)]
-    (or (some (fn [variant]
-                (when (= variant-name (:name variant))
-                  (mapv #(lower-type (:type %) (decl-runtime-ctx ctx decl))
-                        (:fields variant))))
-              (:variants decl))
-        (fail! "Unknown lowered variant."
-               {:type union-name
-                :variant variant-name}))))
-
+(def decl-map type-info/decl-map)
+(def decl-for-type type-info/decl-for-type)
+(def bind-local type-info/bind-local)
+(def bind-mutable-local type-info/bind-mutable-local)
+(def bind-lambda type-info/bind-lambda)
+(def with-loop-types type-info/with-loop-types)
+(def local-type type-info/local-type)
+(def mutable-local-type type-info/mutable-local-type)
+(def field-type type-info/field-type)
+(def runtime-field-jvm-types type-info/runtime-field-jvm-types)
+(def runtime-field-jvm-type type-info/runtime-field-jvm-type)
+(def record-class-name type-info/record-class-name)
+(def fn-decl type-info/fn-decl)
+(def local-lambda type-info/local-lambda)
+(def local-fn-type type-info/local-fn-type)
+(def union-variant type-info/union-variant)
+(def runtime-union-variant-field-jvm-types type-info/runtime-union-variant-field-jvm-types)
 (defn join-branch-types
   [current next-branch data]
-  (cond
-    (bottom-types current) next-branch
-    (bottom-types next-branch) current
-    (= current next-branch) current
-    :else (fail! "Lowered branch types must agree."
-                 (assoc data
-                        :expected current
-                        :actual next-branch))))
+  (type-info/join-branch-types bottom-types current next-branch data))
 
 (defn- infer-literal-type
   [expr]
@@ -553,5 +297,5 @@
                {:expr expr}))))
 
 ;; clj-mutate-manifest-begin
-;; {:version 1, :tested-at "2026-03-14T09:12:45.735594-05:00", :module-hash "-1904390362", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line 3, :hash "360843331"} {:id "def/recur-type", :kind "def", :line 5, :end-line 5, :hash "-2071027665"} {:id "def/raise-type", :kind "def", :line 6, :end-line 6, :hash "692699866"} {:id "def/bottom-types", :kind "def", :line 7, :end-line 7, :hash "1188722171"} {:id "def/primitive-types", :kind "def", :line 9, :end-line 14, :hash "-53859917"} {:id "def/named-reference-types", :kind "def", :line 16, :end-line 18, :hash "1891324621"} {:id "defn/declared-type-root", :kind "defn", :line 20, :end-line 24, :hash "1516159140"} {:id "defn-/type-bindings", :kind "defn-", :line 26, :end-line 31, :hash "360352681"} {:id "defn-/instantiate-type", :kind "defn-", :line 33, :end-line 38, :hash "405520453"} {:id "defn/fail!", :kind "defn", :line 40, :end-line 42, :hash "2111196879"} {:id "defn/internal-name", :kind "defn", :line 44, :end-line 46, :hash "-1330388378"} {:id "defn/nested-class-name", :kind "defn", :line 48, :end-line 50, :hash "-69163617"} {:id "defn/union-variant-class-name", :kind "defn", :line 52, :end-line 54, :hash "1810905660"} {:id "defn/java-type?", :kind "defn", :line 56, :end-line 59, :hash "1469399228"} {:id "defn/java-internal-name", :kind "defn", :line 61, :end-line 63, :hash "-653806206"} {:id "defn-/declared-type-op?", :kind "defn-", :line 65, :end-line 67, :hash "1769082278"} {:id "defn-/declared-class-name", :kind "defn-", :line 69, :end-line 72, :hash "864307960"} {:id "defn-/local-declared-type-name", :kind "defn-", :line 74, :end-line 77, :hash "-288898901"} {:id "defn-/imported-declared-type-name", :kind "defn-", :line 79, :end-line 84, :hash "429449799"} {:id "defn/declared-type-name", :kind "defn", :line 86, :end-line 89, :hash "-1082717974"} {:id "defn/runtime-union-variant-class-name", :kind "defn", :line 91, :end-line 93, :hash "222768997"} {:id "form/21/declare", :kind "declare", :line 95, :end-line 95, :hash "921248303"} {:id "form/22/declare", :kind "declare", :line 96, :end-line 96, :hash "346281442"} {:id "form/23/declare", :kind "declare", :line 97, :end-line 97, :hash "885577939"} {:id "form/24/declare", :kind "declare", :line 98, :end-line 98, :hash "-749778473"} {:id "form/25/declare", :kind "declare", :line 99, :end-line 99, :hash "-1494776713"} {:id "defn-/seq-type?", :kind "defn-", :line 101, :end-line 104, :hash "1535070684"} {:id "defn-/map-type?", :kind "defn-", :line 106, :end-line 110, :hash "-1731281190"} {:id "defn-/primitive-or-special-type", :kind "defn-", :line 112, :end-line 119, :hash "1814365464"} {:id "defn/seq-element-type", :kind "defn", :line 121, :end-line 129, :hash "1036848447"} {:id "defn/map-value-type", :kind "defn", :line 131, :end-line 139, :hash "1364261658"} {:id "defn-/type-param-runtime-type", :kind "defn-", :line 141, :end-line 145, :hash "397189850"} {:id "defn-/declared-or-java-type", :kind "defn-", :line 147, :end-line 154, :hash "-579406487"} {:id "defn/lower-type", :kind "defn", :line 156, :end-line 164, :hash "-694394494"} {:id "defn/lower-expr-type", :kind "defn", :line 166, :end-line 170, :hash "1513759038"} {:id "defn/decl-map", :kind "defn", :line 172, :end-line 174, :hash "987686002"} {:id "defn/decl-for-type", :kind "defn", :line 176, :end-line 179, :hash "-532122863"} {:id "defn/bind-local", :kind "defn", :line 181, :end-line 183, :hash "1561458697"} {:id "defn/bind-mutable-local", :kind "defn", :line 185, :end-line 189, :hash "-741002783"} {:id "defn/bind-lambda", :kind "defn", :line 191, :end-line 193, :hash "1527841059"} {:id "defn/with-loop-types", :kind "defn", :line 195, :end-line 197, :hash "-2037637816"} {:id "defn/local-type", :kind "defn", :line 199, :end-line 208, :hash "894152482"} {:id "defn/mutable-local-type", :kind "defn", :line 210, :end-line 212, :hash "791465470"} {:id "defn/field-type", :kind "defn", :line 214, :end-line 225, :hash "-15531062"} {:id "defn-/decl-runtime-ctx", :kind "defn-", :line 227, :end-line 229, :hash "790580277"} {:id "defn/runtime-field-jvm-types", :kind "defn", :line 231, :end-line 235, :hash "-1235133416"} {:id "defn/runtime-field-jvm-type", :kind "defn", :line 237, :end-line 246, :hash "-1107912378"} {:id "defn/record-class-name", :kind "defn", :line 248, :end-line 250, :hash "-747750698"} {:id "defn/fn-decl", :kind "defn", :line 252, :end-line 259, :hash "-774885008"} {:id "defn/local-lambda", :kind "defn", :line 261, :end-line 263, :hash "-436400273"} {:id "defn/local-fn-type", :kind "defn", :line 265, :end-line 269, :hash "1216422506"} {:id "defn/union-variant", :kind "defn", :line 271, :end-line 288, :hash "1460327280"} {:id "defn/runtime-union-variant-field-jvm-types", :kind "defn", :line 290, :end-line 300, :hash "-1924932217"} {:id "defn/join-branch-types", :kind "defn", :line 302, :end-line 311, :hash "-2130619843"} {:id "defn-/infer-literal-type", :kind "defn-", :line 313, :end-line 324, :hash "-2072052525"} {:id "defn-/infer-record-get-type", :kind "defn-", :line 326, :end-line 330, :hash "-1320321895"} {:id "defn-/local-lambda-return-type", :kind "defn-", :line 332, :end-line 335, :hash "-377855316"} {:id "defn-/named-call-return-type", :kind "defn-", :line 337, :end-line 340, :hash "737420465"} {:id "defn-/infer-call-type", :kind "defn-", :line 342, :end-line 353, :hash "910305658"} {:id "defn-/infer-if-type", :kind "defn-", :line 355, :end-line 362, :hash "-2112938377"} {:id "defn-/infer-seq-type", :kind "defn-", :line 364, :end-line 376, :hash "604684926"} {:id "defn-/infer-let-type", :kind "defn-", :line 378, :end-line 391, :hash "327096300"} {:id "defn-/infer-lambda", :kind "defn-", :line 393, :end-line 398, :hash "-1117964483"} {:id "defn-/infer-loop", :kind "defn-", :line 400, :end-line 412, :hash "-46270947"} {:id "defn-/infer-recur", :kind "defn-", :line 414, :end-line 431, :hash "-1368982370"} {:id "defn-/infer-try", :kind "defn-", :line 433, :end-line 447, :hash "641639781"} {:id "defn-/infer-raise", :kind "defn-", :line 449, :end-line 452, :hash "465355386"} {:id "def/infer-type-handlers", :kind "def", :line 454, :end-line 545, :hash "212336352"} {:id "defn/infer-type", :kind "defn", :line 547, :end-line 553, :hash "600232947"}]}
+;; {:version 1, :tested-at "2026-03-14T09:39:04.915652-05:00", :module-hash "-1933829332", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line 3, :hash "1324800056"} {:id "def/recur-type", :kind "def", :line 5, :end-line 5, :hash "-2071027665"} {:id "def/raise-type", :kind "def", :line 6, :end-line 6, :hash "692699866"} {:id "def/bottom-types", :kind "def", :line 7, :end-line 7, :hash "1188722171"} {:id "def/declared-type-root", :kind "def", :line 9, :end-line 9, :hash "-820643466"} {:id "def/instantiate-type", :kind "def", :line 10, :end-line 10, :hash "506690307"} {:id "def/fail!", :kind "def", :line 11, :end-line 11, :hash "-1234082344"} {:id "def/internal-name", :kind "def", :line 12, :end-line 12, :hash "1104241349"} {:id "def/nested-class-name", :kind "def", :line 13, :end-line 13, :hash "1507251270"} {:id "def/union-variant-class-name", :kind "def", :line 14, :end-line 14, :hash "1845129393"} {:id "def/java-type?", :kind "def", :line 15, :end-line 15, :hash "863683803"} {:id "def/java-internal-name", :kind "def", :line 16, :end-line 16, :hash "553123045"} {:id "def/declared-type-name", :kind "def", :line 17, :end-line 17, :hash "-1358919610"} {:id "def/runtime-union-variant-class-name", :kind "def", :line 18, :end-line 18, :hash "-327128136"} {:id "form/14/declare", :kind "declare", :line 20, :end-line 20, :hash "921248303"} {:id "form/15/declare", :kind "declare", :line 21, :end-line 21, :hash "346281442"} {:id "form/16/declare", :kind "declare", :line 22, :end-line 22, :hash "885577939"} {:id "form/17/declare", :kind "declare", :line 23, :end-line 23, :hash "-749778473"} {:id "form/18/declare", :kind "declare", :line 24, :end-line 24, :hash "-1494776713"} {:id "def/seq-element-type", :kind "def", :line 26, :end-line 26, :hash "749716170"} {:id "def/map-value-type", :kind "def", :line 27, :end-line 27, :hash "-1953103181"} {:id "def/lower-type", :kind "def", :line 28, :end-line 28, :hash "-2104515439"} {:id "defn/lower-expr-type", :kind "defn", :line 30, :end-line 34, :hash "-220430031"} {:id "def/decl-map", :kind "def", :line 36, :end-line 36, :hash "-1096496128"} {:id "def/decl-for-type", :kind "def", :line 37, :end-line 37, :hash "123583536"} {:id "def/bind-local", :kind "def", :line 38, :end-line 38, :hash "1010792415"} {:id "def/bind-mutable-local", :kind "def", :line 39, :end-line 39, :hash "1415151668"} {:id "def/bind-lambda", :kind "def", :line 40, :end-line 40, :hash "-1010465658"} {:id "def/with-loop-types", :kind "def", :line 41, :end-line 41, :hash "2074726521"} {:id "def/local-type", :kind "def", :line 42, :end-line 42, :hash "-184716702"} {:id "def/mutable-local-type", :kind "def", :line 43, :end-line 43, :hash "2061938541"} {:id "def/field-type", :kind "def", :line 44, :end-line 44, :hash "2037394996"} {:id "def/runtime-field-jvm-types", :kind "def", :line 45, :end-line 45, :hash "-1204637311"} {:id "def/runtime-field-jvm-type", :kind "def", :line 46, :end-line 46, :hash "991757085"} {:id "def/record-class-name", :kind "def", :line 47, :end-line 47, :hash "1011763831"} {:id "def/fn-decl", :kind "def", :line 48, :end-line 48, :hash "204735580"} {:id "def/local-lambda", :kind "def", :line 49, :end-line 49, :hash "907689216"} {:id "def/local-fn-type", :kind "def", :line 50, :end-line 50, :hash "-2079120114"} {:id "def/union-variant", :kind "def", :line 51, :end-line 51, :hash "-786236575"} {:id "def/runtime-union-variant-field-jvm-types", :kind "def", :line 52, :end-line 52, :hash "1485409556"} {:id "defn/join-branch-types", :kind "defn", :line 53, :end-line 55, :hash "-460332746"} {:id "defn-/infer-literal-type", :kind "defn-", :line 57, :end-line 68, :hash "-2072052525"} {:id "defn-/infer-record-get-type", :kind "defn-", :line 70, :end-line 74, :hash "-1320321895"} {:id "defn-/local-lambda-return-type", :kind "defn-", :line 76, :end-line 79, :hash "-377855316"} {:id "defn-/named-call-return-type", :kind "defn-", :line 81, :end-line 84, :hash "737420465"} {:id "defn-/infer-call-type", :kind "defn-", :line 86, :end-line 97, :hash "910305658"} {:id "defn-/infer-if-type", :kind "defn-", :line 99, :end-line 106, :hash "-2112938377"} {:id "defn-/infer-seq-type", :kind "defn-", :line 108, :end-line 120, :hash "604684926"} {:id "defn-/infer-let-type", :kind "defn-", :line 122, :end-line 135, :hash "327096300"} {:id "defn-/infer-lambda", :kind "defn-", :line 137, :end-line 142, :hash "-1117964483"} {:id "defn-/infer-loop", :kind "defn-", :line 144, :end-line 156, :hash "-46270947"} {:id "defn-/infer-recur", :kind "defn-", :line 158, :end-line 175, :hash "-1368982370"} {:id "defn-/infer-try", :kind "defn-", :line 177, :end-line 191, :hash "641639781"} {:id "defn-/infer-raise", :kind "defn-", :line 193, :end-line 196, :hash "465355386"} {:id "def/infer-type-handlers", :kind "def", :line 198, :end-line 289, :hash "212336352"} {:id "defn/infer-type", :kind "defn", :line 291, :end-line 297, :hash "600232947"}]}
 ;; clj-mutate-manifest-end

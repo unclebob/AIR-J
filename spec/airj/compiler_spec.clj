@@ -883,18 +883,20 @@
                       (match
                         (map-get
                           (map-set
-                            (map-empty String)
+                            (map-empty Int)
                             \"tail-mark\"
-                            (seq-first
-                              (seq-rest
-                                (string-split-on \"alpha\nbeta\ngamma\" \"\n\"))))
+                            (string-length
+                              (seq-first
+                                (seq-rest
+                                  (string-split-on \"alpha\nbeta\ngamma\" \"\n\"))))
+                            )
                           \"tail-mark\")
                         (case (Some value)
-                          (string-length (local value)))
+                          (int-add (local value) 1))
                         (case None
                           0))))"
           result (sut/run-source! source [])]
-      (should= 4 result)))
+      (should= 5 result)))
 
   (it "compiles direct local lambda calls into executable bytes"
     (let [source "(module example/lambdas
