@@ -578,7 +578,7 @@ The next document should be a compact formal spec for version 0:
 
 That is the point where AIR-J becomes implementable instead of merely well-motivated.
 
-The formal v0 spec now lives in [formal-v0-spec.md](/Users/unclebob/projects/AIR-J/formal-v0-spec.md).
+The formal v0 spec now lives in [formal-v0-spec.md](/formal-v0-spec.md).
 
 ## Current compiler usage
 

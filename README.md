@@ -27,9 +27,9 @@ AIR-J is not trying to be a nicer Java, Kotlin, or Clojure for humans. The persi
 That makes AIR-J closer to a writable canonical IR than to a human-oriented surface language.
 
 For the authoritative design and language contract, see:
-- [notes.md](/Users/unclebob/projects/AIR-J/notes.md)
-- [formal-v0-spec.md](/Users/unclebob/projects/AIR-J/formal-v0-spec.md)
-- [AGENTS.md](/Users/unclebob/projects/AIR-J/AGENTS.md)
+- [notes.md](/notes.md)
+- [formal-v0-spec.md](/formal-v0-spec.md)
+- [AGENTS.md](/AGENTS.md)
 
 ## Current Status
 
@@ -89,7 +89,7 @@ clj -M:mutate src/.../file.clj --max-workers 3
 clj -M:check-dependencies
 ```
 
-The stricter project workflow and pinned toolchain are documented in [AGENTS.md](/Users/unclebob/projects/AIR-J/AGENTS.md).
+The stricter project workflow and pinned toolchain are documented in [AGENTS.md](/AGENTS.md).
 
 ## Sample Program: Hello, World
 
@@ -237,10 +237,10 @@ If AIR-J exposed Java’s full representation freedom as the default, agents wou
 - `Optional` vs sentinel values
 - exceptions vs explicit result values
 
-That would directly work against the mission in [notes.md](/Users/unclebob/projects/AIR-J/notes.md). AIR-J therefore prefers a smaller, explicit, canonical machine vocabulary and only uses raw Java APIs when interop is intentionally requested.
+That would directly work against the mission in [notes.md](/notes.md). AIR-J therefore prefers a smaller, explicit, canonical machine vocabulary and only uses raw Java APIs when interop is intentionally requested.
 
 ## Read Next
 
-- [notes.md](/Users/unclebob/projects/AIR-J/notes.md): design intent and rationale
-- [formal-v0-spec.md](/Users/unclebob/projects/AIR-J/formal-v0-spec.md): normative persisted-language contract
-- [AGENTS.md](/Users/unclebob/projects/AIR-J/AGENTS.md): implementation workflow, checks, and toolchain pins
+- [notes.md](/notes.md): design intent and rationale
+- [formal-v0-spec.md](/formal-v0-spec.md): normative persisted-language contract
+- [AGENTS.md](/AGENTS.md): implementation workflow, checks, and toolchain pins
