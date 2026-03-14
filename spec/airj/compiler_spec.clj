@@ -745,6 +745,99 @@
           method (.getMethod klass "program" (into-array Class []))]
       (should= 3 (.invoke method nil (object-array [])))))
 
+  (it "compiles parameterized local unions into executable bytes"
+    (let [source "(module example/local_result
+                    (imports)
+                    (export Result main)
+                    (union Result
+                      (type-params Ok Err)
+                      (variant Ok
+                        (field value Ok))
+                      (variant Err
+                        (field error Err)))
+                    (fn main
+                      (params)
+                      (returns Int)
+                      (effects ())
+                      (requires true)
+                      (ensures true)
+                      (match
+                        (variant (Result Int String) Ok 7)
+                        (case (Ok value)
+                          (local value))
+                        (case (Err error)
+                          0))))"
+          bundle (sut/compile-source source)
+          classes (define-classes bundle)
+          klass (get classes "example/local_result")
+          method (.getMethod klass "airj_main" (into-array Class []))]
+      (should (contains? bundle "example/local_result$Result"))
+      (should (contains? bundle "example/local_result$Result$Ok"))
+      (should= 7 (.invoke method nil (object-array [])))))
+
+  (it "compiles imported canonical Option Result and Diagnostic types"
+    (let [source "(module example/imported_core
+                    (imports
+                      (airj airj/core Option Result Diagnostic))
+                    (export main)
+                    (fn main
+                      (params)
+                      (returns Int)
+                      (effects ())
+                      (requires true)
+                      (ensures true)
+                      (seq
+                        (variant (Result Int Diagnostic)
+                                 Err
+                                 (construct Diagnostic
+                                            \"type-check\"
+                                            \"unused\"
+                                            \"detail\"))
+                        (match
+                          (variant (Option Int) Some 9)
+                          (case (Some value)
+                            (local value))
+                          (case None
+                            0)))))"
+          bundle (sut/compile-source source)
+          classes (define-classes bundle)
+          klass (get classes "example/imported_core")
+          method (.getMethod klass "airj_main" (into-array Class []))]
+      (should (contains? bundle "airj/core"))
+      (should (contains? bundle "airj/core$Option"))
+      (should (contains? bundle "airj/core$Result"))
+      (should (contains? bundle "airj/core$Diagnostic"))
+      (should= 9 (.invoke method nil (object-array [])))))
+
+  (it "runs canonical AIR-J file I/O through imported file functions"
+    (let [file (.toString (java.nio.file.Files/createTempFile "airj-file-io"
+                                                              ".txt"
+                                                              (make-array java.nio.file.attribute.FileAttribute 0)))
+          source "(module example/file_io
+                    (imports
+                      (airj airj/file read-string write-string))
+                    (export main)
+                    (fn main
+                      (params (args StringSeq))
+                      (returns Int)
+                      (effects (File.Read File.Write Foreign.Throw))
+                      (requires true)
+                      (ensures true)
+                      (seq
+                        (call (local write-string)
+                              (seq-get (local args) 0)
+                              \"hello\")
+                        (if
+                          (string-eq
+                            (call (local read-string)
+                                  (seq-get (local args) 0))
+                            \"hello\")
+                          0
+                          1))))"
+          result (sut/run-source! source [file])]
+      (should= 0 result)
+      (should= "hello" (slurp file))))
+
   (it "compiles direct local lambda calls into executable bytes"
     (let [source "(module example/lambdas
                     (imports)

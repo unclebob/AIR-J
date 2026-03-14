@@ -11,6 +11,7 @@
             [airj.normalizer :as normalizer]
             [airj.parser :as parser]
             [airj.resolver :as resolver]
+            [airj.stdlib :as stdlib]
             [airj.type-checker :as type-checker]
             [clojure.java.io :as io])
   (:import (java.net URL URLClassLoader)))
@@ -343,23 +344,37 @@
        java-resolver/check-module
        exhaustiveness-checker/check-module)))
 
+(defn- compile-source-map
+  ([sources]
+   (compile-source-map sources {}))
+  ([sources base-options]
+   (reduce (fn [bundle [module-name source]]
+             (let [module (parser/parse-module source)]
+               (merge bundle
+                      (compile-module module
+                                      (merge base-options
+                                             (project-sources/compiler-options sources module-name)
+                                             {:available-modules (set (keys sources))})))))
+           {}
+           sources)))
+
 (defn compile-source
   ([source]
    (compile-source source {}))
   ([source options]
-   (-> source
-       parser/parse-module
-       (compile-module options))))
+   (let [module (parser/parse-module source)
+         sources (merge (stdlib/reachable-source-map module)
+                        {(:name module) source})]
+     (if (seq (stdlib/reachable-source-map module))
+       (compile-source-map sources options)
+       (compile-module module
+                       (merge options
+                              {:available-modules #{(:name module)}}))))))
 
 (defn compile-project-source
   [module-sources root-module-name]
-  (let [sources (project-sources/reachable-source-map module-sources root-module-name)]
-    (reduce (fn [bundle [module-name source]]
-              (merge bundle
-                     (compile-source source
-                                     (project-sources/compiler-options sources module-name))))
-            {}
-            sources)))
+  (let [sources (project-sources/compilation-source-map module-sources root-module-name)]
+    (compile-source-map sources)))
 
 (defn checked-project-module
   [module-sources root-module-name]
@@ -448,8 +463,8 @@
          output-dir (.toString (java.nio.file.Files/createTempDirectory
                                 "airj-run"
                                 (make-array java.nio.file.attribute.FileAttribute 0)))
-         _ (-> module
-               (compile-module options)
+         _ (-> source
+               (compile-source options)
                (write-bundle! output-dir))
          klass (load-class-from-dir output-dir (class-name module))
          method (airj-main-method klass)]
@@ -492,5 +507,5 @@
        (.invoke method nil (object-array []))))))
 
 ;; clj-mutate-manifest-begin
-;; {:version 1, :tested-at "2026-03-13T14:50:37.411238-05:00", :module-hash "-1344725529", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line 16, :hash "-1820704263"} {:id "form/1/declare", :kind "declare", :line 18, :end-line 18, :hash "2058848851"} {:id "def/contract-result-name", :kind "def", :line 20, :end-line 20, :hash "-105850544"} {:id "def/contract-unit-name", :kind "def", :line 21, :end-line 21, :hash "347759796"} {:id "def/invariant-self-name", :kind "def", :line 22, :end-line 22, :hash "-1593038412"} {:id "defn-/contract-failure-expr", :kind "defn-", :line 24, :end-line 30, :hash "101978921"} {:id "defn-/contract-check-expr", :kind "defn-", :line 32, :end-line 37, :hash "995434044"} {:id "defn-/with-contract-checks", :kind "defn-", :line 39, :end-line 45, :hash "1467639836"} {:id "defn-/with-postcondition-checks", :kind "defn-", :line 47, :end-line 73, :hash "-1464066269"} {:id "defn-/local-expr", :kind "defn-", :line 75, :end-line 78, :hash "1731534324"} {:id "defn-/instrument-data-invariants", :kind "defn-", :line 80, :end-line 103, :hash "570384672"} {:id "defn-/instrument-union-invariants", :kind "defn-", :line 105, :end-line 125, :hash "1766008045"} {:id "form/12/declare", :kind "declare", :line 127, :end-line 127, :hash "-1070001430"} {:id "defn-/instrument-exprs", :kind "defn-", :line 129, :end-line 131, :hash "1000382524"} {:id "defn-/instrument-bindings", :kind "defn-", :line 133, :end-line 137, :hash "850191118"} {:id "defn-/instrument-catches", :kind "defn-", :line 139, :end-line 143, :hash "-786001501"} {:id "defn-/instrument-match-cases", :kind "defn-", :line 145, :end-line 149, :hash "-1115947730"} {:id "defn-/instrument-try-expr", :kind "defn-", :line 151, :end-line 156, :hash "1049160216"} {:id "defn-/instrument-java-call-expr", :kind "defn-", :line 158, :end-line 162, :hash "1131125098"} {:id "defn-/instrument-java-set-field-expr", :kind "defn-", :line 164, :end-line 168, :hash "1627552813"} {:id "defn-/instrument-call-expr", :kind "defn-", :line 170, :end-line 174, :hash "-796600826"} {:id "defn-/instrument-construct-expr", :kind "defn-", :line 176, :end-line 178, :hash "-1298094645"} {:id "defn-/instrument-record-get-expr", :kind "defn-", :line 180, :end-line 182, :hash "1341046921"} {:id "defn-/instrument-if-expr", :kind "defn-", :line 184, :end-line 189, :hash "-1581702021"} {:id "defn-/instrument-match-expr", :kind "defn-", :line 191, :end-line 195, :hash "384899293"} {:id "defn-/instrument-let-expr", :kind "defn-", :line 197, :end-line 201, :hash "-1926311263"} {:id "defn-/instrument-lambda-expr", :kind "defn-", :line 203, :end-line 205, :hash "-1477337255"} {:id "defn-/instrument-loop-expr", :kind "defn-", :line 207, :end-line 211, :hash "494953759"} {:id "def/expr-instrumenters", :kind "def", :line 213, :end-line 275, :hash "2056935227"} {:id "defn-/recursively-instrument-expr", :kind "defn-", :line 277, :end-line 281, :hash "1761646999"} {:id "defn-/instrument-value-invariants", :kind "defn-", :line 283, :end-line 290, :hash "-803348989"} {:id "defn-/instrument-expr", :kind "defn-", :line 292, :end-line 298, :hash "-1857520944"} {:id "defn-/instrument-contracts", :kind "defn-", :line 300, :end-line 316, :hash "939158315"} {:id "defn/compile-module", :kind "defn", :line 318, :end-line 331, :hash "-303758079"} {:id "defn/checked-module", :kind "defn", :line 333, :end-line 344, :hash "-1523096844"} {:id "defn/compile-source", :kind "defn", :line 346, :end-line 352, :hash "-1796715147"} {:id "defn/compile-project-source", :kind "defn", :line 354, :end-line 362, :hash "-1920772816"} {:id "defn/checked-project-module", :kind "defn", :line 364, :end-line 367, :hash "1201666930"} {:id "defn/compile-project-dir", :kind "defn", :line 369, :end-line 372, :hash "-932599350"} {:id "defn/checked-project-dir-module", :kind "defn", :line 374, :end-line 377, :hash "213051726"} {:id "defn/build-project-source!", :kind "defn", :line 379, :end-line 382, :hash "434622430"} {:id "defn/build-project-dir!", :kind "defn", :line 384, :end-line 387, :hash "919358575"} {:id "defn/interface-source", :kind "defn", :line 389, :end-line 394, :hash "-277567554"} {:id "defn-/class-file", :kind "defn-", :line 396, :end-line 398, :hash "1900463827"} {:id "defn/write-bundle!", :kind "defn", :line 400, :end-line 410, :hash "-785230489"} {:id "defn/build-source!", :kind "defn", :line 412, :end-line 418, :hash "358574914"} {:id "defn-/load-class-from-dir", :kind "defn-", :line 420, :end-line 424, :hash "648982521"} {:id "defn-/class-name", :kind "defn-", :line 426, :end-line 428, :hash "-314160674"} {:id "defn-/airj-main-method", :kind "defn-", :line 430, :end-line 439, :hash "-130380503"} {:id "defn/run-source!", :kind "defn", :line 441, :end-line 458, :hash "-150944206"} {:id "defn/run-project-source!", :kind "defn", :line 460, :end-line 475, :hash "484953388"} {:id "defn/run-project-dir!", :kind "defn", :line 477, :end-line 492, :hash "-487228803"}]}
+;; {:version 1, :tested-at "2026-03-13T22:29:23.7557-05:00", :module-hash "-524159057", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line 17, :hash "1146045922"} {:id "form/1/declare", :kind "declare", :line 19, :end-line 19, :hash "2058848851"} {:id "def/contract-result-name", :kind "def", :line 21, :end-line 21, :hash "-105850544"} {:id "def/contract-unit-name", :kind "def", :line 22, :end-line 22, :hash "347759796"} {:id "def/invariant-self-name", :kind "def", :line 23, :end-line 23, :hash "-1593038412"} {:id "defn-/contract-failure-expr", :kind "defn-", :line 25, :end-line 31, :hash "101978921"} {:id "defn-/contract-check-expr", :kind "defn-", :line 33, :end-line 38, :hash "995434044"} {:id "defn-/with-contract-checks", :kind "defn-", :line 40, :end-line 46, :hash "1467639836"} {:id "defn-/with-postcondition-checks", :kind "defn-", :line 48, :end-line 74, :hash "-1464066269"} {:id "defn-/local-expr", :kind "defn-", :line 76, :end-line 79, :hash "1731534324"} {:id "defn-/instrument-data-invariants", :kind "defn-", :line 81, :end-line 104, :hash "570384672"} {:id "defn-/instrument-union-invariants", :kind "defn-", :line 106, :end-line 126, :hash "1766008045"} {:id "form/12/declare", :kind "declare", :line 128, :end-line 128, :hash "-1070001430"} {:id "defn-/instrument-exprs", :kind "defn-", :line 130, :end-line 132, :hash "1000382524"} {:id "defn-/instrument-bindings", :kind "defn-", :line 134, :end-line 138, :hash "850191118"} {:id "defn-/instrument-catches", :kind "defn-", :line 140, :end-line 144, :hash "-786001501"} {:id "defn-/instrument-match-cases", :kind "defn-", :line 146, :end-line 150, :hash "-1115947730"} {:id "defn-/instrument-try-expr", :kind "defn-", :line 152, :end-line 157, :hash "1049160216"} {:id "defn-/instrument-java-call-expr", :kind "defn-", :line 159, :end-line 163, :hash "1131125098"} {:id "defn-/instrument-java-set-field-expr", :kind "defn-", :line 165, :end-line 169, :hash "1627552813"} {:id "defn-/instrument-call-expr", :kind "defn-", :line 171, :end-line 175, :hash "-796600826"} {:id "defn-/instrument-construct-expr", :kind "defn-", :line 177, :end-line 179, :hash "-1298094645"} {:id "defn-/instrument-record-get-expr", :kind "defn-", :line 181, :end-line 183, :hash "1341046921"} {:id "defn-/instrument-if-expr", :kind "defn-", :line 185, :end-line 190, :hash "-1581702021"} {:id "defn-/instrument-match-expr", :kind "defn-", :line 192, :end-line 196, :hash "384899293"} {:id "defn-/instrument-let-expr", :kind "defn-", :line 198, :end-line 202, :hash "-1926311263"} {:id "defn-/instrument-lambda-expr", :kind "defn-", :line 204, :end-line 206, :hash "-1477337255"} {:id "defn-/instrument-loop-expr", :kind "defn-", :line 208, :end-line 212, :hash "494953759"} {:id "def/expr-instrumenters", :kind "def", :line 214, :end-line 276, :hash "2056935227"} {:id "defn-/recursively-instrument-expr", :kind "defn-", :line 278, :end-line 282, :hash "1761646999"} {:id "defn-/instrument-value-invariants", :kind "defn-", :line 284, :end-line 291, :hash "-803348989"} {:id "defn-/instrument-expr", :kind "defn-", :line 293, :end-line 299, :hash "-1857520944"} {:id "defn-/instrument-contracts", :kind "defn-", :line 301, :end-line 317, :hash "939158315"} {:id "defn/compile-module", :kind "defn", :line 319, :end-line 332, :hash "-303758079"} {:id "defn/checked-module", :kind "defn", :line 334, :end-line 345, :hash "-1523096844"} {:id "defn-/compile-source-map", :kind "defn-", :line 347, :end-line 359, :hash "-1906915902"} {:id "defn/compile-source", :kind "defn", :line 361, :end-line 372, :hash "1284182197"} {:id "defn/compile-project-source", :kind "defn", :line 374, :end-line 377, :hash "-1709957155"} {:id "defn/checked-project-module", :kind "defn", :line 379, :end-line 382, :hash "1201666930"} {:id "defn/compile-project-dir", :kind "defn", :line 384, :end-line 387, :hash "-932599350"} {:id "defn/checked-project-dir-module", :kind "defn", :line 389, :end-line 392, :hash "213051726"} {:id "defn/build-project-source!", :kind "defn", :line 394, :end-line 397, :hash "434622430"} {:id "defn/build-project-dir!", :kind "defn", :line 399, :end-line 402, :hash "919358575"} {:id "defn/interface-source", :kind "defn", :line 404, :end-line 409, :hash "-277567554"} {:id "defn-/class-file", :kind "defn-", :line 411, :end-line 413, :hash "1900463827"} {:id "defn/write-bundle!", :kind "defn", :line 415, :end-line 425, :hash "-785230489"} {:id "defn/build-source!", :kind "defn", :line 427, :end-line 433, :hash "358574914"} {:id "defn-/load-class-from-dir", :kind "defn-", :line 435, :end-line 439, :hash "648982521"} {:id "defn-/class-name", :kind "defn-", :line 441, :end-line 443, :hash "-314160674"} {:id "defn-/airj-main-method", :kind "defn-", :line 445, :end-line 454, :hash "-130380503"} {:id "defn/run-source!", :kind "defn", :line 456, :end-line 473, :hash "-303308050"} {:id "defn/run-project-source!", :kind "defn", :line 475, :end-line 490, :hash "484953388"} {:id "defn/run-project-dir!", :kind "defn", :line 492, :end-line 507, :hash "-487228803"}]}
 ;; clj-mutate-manifest-end

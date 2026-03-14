@@ -43,6 +43,39 @@
                                            '(Result Int String)
                                            'Ok)))))
 
+  (it "resolves imported declared type names and runtime variant class names"
+    (let [ctx {:module-name 'example/use
+               :decls {}
+               :imported-decls {'Result {:module 'airj/core
+                                         :decl {:op :union
+                                                :name 'Result
+                                                :type-params ['Ok 'Err]
+                                                :variants []}}}}]
+      (should= "airj/core$Result"
+               (sut/declared-type-name '(Result Int String) ctx))
+      (should= "airj/core$Result$Err"
+               (sut/runtime-union-variant-class-name ctx
+                                                     '(Result Int String)
+                                                     'Err))))
+
+  (it "erases generic runtime fields to Object while preserving instantiated expression types"
+    (let [box-decl {:op :data
+                    :name 'Box
+                    :type-params ['T]
+                    :fields [{:name 'value
+                              :type 'T}]}
+          ctx {:module-name 'example/types
+               :decls {'Box box-decl}
+               :locals {}}]
+      (should= "java/lang/Object"
+               (sut/runtime-field-jvm-type ctx '(Box Int) 'value))
+      (should= ["java/lang/Object"]
+               (sut/runtime-field-jvm-types ctx '(Box Int)))
+      (should= :int
+               (sut/lower-type 'Int (assoc ctx :type-params #{'T})))
+      (should= "java/lang/Object"
+               (sut/lower-type 'T (assoc ctx :type-params #{'T})))))
+
   (it "instantiates lowered type parameters through symbols lists and literals"
     (let [instantiate-type (ns-resolve 'airj.jvm-lowerer-types 'instantiate-type)]
       (should= 'Int

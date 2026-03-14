@@ -11,9 +11,10 @@
 
 (defn- lower-record
   [ctx decl]
-  {:name (:name decl)
-   :class-name (types/nested-class-name (:module-name ctx) (:name decl))
-   :fields (mapv #(lower-field % ctx) (:fields decl))})
+  (let [decl-ctx (assoc ctx :type-params (set (:type-params decl)))]
+    {:name (:name decl)
+     :class-name (types/nested-class-name (:module-name ctx) (:name decl))
+     :fields (mapv #(lower-field % decl-ctx) (:fields decl))}))
 
 (defn- lower-enum
   [ctx decl]
@@ -29,9 +30,10 @@
 
 (defn- lower-union
   [ctx decl]
-  {:name (:name decl)
-   :base-class (types/nested-class-name (:module-name ctx) (:name decl))
-   :variants (mapv #(lower-union-variant ctx (:name decl) %) (:variants decl))})
+  (let [decl-ctx (assoc ctx :type-params (set (:type-params decl)))]
+    {:name (:name decl)
+     :base-class (types/nested-class-name (:module-name ctx) (:name decl))
+     :variants (mapv #(lower-union-variant decl-ctx (:name decl) %) (:variants decl))}))
 
 (defn- lower-decls
   [decls op lower-fn]
@@ -109,5 +111,5 @@
       (assoc :closures (vec @(:closures ctx))))))
 
 ;; clj-mutate-manifest-begin
-;; {:version 1, :tested-at "2026-03-13T16:12:02.798193-05:00", :module-hash "946550683", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line 5, :hash "-580314099"} {:id "defn-/lower-field", :kind "defn-", :line 7, :end-line 10, :hash "-959639482"} {:id "defn-/lower-record", :kind "defn-", :line 12, :end-line 16, :hash "-958206154"} {:id "defn-/lower-enum", :kind "defn-", :line 18, :end-line 22, :hash "507139670"} {:id "defn-/lower-union-variant", :kind "defn-", :line 24, :end-line 28, :hash "-261619844"} {:id "defn-/lower-union", :kind "defn-", :line 30, :end-line 34, :hash "2049467452"} {:id "defn-/lower-decls", :kind "defn-", :line 36, :end-line 40, :hash "533670331"} {:id "defn-/host-type-expr", :kind "defn-", :line 42, :end-line 45, :hash "-398773626"} {:id "defn-/bridgeable-host-method?", :kind "defn-", :line 47, :end-line 53, :hash "-1014172909"} {:id "defn-/lower-instance-method", :kind "defn-", :line 55, :end-line 67, :hash "-1618807735"} {:id "defn/lower-module", :kind "defn", :line 69, :end-line 109, :hash "400967000"}]}
+;; {:version 1, :tested-at "2026-03-14T06:56:30.327333-05:00", :module-hash "1841608186", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line 5, :hash "-580314099"} {:id "defn-/lower-field", :kind "defn-", :line 7, :end-line 10, :hash "-959639482"} {:id "defn-/lower-record", :kind "defn-", :line 12, :end-line 17, :hash "-1430731661"} {:id "defn-/lower-enum", :kind "defn-", :line 19, :end-line 23, :hash "507139670"} {:id "defn-/lower-union-variant", :kind "defn-", :line 25, :end-line 29, :hash "-261619844"} {:id "defn-/lower-union", :kind "defn-", :line 31, :end-line 36, :hash "-211833484"} {:id "defn-/lower-decls", :kind "defn-", :line 38, :end-line 42, :hash "533670331"} {:id "defn-/host-type-expr", :kind "defn-", :line 44, :end-line 47, :hash "-398773626"} {:id "defn-/bridgeable-host-method?", :kind "defn-", :line 49, :end-line 55, :hash "-1014172909"} {:id "defn-/lower-instance-method", :kind "defn-", :line 57, :end-line 69, :hash "-1618807735"} {:id "defn/lower-module", :kind "defn", :line 71, :end-line 111, :hash "400967000"}]}
 ;; clj-mutate-manifest-end

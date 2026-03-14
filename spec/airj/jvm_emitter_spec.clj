@@ -1,6 +1,8 @@
 (ns airj.jvm-emitter-spec
   (:require [airj.jvm-emitter :as sut]
-            [speclj.core :refer :all]))
+            [clojure.java.io :as io]
+            [speclj.core :refer :all])
+  (:import (clojure.asm MethodVisitor Opcodes)))
 
 (defn- define-class
   [class-name bytecode]
@@ -19,6 +21,24 @@
                  [internal-name
                   (.defineClass loader (binary-name internal-name) bytecode nil)]))
           (sort-by key bytecode-map))))
+
+(defn- compile-java-helper!
+  [class-name source]
+  (let [compiler (javax.tools.ToolProvider/getSystemJavaCompiler)
+        output-dir (str (java.nio.file.Files/createTempDirectory
+                         "airj-java-helper"
+                         (make-array java.nio.file.attribute.FileAttribute 0)))
+        source-file (java.io.File.
+                     output-dir
+                     (str (.replace ^String class-name \. \/) ".java"))
+        loader (java.net.URLClassLoader.
+                (into-array java.net.URL [(.toURL (.toURI (java.io.File. output-dir)))]))]
+    (io/make-parents source-file)
+    (spit source-file source)
+    (should= 0
+             (.run compiler nil nil nil
+                   (into-array String ["-d" output-dir (.getPath source-file)])))
+    (.loadClass loader class-name)))
 
 (describe "JVM emission"
   (it "emits a module class whose static method returns an int literal"
@@ -349,7 +369,11 @@
       (should= 0 (.invoke method nil (object-array [])))))
 
   (it "emits Java static field assignment"
-    (let [plan {:op :jvm-module
+    (let [helper-class (compile-java-helper! "example.StaticBox"
+                                             "package example; public class StaticBox { public static java.io.PrintStream value; }")
+          value-field (.getField helper-class "value")
+          loader (clojure.lang.DynamicClassLoader. (.getClassLoader helper-class))
+          plan {:op :jvm-module
                 :module-name 'example/java_static_field_write
                 :internal-name "example/java_static_field_write"
                 :exports ['swap]
@@ -363,25 +387,52 @@
                            :return-type "java/io/PrintStream"
                            :effects ['State.Write]
                            :body {:op :jvm-seq
-                                  :exprs [{:op :jvm-java-static-set-field
-                                           :class-name "java/lang/System"
-                                           :field-name 'out
+                                   :exprs [{:op :jvm-java-static-set-field
+                                           :class-name "example/StaticBox"
+                                           :field-name 'value
                                            :field-type "java/io/PrintStream"
                                            :expr {:op :jvm-local
                                                   :name 'stream
                                                   :jvm-type "java/io/PrintStream"}
                                            :jvm-type :void}
                                           {:op :jvm-java-static-get-field
-                                           :class-name "java/lang/System"
-                                           :field-name 'out
+                                           :class-name "example/StaticBox"
+                                           :field-name 'value
                                            :field-type "java/io/PrintStream"
                                            :jvm-type "java/io/PrintStream"}]
                                   :jvm-type "java/io/PrintStream"}}]}
           bytes (sut/emit-module-bytes plan)
-          klass (define-class "example.java_static_field_write" bytes)
-          method (.getMethod klass "swap" (into-array Class [java.io.PrintStream]))]
+          klass (.defineClass loader "example.java_static_field_write" bytes nil)
+          method (.getMethod klass "swap" (into-array Class [java.io.PrintStream]))
+          replacement (java.io.PrintStream. (java.io.ByteArrayOutputStream.))]
       (should= "example.java_static_field_write" (.getName klass))
-      (should= "swap" (.getName method))))
+      (should= "swap" (.getName method))
+      (should= replacement (.invoke method nil (object-array [replacement])))
+      (should= replacement (.get value-field nil))))
+
+  (it "emits helper casts and unboxes for erased object fields"
+    (let [emit-object-cast-or-unbox @#'airj.jvm-emitter/emit-object-cast-or-unbox
+          emit-cast-or-unbox @#'airj.jvm-emitter/emit-cast-or-unbox
+          recorder (fn [calls]
+                     (proxy [MethodVisitor] [393216]
+                       (visitTypeInsn [opcode type]
+                         (swap! calls conj [:type opcode type]))
+                       (visitMethodInsn [opcode owner name descriptor is-interface]
+                         (swap! calls conj [:method opcode owner name descriptor is-interface]))))
+          float-calls (atom [])
+          double-calls (atom [])
+          cast-calls (atom [])]
+      (emit-object-cast-or-unbox (recorder float-calls) :float)
+      (should= [[:type Opcodes/CHECKCAST "java/lang/Float"]
+                [:method Opcodes/INVOKEVIRTUAL "java/lang/Float" "floatValue" "()F" false]]
+               @float-calls)
+      (emit-object-cast-or-unbox (recorder double-calls) :double)
+      (should= [[:type Opcodes/CHECKCAST "java/lang/Double"]
+                [:method Opcodes/INVOKEVIRTUAL "java/lang/Double" "doubleValue" "()D" false]]
+               @double-calls)
+      (emit-cast-or-unbox (recorder cast-calls) "java/lang/Number" "java/lang/String")
+      (should= [[:type Opcodes/CHECKCAST "java/lang/String"]]
+               @cast-calls)))
 
   (it "emits a host-backed module class with instance bridge methods"
     (let [plan {:op :jvm-module

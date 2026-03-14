@@ -71,6 +71,7 @@
                                                      :jvm-type "example/match$Result"}
                                             :class-name "example/match$Result$Done"
                                             :field 'value
+                                            :field-jvm-type :int
                                             :jvm-type :int}}]
                          :body {:op :jvm-local
                                 :name 'value
@@ -87,6 +88,7 @@
                                                      :jvm-type "example/match$Result"}
                                             :class-name "example/match$Result$Failed"
                                             :field 'message
+                                            :field-jvm-type "java/lang/String"
                                             :jvm-type "java/lang/String"}}]
                          :body {:op :jvm-int
                                 :value 0
@@ -217,6 +219,7 @@
                                                      :jvm-type "example/match$Result"}
                                             :class-name "example/match$Result$Ok"
                                             :field 'value
+                                            :field-jvm-type :int
                                             :jvm-type :int}}]
                          :body {:op :jvm-local
                                 :name 'value
@@ -233,6 +236,7 @@
                                                      :jvm-type "example/match$Result"}
                                             :class-name "example/match$Result$Err"
                                             :field 'error
+                                            :field-jvm-type "java/lang/String"
                                             :jvm-type "java/lang/String"}}]
                          :body {:op :jvm-int
                                 :value 0
