@@ -1306,4 +1306,45 @@
                  (.toString out-bytes))
         (finally
           (java.lang.System/setOut original-out)
-          (.close out-stream))))))
+          (.close out-stream)))))
+
+  (it "runs canonical JSON interchange through file boundaries"
+    (let [input (.toString (java.nio.file.Files/createTempFile "airj-json-input"
+                                                               ".json"
+                                                               (make-array java.nio.file.attribute.FileAttribute 0)))
+          output (.toString (java.nio.file.Files/createTempFile "airj-json-output"
+                                                                ".json"
+                                                                (make-array java.nio.file.attribute.FileAttribute 0)))
+          _ (spit input "{\"planet\":\"earth\"}")
+          _ (spit output "")
+          source "(module example/json_file
+                    (imports
+                      (airj airj/core Diagnostic Interchange Result)
+                      (airj airj/file read-string-result write-string-result)
+                      (airj airj/json parse-result write))
+                    (export main)
+                    (fn main
+                      (params (args StringSeq))
+                      (returns Int)
+                      (effects (File.Read File.Write Foreign.Throw))
+                      (requires true)
+                      (ensures true)
+                      (match
+                        (call (local read-string-result) (seq-get (local args) 0))
+                        (case (Ok text)
+                          (match
+                            (call (local parse-result) (local text))
+                            (case (Ok payload)
+                              (seq
+                                (call (local write-string-result)
+                                      (seq-get (local args) 1)
+                                      (call (local write) (local payload)))
+                                1))
+                            (case (Err error)
+                              0)))
+                        (case (Err error)
+                          0))))"
+          result (sut/run-source! source [input output])]
+      (should= 1 result)
+      (should= "{\"planet\":\"earth\"}"
+               (slurp output)))))

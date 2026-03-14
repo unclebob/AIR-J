@@ -9,11 +9,25 @@
    "(module airj/core
       (imports
         (java java.lang.NumberFormatException))
-      (export Diagnostic Option Result parse-int)
+      (export Diagnostic Interchange Option Result parse-int)
       (data Diagnostic
         (field phase String)
         (field message String)
         (field detail String))
+      (union Interchange
+        (variant Null)
+        (variant BoolValue
+          (field value Bool))
+        (variant IntValue
+          (field value Int))
+        (variant DoubleValue
+          (field value Double))
+        (variant StringValue
+          (field value String))
+        (variant SeqValue
+          (field value (Seq Interchange)))
+        (variant MapValue
+          (field value (Map String Interchange))))
       (union Option
         (type-params T)
         (variant None)
@@ -42,6 +56,61 @@
                                 \"parse\"
                                 \"Invalid integer.\"
                                 (local text)))))))"
+
+   'airj/json
+   "(module airj/json
+      (imports
+        (airj airj/core Diagnostic Interchange Result)
+        (java java.lang.RuntimeException))
+      (export parse parse-result write write-result)
+      (fn parse
+        (params (text String))
+        (returns Interchange)
+        (effects (Foreign.Throw))
+        (requires true)
+        (ensures true)
+        (json-parse (local text)))
+      (fn parse-result
+        (params (text String))
+        (returns (Result Interchange Diagnostic))
+        (effects ())
+        (requires true)
+        (ensures true)
+        (try
+          (variant (Result Interchange Diagnostic)
+                   Ok
+                   (call (local parse) (local text)))
+          (catch (Java java.lang.RuntimeException) ex
+            (variant (Result Interchange Diagnostic)
+                     Err
+                     (construct Diagnostic
+                                \"json\"
+                                \"Parse failed.\"
+                                (local text))))))
+      (fn write
+        (params (value Interchange))
+        (returns String)
+        (effects (Foreign.Throw))
+        (requires true)
+        (ensures true)
+        (json-write (local value)))
+      (fn write-result
+        (params (value Interchange))
+        (returns (Result String Diagnostic))
+        (effects ())
+        (requires true)
+        (ensures true)
+        (try
+          (variant (Result String Diagnostic)
+                   Ok
+                   (call (local write) (local value)))
+          (catch (Java java.lang.RuntimeException) ex
+            (variant (Result String Diagnostic)
+                     Err
+                     (construct Diagnostic
+                                \"json\"
+                                \"Write failed.\"
+                                \"interchange\"))))))"
 
    'airj/file
    "(module airj/file
@@ -245,5 +314,5 @@
       seen)))
 
 ;; clj-mutate-manifest-begin
-;; {:version 1, :tested-at "2026-03-14T09:13:28.090611-05:00", :module-hash "-1832020379", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line 3, :hash "1849576384"} {:id "form/1/declare", :kind "declare", :line 5, :end-line 5, :hash "-1313016324"} {:id "def/standard-sources", :kind "def", :line 7, :end-line 206, :hash "2112048245"} {:id "defn/source-map", :kind "defn", :line 208, :end-line 210, :hash "981959532"} {:id "defn/interfaces", :kind "defn", :line 212, :end-line 214, :hash "801379587"} {:id "defn/interfaces-for-module", :kind "defn", :line 216, :end-line 218, :hash "-1218712190"} {:id "defn/stdlib-module?", :kind "defn", :line 220, :end-line 222, :hash "1879715354"} {:id "defn-/imported-stdlib-modules", :kind "defn-", :line 224, :end-line 230, :hash "667554956"} {:id "defn/reachable-source-map", :kind "defn", :line 232, :end-line 245, :hash "-1038087388"}]}
+;; {:version 1, :tested-at "2026-03-14T10:19:46.646734-05:00", :module-hash "-1093319838", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line 3, :hash "1849576384"} {:id "form/1/declare", :kind "declare", :line 5, :end-line 5, :hash "-1313016324"} {:id "def/standard-sources", :kind "def", :line 7, :end-line 275, :hash "-170213925"} {:id "defn/source-map", :kind "defn", :line 277, :end-line 279, :hash "981959532"} {:id "defn/interfaces", :kind "defn", :line 281, :end-line 283, :hash "801379587"} {:id "defn/interfaces-for-module", :kind "defn", :line 285, :end-line 287, :hash "-1218712190"} {:id "defn/stdlib-module?", :kind "defn", :line 289, :end-line 291, :hash "1879715354"} {:id "defn-/imported-stdlib-modules", :kind "defn-", :line 293, :end-line 299, :hash "667554956"} {:id "defn/reachable-source-map", :kind "defn", :line 301, :end-line 314, :hash "-1038087388"}]}
 ;; clj-mutate-manifest-end

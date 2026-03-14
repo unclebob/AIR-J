@@ -979,3 +979,9 @@ The recommended implementation order for v0 is:
 10. JVM lowering backend
 
 This order is non-normative, but it matches the dependency structure of the spec.
+## Standard Modules
+
+- `airj/core` contains canonical machine-facing carriers such as `Diagnostic`, `Option`, `Result`, and `Interchange`.
+- `airj/file` contains canonical filesystem boundary operations.
+- `airj/json` contains the canonical JSON parse/emit boundary for interchange values.
+- Recoverable standard-module failures should prefer `Result ... Diagnostic` over raw exception text.

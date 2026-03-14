@@ -645,3 +645,10 @@ EOF
 
 java -cp target/classes example.app
 ```
+## Standard Module Policy
+
+- `airj/core` defines canonical language-level carriers and interchange values.
+- `airj/file` defines canonical filesystem boundaries.
+- `airj/json` defines the canonical JSON interchange boundary.
+- Recoverable boundary failures should prefer `Result ... Diagnostic`.
+- Host-library details belong behind these module boundaries, not in ordinary AIR-J programs.

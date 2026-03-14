@@ -1196,3 +1196,61 @@
                                            :body 0}]}}]}]
       (should= module
                (sut/check-module module))))
+
+  (it "type-checks canonical JSON interchange primitives"
+    (let [module {:name 'example/json_type
+                  :imports []
+                  :exports ['roundtrip]
+                  :decls [{:op :union
+                           :name 'Interchange
+                           :type-params []
+                           :invariants []
+                           :variants [{:name 'Null
+                                       :fields []}
+                                      {:name 'BoolValue
+                                       :fields [{:name 'value
+                                                 :type 'Bool}]}
+                                      {:name 'IntValue
+                                       :fields [{:name 'value
+                                                 :type 'Int}]}
+                                      {:name 'DoubleValue
+                                       :fields [{:name 'value
+                                                 :type 'Double}]}
+                                      {:name 'StringValue
+                                       :fields [{:name 'value
+                                                 :type 'String}]}
+                                      {:name 'SeqValue
+                                       :fields [{:name 'value
+                                                 :type '(Seq Interchange)}]}
+                                      {:name 'MapValue
+                                       :fields [{:name 'value
+                                                 :type '(Map String Interchange)}]}]}
+                          {:op :fn
+                           :name 'roundtrip
+                           :params [{:name 'text :type 'String}]
+                           :return-type 'String
+                           :effects ['Foreign.Throw]
+                           :requires [true]
+                           :ensures [true]
+                           :body {:op :json-write
+                                  :arg {:op :json-parse
+                                        :arg {:op :local :name 'text}}}}]}]
+      (should= module
+               (sut/check-module module))))
+
+  (it "rejects json-write on non-interchange values"
+    (let [module {:name 'example/json_type_error
+                  :imports []
+                  :exports ['broken]
+                  :decls [{:op :fn
+                           :name 'broken
+                           :params [{:name 'text :type 'String}]
+                           :return-type 'String
+                           :effects ['Foreign.Throw]
+                           :requires [true]
+                           :ensures [true]
+                           :body {:op :json-write
+                                  :arg {:op :local :name 'text}}}]}]
+      (should-throw clojure.lang.ExceptionInfo
+                    "Type mismatch."
+                    (sut/check-module module))))

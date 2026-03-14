@@ -2086,3 +2086,59 @@
                                                   :jvm-type :int}}]
                                   :jvm-type :int}}]}
                (sut/lower-module module))))
+
+  (it "lowers canonical JSON interchange primitives into JVM plan nodes"
+    (let [interchange-interface {:name 'airj/core
+                                 :imports []
+                                 :exports ['Interchange]
+                                 :decls [{:op :union
+                                          :name 'Interchange
+                                          :type-params []
+                                          :variants [{:name 'Null
+                                                      :fields []}
+                                                     {:name 'BoolValue
+                                                      :fields [{:name 'value
+                                                                :type 'Bool}]}
+                                                     {:name 'IntValue
+                                                      :fields [{:name 'value
+                                                                :type 'Int}]}
+                                                     {:name 'DoubleValue
+                                                      :fields [{:name 'value
+                                                                :type 'Double}]}
+                                                     {:name 'StringValue
+                                                      :fields [{:name 'value
+                                                                :type 'String}]}
+                                                     {:name 'SeqValue
+                                                      :fields [{:name 'value
+                                                                :type '(Seq Interchange)}]}
+                                                     {:name 'MapValue
+                                                      :fields [{:name 'value
+                                                                :type '(Map String Interchange)}]}]}]}
+          module {:name 'example/json_lower
+                  :imports [{:op :airj-import
+                             :module 'airj/core
+                             :symbols ['Interchange]}]
+                  :interfaces {'airj/core interchange-interface}
+                  :exports ['roundtrip]
+                  :decls [{:op :fn
+                           :name 'roundtrip
+                           :params [{:name 'text :type 'String}]
+                           :return-type 'String
+                           :effects ['Foreign.Throw]
+                           :requires [true]
+                           :ensures [true]
+                           :body {:op :json-write
+                                  :arg {:op :json-parse
+                                        :arg {:op :local :name 'text}}}}]}]
+      (should= {:op :jvm-json-write
+                :arg {:op :jvm-json-parse
+                      :arg {:op :jvm-local
+                            :name 'text
+                            :jvm-type "java/lang/String"}
+                      :root-class-name "airj/core$Interchange"
+                      :jvm-type "airj/core$Interchange"}
+                :jvm-type "java/lang/String"}
+               (-> (sut/lower-module module)
+                   :methods
+                   first
+                   :body))))

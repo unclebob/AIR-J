@@ -703,3 +703,23 @@
                 {:op :java-import
                  :class-name 'java.time.Instant}]
                (:imports ast))))
+
+  (it "parses canonical JSON interchange primitives"
+    (let [source "(module example/json_forms
+                    (imports
+                      (airj airj/core Interchange))
+                    (export normalize)
+                    (fn normalize
+                      (params (text String))
+                      (returns String)
+                      (effects (Foreign.Throw))
+                      (requires true)
+                      (ensures true)
+                      (json-write
+                        (json-parse (local text)))))"
+          ast (sut/parse-module source)]
+      (should= {:op :json-write
+                :arg {:op :json-parse
+                      :arg {:op :local
+                            :name 'text}}}
+               (-> ast :decls first :body))))
