@@ -1,0 +1,23 @@
+(module example/gauge_tests_root
+  (imports
+    (airj airj/test TestOutcome)
+    (airj airj/test-runner run)
+    (airj example/gauge_test_suite suite))
+  (export tests
+          main)
+
+  (fn tests
+    (params)
+    (returns (Seq TestOutcome))
+    (effects ())
+    (requires true)
+    (ensures true)
+    (call (local suite)))
+
+  (fn main
+    (params (args StringSeq))
+    (returns Int)
+    (effects (Stdout.Write))
+    (requires true)
+    (ensures true)
+    (call (local run) (call (local tests)))))

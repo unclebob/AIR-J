@@ -112,6 +112,7 @@ The canonical AIR-J test shape is:
 
 See [`examples/HTW/README.md`](/Users/unclebob/projects/AIR-J/examples/HTW/README.md) for a complete AIR-J-native test jar example.
 See [`examples/ToolWorkflow/README.md`](/Users/unclebob/projects/AIR-J/examples/ToolWorkflow/README.md) for a non-game example that emits and then consumes the canonical JSON test artifact.
+See [`examples/Contracts/README.md`](/Users/unclebob/projects/AIR-J/examples/Contracts/README.md) for a contract-heavy example that uses invariants plus `requires`/`ensures`.
 
 ## Development Workflow
 

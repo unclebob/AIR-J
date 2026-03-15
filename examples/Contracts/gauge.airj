@@ -1,0 +1,70 @@
+(module example/gauge
+  (imports)
+  (export Gauge
+          empty-gauge
+          fill
+          drain
+          at-capacity?
+          label)
+
+  (data Gauge
+    (field level Int)
+    (invariants
+      (int-ge (local level) 0)
+      (int-le (local level) 10)))
+
+  (fn empty-gauge
+    (params)
+    (returns Gauge)
+    (effects ())
+    (requires true)
+    (ensures (int-eq (record-get (local __airj_result) level) 0))
+    (construct Gauge 0))
+
+  (fn fill
+    (params (gauge Gauge) (amount Int))
+    (returns Gauge)
+    (effects ())
+    (requires (bool-and
+                (int-ge (local amount) 0)
+                (int-le
+                  (int-add (record-get (local gauge) level) (local amount))
+                  10)))
+    (ensures (int-eq
+               (record-get (local __airj_result) level)
+               (int-add (record-get (local gauge) level) (local amount))))
+    (construct Gauge
+               (int-add (record-get (local gauge) level) (local amount))))
+
+  (fn drain
+    (params (gauge Gauge) (amount Int))
+    (returns Gauge)
+    (effects ())
+    (requires (bool-and
+                (int-ge (local amount) 0)
+                (int-ge
+                  (record-get (local gauge) level)
+                  (local amount))))
+    (ensures (int-eq
+               (record-get (local __airj_result) level)
+               (int-sub (record-get (local gauge) level) (local amount))))
+    (construct Gauge
+               (int-sub (record-get (local gauge) level) (local amount))))
+
+  (fn at-capacity?
+    (params (gauge Gauge))
+    (returns Bool)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (int-eq (record-get (local gauge) level) 10))
+
+  (fn label
+    (params (gauge Gauge))
+    (returns String)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (string-concat
+      (string-concat "Gauge " (int->string (record-get (local gauge) level)))
+      "/10")))

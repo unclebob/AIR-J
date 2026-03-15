@@ -1,0 +1,107 @@
+(module example/gauge_test_suite
+  (imports
+    (airj airj/test TestOutcome
+                          assert-bool-eq
+                          assert-int-eq
+                          assert-string-eq)
+    (airj example/gauge Gauge
+                         at-capacity?
+                         drain
+                         empty-gauge
+                         fill
+                         label))
+  (export opens-at-zero
+          fills-within-bounds
+          drains-within-bounds
+          recognizes-capacity
+          formats-label
+          suite)
+
+  (fn opens-at-zero
+    (params)
+    (returns TestOutcome)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (call (local assert-int-eq)
+          "opens at zero"
+          (record-get (call (local empty-gauge)) level)
+          0))
+
+  (fn fills-within-bounds
+    (params)
+    (returns TestOutcome)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (call (local assert-int-eq)
+          "fills within bounds"
+          (record-get
+            (call (local fill)
+                  (call (local empty-gauge))
+                  4)
+            level)
+          4))
+
+  (fn drains-within-bounds
+    (params)
+    (returns TestOutcome)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (call (local assert-int-eq)
+          "drains within bounds"
+          (record-get
+            (call (local drain)
+                  (call (local fill)
+                        (call (local empty-gauge))
+                        6)
+                  2)
+            level)
+          4))
+
+  (fn recognizes-capacity
+    (params)
+    (returns TestOutcome)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (call (local assert-bool-eq)
+          "recognizes capacity"
+          (call (local at-capacity?)
+                (call (local fill)
+                      (call (local empty-gauge))
+                      10))
+          true))
+
+  (fn formats-label
+    (params)
+    (returns TestOutcome)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (call (local assert-string-eq)
+          "formats label"
+          (call (local label)
+                (call (local fill)
+                      (call (local empty-gauge))
+                      3))
+          "Gauge 3/10"))
+
+  (fn suite
+    (params)
+    (returns (Seq TestOutcome))
+    (effects ())
+    (requires true)
+    (ensures true)
+    (seq-append
+      (seq-append
+        (seq-append
+          (seq-append
+            (seq-empty TestOutcome)
+            (call (local opens-at-zero)))
+          (call (local fills-within-bounds)))
+        (call (local drains-within-bounds)))
+      (seq-append
+        (call (local recognizes-capacity))
+        (call (local formats-label))))))

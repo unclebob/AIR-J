@@ -2,6 +2,8 @@
   (imports
     (airj airj/core Diagnostic Interchange Result)
     (airj airj/test TestOutcome
+                          assert-diagnostic-message
+                          assert-interchange-string-field
                           assert-string-eq
                           fail)
     (airj example/tool_logic checked-name
@@ -84,9 +86,9 @@
               "Expected Err result."
               (local value)))
       (case (Err diagnostic)
-        (call (local assert-string-eq)
+        (call (local assert-diagnostic-message)
               (local name)
-              (record-get (local diagnostic) message)
+              (local diagnostic)
               (local expected)))))
 
   (fn trimmed-tool-name
@@ -156,9 +158,10 @@
     (effects ())
     (requires true)
     (ensures true)
-    (call (local expect-ok-string)
+    (call (local assert-interchange-string-field)
           "builds checked payload tool"
-          (call (local tool-name-result) (call (local checked-payload) "wumpus"))
+          (call (local checked-payload) "wumpus")
+          "tool"
           "wumpus-checked"))
 
   (fn builds-checked-payload-status
@@ -167,9 +170,10 @@
     (effects ())
     (requires true)
     (ensures true)
-    (call (local expect-ok-string)
+    (call (local assert-interchange-string-field)
           "builds checked payload status"
-          (call (local status-result) (call (local checked-payload) "wumpus"))
+          (call (local checked-payload) "wumpus")
+          "status"
           "ok"))
 
   (fn processes-payload-through-normalized-output
