@@ -1,0 +1,342 @@
+(module example/wiki_app
+  (imports
+    (airj airj/core Diagnostic Result Option)
+    (airj example/wiki Wiki
+                        PageView
+                        empty-wiki
+                        create-page
+                        update-page
+                        delete-page
+                        view-page
+                        list-titles
+                        search-pages
+                        history-bodies))
+  (export main)
+
+  (fn singleton-string
+    (params (value String))
+    (returns (Seq String))
+    (effects ())
+    (requires true)
+    (ensures true)
+    (seq-append
+      (seq-empty String)
+      (local value)))
+
+  (fn string-index-of-from
+    (params (text String) (needle String) (index Int))
+    (returns Int)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (if (int-eq (string-length (local needle)) 0)
+      0
+      (if (int-gt
+            (int-add (local index) (string-length (local needle)))
+            (string-length (local text)))
+        -1
+        (if (call (local prefix-at?)
+                  (local text)
+                  (local needle)
+                  (local index)
+                  0)
+          (local index)
+          (call (local string-index-of-from)
+                (local text)
+                (local needle)
+                (int-add (local index) 1))))))
+
+  (fn prefix-at?
+    (params (text String) (needle String) (text-index Int) (needle-index Int))
+    (returns Bool)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (if (int-eq (local needle-index) (string-length (local needle)))
+      true
+      (if (int-ge (local text-index) (string-length (local text)))
+        false
+        (if (string-eq
+              (string-char-at (local text) (local text-index))
+              (string-char-at (local needle) (local needle-index)))
+          (call (local prefix-at?)
+                (local text)
+                (local needle)
+                (int-add (local text-index) 1)
+                (int-add (local needle-index) 1))
+          false))))
+
+  (fn string-index-of
+    (params (text String) (needle String))
+    (returns Int)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (call (local string-index-of-from)
+          (local text)
+          (local needle)
+          0))
+
+  (fn trimmed-parts
+    (params (line String))
+    (returns (Seq String))
+    (effects ())
+    (requires true)
+    (ensures true)
+    (string-split-on (string-trim (local line)) " "))
+
+  (fn command-verb
+    (params (line String))
+    (returns String)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (let ((text (string-trim (local line))))
+      (if (string-empty? (local text))
+        ""
+        (seq-get (call (local trimmed-parts) (local text)) 0))))
+
+  (fn command-tail
+    (params (line String))
+    (returns String)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (let ((text (string-trim (local line))))
+      (let ((space-index (call (local string-index-of) (local text) " ")))
+        (if (int-lt (local space-index) 0)
+          ""
+          (string-trim
+            (string-substring
+              (local text)
+              (int-add (local space-index) 1)
+              (string-length (local text))))))))
+
+  (fn before-bar
+    (params (text String))
+    (returns String)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (let ((bar-index (call (local string-index-of) (local text) "|")))
+      (if (int-lt (local bar-index) 0)
+        ""
+        (string-trim
+          (string-substring (local text) 0 (local bar-index))))))
+
+  (fn after-bar
+    (params (text String))
+    (returns String)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (let ((bar-index (call (local string-index-of) (local text) "|")))
+      (if (int-lt (local bar-index) 0)
+        ""
+        (string-trim
+          (string-substring
+            (local text)
+            (int-add (local bar-index) 1)
+            (string-length (local text)))))))
+
+  (fn titles-text
+    (params (titles (Seq String)))
+    (returns String)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (loop ((remaining (local titles))
+           (result ""))
+      (if (seq-empty? (local remaining))
+        (local result)
+        (if (string-empty? (local result))
+          (recur
+            (seq-rest (local remaining))
+            (seq-first (local remaining)))
+          (recur
+            (seq-rest (local remaining))
+            (string-concat
+              (local result)
+              (string-concat
+                "\n"
+                (seq-first (local remaining)))))))))
+
+  (fn print-help
+    (params)
+    (returns Unit)
+    (effects (Stdout.Write))
+    (requires true)
+    (ensures true)
+    (seq
+      (io/println "AIR-J Wiki")
+      (io/println "Commands:")
+      (io/println "  help")
+      (io/println "  list")
+      (io/println "  view <title>")
+      (io/println "  render <title>")
+      (io/println "  search <query>")
+      (io/println "  history <title>")
+      (io/println "  create <title>|<body>")
+      (io/println "  update <title>|<body>")
+      (io/println "  delete <title>")
+      (io/println "  quit")))
+
+  (fn print-result-error
+    (params (diagnostic Diagnostic))
+    (returns Unit)
+    (effects (Stdout.Write))
+    (requires true)
+    (ensures true)
+    (io/println
+      (string-concat
+        (record-get (local diagnostic) detail)
+        (string-concat ": " (record-get (local diagnostic) message)))))
+
+  (fn print-view
+    (params (page-view PageView))
+    (returns Unit)
+    (effects (Stdout.Write))
+    (requires true)
+    (ensures true)
+    (seq
+      (io/println
+        (string-concat "Title: " (record-get (local page-view) title)))
+      (io/println
+        (string-concat "Body: " (record-get (local page-view) body)))))
+
+  (fn print-rendered
+    (params (page-view PageView))
+    (returns Unit)
+    (effects (Stdout.Write))
+    (requires true)
+    (ensures true)
+    (seq
+      (io/println
+        (string-concat "Title: " (record-get (local page-view) title)))
+      (io/println
+        (string-concat "Rendered: " (record-get (local page-view) rendered)))))
+
+  (fn print-ok
+    (params (message String))
+    (returns Unit)
+    (effects (Stdout.Write))
+    (requires true)
+    (ensures true)
+    (io/println (string-concat "ok: " (local message))))
+
+  (fn run-command
+    (params (wiki Wiki) (line String))
+    (returns Wiki)
+    (effects (Foreign.Throw Stdout.Write))
+    (requires true)
+    (ensures true)
+    (let ((verb (call (local command-verb) (local line))))
+      (let ((tail (call (local command-tail) (local line))))
+        (if (string-eq (local verb) "help")
+          (seq
+            (call (local print-help))
+            (local wiki))
+          (if (string-eq (local verb) "list")
+            (seq
+              (io/println (call (local titles-text) (call (local list-titles) (local wiki))))
+              (local wiki))
+            (if (string-eq (local verb) "view")
+              (match (call (local view-page) (local wiki) (local tail))
+                (case (Ok page-view)
+                  (seq
+                    (call (local print-view) (local page-view))
+                    (local wiki)))
+                (case (Err diagnostic)
+                  (seq
+                    (call (local print-result-error) (local diagnostic))
+                    (local wiki))))
+              (if (string-eq (local verb) "render")
+                (match (call (local view-page) (local wiki) (local tail))
+                  (case (Ok page-view)
+                    (seq
+                      (call (local print-rendered) (local page-view))
+                      (local wiki)))
+                  (case (Err diagnostic)
+                    (seq
+                      (call (local print-result-error) (local diagnostic))
+                      (local wiki))))
+                (if (string-eq (local verb) "search")
+                  (match (call (local search-pages) (local wiki) (local tail))
+                    (case (Ok titles)
+                      (seq
+                        (io/println (call (local titles-text) (local titles)))
+                        (local wiki)))
+                    (case (Err diagnostic)
+                      (seq
+                        (call (local print-result-error) (local diagnostic))
+                        (local wiki))))
+                  (if (string-eq (local verb) "history")
+                    (match (call (local history-bodies) (local wiki) (local tail))
+                      (case (Ok bodies)
+                        (seq
+                          (io/println (call (local titles-text) (local bodies)))
+                          (local wiki)))
+                      (case (Err diagnostic)
+                        (seq
+                          (call (local print-result-error) (local diagnostic))
+                          (local wiki))))
+                    (if (string-eq (local verb) "create")
+                      (match (call (local create-page)
+                                   (local wiki)
+                                   (call (local before-bar) (local tail))
+                                   (call (local after-bar) (local tail)))
+                        (case (Ok next-wiki)
+                          (seq
+                            (call (local print-ok) "page created")
+                            (local next-wiki)))
+                        (case (Err diagnostic)
+                          (seq
+                            (call (local print-result-error) (local diagnostic))
+                            (local wiki))))
+                      (if (string-eq (local verb) "update")
+                        (match (call (local update-page)
+                                     (local wiki)
+                                     (call (local before-bar) (local tail))
+                                     (call (local after-bar) (local tail)))
+                          (case (Ok next-wiki)
+                            (seq
+                              (call (local print-ok) "page updated")
+                              (local next-wiki)))
+                          (case (Err diagnostic)
+                            (seq
+                              (call (local print-result-error) (local diagnostic))
+                              (local wiki))))
+                        (if (string-eq (local verb) "delete")
+                          (match (call (local delete-page) (local wiki) (local tail))
+                            (case (Ok next-wiki)
+                              (seq
+                                (call (local print-ok) "page deleted")
+                                (local next-wiki)))
+                            (case (Err diagnostic)
+                              (seq
+                                (call (local print-result-error) (local diagnostic))
+                                (local wiki))))
+                          (seq
+                            (io/println "Unknown command. Type help.")
+                            (local wiki))))))))))))))
+
+  (fn main
+    (params (args StringSeq))
+    (returns Int)
+    (effects (Stdin.Read Stdout.Write Foreign.Throw))
+    (requires true)
+    (ensures true)
+    (seq
+      (call (local print-help))
+      (loop ((wiki (call (local empty-wiki))))
+        (seq
+          (io/print "wiki> ")
+          (let ((line (io/read-line)))
+            (if (string-eq (call (local command-verb) (local line)) "quit")
+              (seq
+                (io/println "Goodbye.")
+                0)
+              (recur
+                (call (local run-command) (local wiki) (local line)))))))))
+)
+)

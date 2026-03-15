@@ -21,9 +21,41 @@ server in AIR-J.
 ## Files
 
 - `wiki.airj`: pure in-memory wiki engine
+- `wiki_app.airj`: runnable console wiki shell
 - `wiki_test_suite.airj`: reusable AIR-J wiki acceptance-oriented tests
 - `wiki_tests_root.airj`: canonical AIR-J text test root
 - `wiki_tests_json.airj`: canonical AIR-J JSON test root
+
+## Build The Console App Jar
+
+```bash
+clj -M -m airj.cli build --project-dir examples/Wiki --jar /tmp/wiki-app.jar example/wiki_app
+```
+
+## Run The Console App
+
+```bash
+java -jar /tmp/wiki-app.jar
+```
+
+Supported commands:
+
+- `help`
+- `list`
+- `view <title>`
+- `render <title>`
+- `search <query>`
+- `history <title>`
+- `create <title>|<body>`
+- `update <title>|<body>`
+- `delete <title>`
+- `quit`
+
+Example session:
+
+```bash
+printf 'create Home|# Welcome\nrender Home\nlist\nquit\n' | java -jar /tmp/wiki-app.jar
+```
 
 ## Build The Text Test Jar
 
