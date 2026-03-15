@@ -63,7 +63,7 @@
                       (effects ())
                       (requires true)
                       (ensures true)
-                      (call (local assert-false) \"failing\" true)))"
+                      (call (local assert-false) \"failing\" true))))"
           result (sut/run ["test" "--stdin"] source)]
       (should-contain "PASS passing" result)
       (should-contain "FAIL failing" result)
@@ -80,7 +80,7 @@
                       (effects ())
                       (requires true)
                       (ensures true)
-                      (call (local assert-true) \"passing\" true)))"
+                      (call (local assert-true) \"passing\" true))))"
           result (sut/run ["test" "--json" "--stdin"] source)
           parsed (json/read-str result)]
       (should= {"passed" 1
@@ -89,6 +89,40 @@
                 "outcomes" [{"status" "pass"
                              "name" "passing"}]}
                parsed)))
+
+  (it "runs AIR-J tests from an exported tests suite when present"
+    (let [source "(module example/tests
+                    (imports
+                      (airj airj/test TestOutcome assert-true assert-false)
+                      (airj airj/test-runner run))
+                    (export tests ignored main)
+                    (fn ignored
+                      (params)
+                      (returns TestOutcome)
+                      (effects ())
+                      (requires true)
+                      (ensures true)
+                      (call (local assert-false) \"ignored\" true))
+                    (fn tests
+                      (params)
+                      (returns (Seq TestOutcome))
+                      (effects ())
+                      (requires true)
+                      (ensures true)
+                      (seq-append
+                        (seq-empty TestOutcome)
+                        (call (local assert-true) \"suite-pass\" true)))
+                    (fn main
+                      (params (args StringSeq))
+                      (returns Int)
+                      (effects (Stdout.Write))
+                      (requires true)
+                      (ensures true)
+                      (call (local run) (call (local tests))))))"
+          result (sut/run ["test" "--stdin"] source)]
+      (should-contain "PASS suite-pass" result)
+      (should-not-contain "ignored" result)
+      (should-contain "Summary: 1 passed, 0 failed, 0 errored" result)))
 
   (it "renders normalized modules as edn for the normalize command"
     (let [source "(module example/normalize

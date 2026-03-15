@@ -10,7 +10,7 @@ This example is a complete AIR-J console game with AIR-J unit tests. It is split
 
 - `wumpus_logic.airj`: pure game logic helpers
 - `hunt_the_wumpus.airj`: the playable console game
-- `hunt_the_wumpus_tests.airj`: AIR-J unit tests and AIR-J test runner entrypoint
+- `hunt_the_wumpus_tests.airj`: AIR-J unit tests using the canonical `tests` suite function plus an AIR-J runner `main`
 
 ## Build A Runnable Jar
 

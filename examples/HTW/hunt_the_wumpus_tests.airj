@@ -1,18 +1,18 @@
 (module example/hunt_the_wumpus_tests
   (imports
     (airj airj/test TestOutcome
-                          TestSummary
                           assert-bool-eq
                           assert-string-eq)
-    (airj airj/test-runner exit-code
-                                 print-summary
-                                 summarize)
+    (airj airj/test-runner run)
     (airj example/wumpus_logic adjacent?
                                 any-bat-near?
                                 any-pit-near?
+                                bat?
                                 command-arg
                                 command-verb
                                 neighbor-text
+                                pit?
+                                prompt-text
                                 valid-room?
                                 warning-near?))
   (export parses-command-verb
@@ -20,8 +20,13 @@
           recognizes-adjacent-room
           rejects-invalid-room
           reports-wumpus-warning
+          rejects-distant-warning
           reports-bat-warning
+          recognizes-pit-room
+          recognizes-bat-room
+          formats-prompt-text
           formats-neighbor-text
+          tests
           main)
 
   (fn parses-command-verb
@@ -90,6 +95,39 @@
           (call (local any-bat-near?) "2")
           true))
 
+  (fn rejects-distant-warning
+    (params)
+    (returns TestOutcome)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (call (local assert-bool-eq)
+          "rejects distant warning"
+          (call (local warning-near?) "1" "11")
+          false))
+
+  (fn recognizes-pit-room
+    (params)
+    (returns TestOutcome)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (call (local assert-bool-eq)
+          "recognizes pit room"
+          (call (local pit?) "14")
+          true))
+
+  (fn recognizes-bat-room
+    (params)
+    (returns TestOutcome)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (call (local assert-bool-eq)
+          "recognizes bat room"
+          (call (local bat?) "18")
+          true))
+
   (fn formats-neighbor-text
     (params)
     (returns TestOutcome)
@@ -101,29 +139,53 @@
           (call (local neighbor-text) "1")
           "Tunnels lead to 2, 5, 8"))
 
+  (fn formats-prompt-text
+    (params)
+    (returns TestOutcome)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (call (local assert-string-eq)
+          "formats prompt text"
+          (call (local prompt-text) 5)
+          "Arrows: 5 | command: move <room>, shoot <room>, quit"))
+
+  (fn tests
+    (params)
+    (returns (Seq TestOutcome))
+    (effects ())
+    (requires true)
+    (ensures true)
+    (seq-append
+      (seq-append
+        (seq-append
+          (seq-append
+            (seq-append
+              (seq-append
+                (seq-append
+                  (seq-append
+                    (seq-append
+                      (seq-append
+                        (seq-empty TestOutcome)
+                        (call (local parses-command-verb)))
+                      (call (local parses-command-arg)))
+                    (call (local recognizes-adjacent-room)))
+                  (call (local rejects-invalid-room)))
+                (call (local reports-wumpus-warning)))
+              (call (local rejects-distant-warning)))
+            (call (local reports-bat-warning)))
+          (call (local recognizes-pit-room)))
+        (call (local recognizes-bat-room)))
+      (seq-append
+        (seq-append
+          (seq-empty TestOutcome)
+          (call (local formats-neighbor-text)))
+        (call (local formats-prompt-text)))))
+
   (fn main
     (params (args StringSeq))
     (returns Int)
     (effects (Stdout.Write))
     (requires true)
     (ensures true)
-    (let ((summary
-            (call (local summarize)
-                  (seq-append
-                    (seq-append
-                      (seq-append
-                        (seq-append
-                          (seq-append
-                            (seq-append
-                              (seq-append
-                                (seq-empty TestOutcome)
-                                (call (local parses-command-verb)))
-                              (call (local parses-command-arg)))
-                            (call (local recognizes-adjacent-room)))
-                          (call (local rejects-invalid-room)))
-                        (call (local reports-wumpus-warning)))
-                      (call (local reports-bat-warning)))
-                    (call (local formats-neighbor-text))))))
-      (seq
-        (call (local print-summary) (local summary))
-        (call (local exit-code) (local summary))))))
+    (call (local run) (call (local tests)))))

@@ -82,4 +82,40 @@
       (should= 0 (:errored summary))
       (should= [{:status "pass"
                  :name "tick-test"}]
+               (:outcomes summary))))
+
+  (it "prefers an exported AIR-J tests suite function when present"
+    (let [source "(module example/tests
+                    (imports
+                      (airj airj/test TestOutcome assert-true assert-false))
+                    (export tests passing ignored)
+                    (fn passing
+                      (params)
+                      (returns TestOutcome)
+                      (effects ())
+                      (requires true)
+                      (ensures true)
+                      (call (local assert-false) \"passing\" true))
+                    (fn ignored
+                      (params)
+                      (returns TestOutcome)
+                      (effects ())
+                      (requires true)
+                      (ensures true)
+                      (call (local assert-false) \"ignored\" true))
+                    (fn tests
+                      (params)
+                      (returns (Seq TestOutcome))
+                      (effects ())
+                      (requires true)
+                      (ensures true)
+                      (seq-append
+                        (seq-empty TestOutcome)
+                        (call (local assert-true) \"suite-pass\" true)))))"
+          summary (sut/run-source-tests! source)]
+      (should= 1 (:passed summary))
+      (should= 0 (:failed summary))
+      (should= 0 (:errored summary))
+      (should= [{:status "pass"
+                 :name "suite-pass"}]
                (:outcomes summary)))))

@@ -1014,9 +1014,9 @@
   (it "runs AIR-J test summaries through the compiler without the Clojure runner"
     (let [source "(module example/test_program
                     (imports
-                      (airj airj/test TestOutcome TestSummary assert-true assert-false)
-                      (airj airj/test-runner summarize exit-code))
-                    (export passing failing main)
+                      (airj airj/test TestOutcome assert-true assert-false)
+                      (airj airj/test-runner run))
+                    (export tests main)
                     (fn passing
                       (params)
                       (returns TestOutcome)
@@ -1031,20 +1031,24 @@
                       (requires true)
                       (ensures true)
                       (call (local assert-false) \"failing\" true))
-                    (fn main
+                    (fn tests
                       (params)
-                      (returns Int)
+                      (returns (Seq TestOutcome))
                       (effects ())
                       (requires true)
                       (ensures true)
-                      (let ((summary
-                              (call (local summarize)
-                                    (seq-append
-                                      (seq-append
-                                        (seq-empty TestOutcome)
-                                        (call (local passing)))
-                                      (call (local failing))))))
-                        (call (local exit-code) (local summary)))))"
+                      (seq-append
+                        (seq-append
+                          (seq-empty TestOutcome)
+                          (call (local passing)))
+                        (call (local failing))))
+                    (fn main
+                      (params)
+                      (returns Int)
+                      (effects (Stdout.Write))
+                      (requires true)
+                      (ensures true)
+                      (call (local run) (call (local tests))))))"
           result (sut/run-source! source [])]
       (should= 1 result)))
 

@@ -352,6 +352,7 @@
       (export empty-summary
               record
               summarize
+              run
               failure-count
               exit-code
               render-outcome
@@ -411,6 +412,16 @@
                    (call (local record)
                          (local summary)
                          (seq-first (local remaining)))))))
+      (fn run
+        (params (outcomes (Seq TestOutcome)))
+        (returns Int)
+        (effects (Stdout.Write))
+        (requires true)
+        (ensures true)
+        (let ((summary (call (local summarize) (local outcomes))))
+          (seq
+            (call (local print-summary) (local summary))
+            (call (local exit-code) (local summary)))))
       (fn failure-count
         (params (summary TestSummary))
         (returns Int)
@@ -481,7 +492,7 @@
             (io/println (call (local render-summary) (local summary)))
             (seq
               (io/println (call (local render-outcome) (seq-first (local remaining))))
-              (recur (seq-rest (local remaining))))))))"
+              (recur (seq-rest (local remaining)))))))))"
 
    'airj/file
    "(module airj/file
@@ -759,5 +770,5 @@
       seen)))
 
 ;; clj-mutate-manifest-begin
-;; {:version 1, :tested-at "2026-03-15T12:20:50.469554-05:00", :module-hash "1218727272", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line 3, :hash "1849576384"} {:id "form/1/declare", :kind "declare", :line 5, :end-line 5, :hash "-1313016324"} {:id "def/standard-sources", :kind "def", :line 7, :end-line 720, :hash "-1544063846"} {:id "defn/source-map", :kind "defn", :line 722, :end-line 724, :hash "981959532"} {:id "defn/interfaces", :kind "defn", :line 726, :end-line 728, :hash "801379587"} {:id "defn/interfaces-for-module", :kind "defn", :line 730, :end-line 732, :hash "-1218712190"} {:id "defn/stdlib-module?", :kind "defn", :line 734, :end-line 736, :hash "1879715354"} {:id "defn-/imported-stdlib-modules", :kind "defn-", :line 738, :end-line 744, :hash "667554956"} {:id "defn/reachable-source-map", :kind "defn", :line 746, :end-line 759, :hash "-1038087388"}]}
+;; {:version 1, :tested-at "2026-03-15T12:52:57.402698-05:00", :module-hash "1557845357", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line 3, :hash "1849576384"} {:id "form/1/declare", :kind "declare", :line 5, :end-line 5, :hash "-1313016324"} {:id "def/standard-sources", :kind "def", :line 7, :end-line 731, :hash "-1782081869"} {:id "defn/source-map", :kind "defn", :line 733, :end-line 735, :hash "981959532"} {:id "defn/interfaces", :kind "defn", :line 737, :end-line 739, :hash "801379587"} {:id "defn/interfaces-for-module", :kind "defn", :line 741, :end-line 743, :hash "-1218712190"} {:id "defn/stdlib-module?", :kind "defn", :line 745, :end-line 747, :hash "1879715354"} {:id "defn-/imported-stdlib-modules", :kind "defn-", :line 749, :end-line 755, :hash "667554956"} {:id "defn/reachable-source-map", :kind "defn", :line 757, :end-line 770, :hash "-1038087388"}]}
 ;; clj-mutate-manifest-end
