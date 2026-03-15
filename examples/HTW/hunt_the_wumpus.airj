@@ -1,0 +1,340 @@
+(module example/hunt_the_wumpus
+  (imports
+    (java java.util.Random))
+  (export main)
+
+  (fn rooms
+    (params)
+    (returns (Seq String))
+    (effects ())
+    (requires true)
+    (ensures true)
+    (string-split-on "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20" " "))
+
+  (fn neighbors
+    (params (room String))
+    (returns (Seq String))
+    (effects ())
+    (requires true)
+    (ensures true)
+    (if (string-eq (local room) "1")
+      (string-split-on "2 5 8" " ")
+      (if (string-eq (local room) "2")
+        (string-split-on "1 3 10" " ")
+        (if (string-eq (local room) "3")
+          (string-split-on "2 4 12" " ")
+          (if (string-eq (local room) "4")
+            (string-split-on "3 5 14" " ")
+            (if (string-eq (local room) "5")
+              (string-split-on "1 4 6" " ")
+              (if (string-eq (local room) "6")
+                (string-split-on "5 7 15" " ")
+                (if (string-eq (local room) "7")
+                  (string-split-on "6 8 17" " ")
+                  (if (string-eq (local room) "8")
+                    (string-split-on "1 7 9" " ")
+                    (if (string-eq (local room) "9")
+                      (string-split-on "8 10 18" " ")
+                      (if (string-eq (local room) "10")
+                        (string-split-on "2 9 11" " ")
+                        (if (string-eq (local room) "11")
+                          (string-split-on "10 12 19" " ")
+                          (if (string-eq (local room) "12")
+                            (string-split-on "3 11 13" " ")
+                            (if (string-eq (local room) "13")
+                              (string-split-on "12 14 20" " ")
+                              (if (string-eq (local room) "14")
+                                (string-split-on "4 13 15" " ")
+                                (if (string-eq (local room) "15")
+                                  (string-split-on "6 14 16" " ")
+                                  (if (string-eq (local room) "16")
+                                    (string-split-on "15 17 20" " ")
+                                    (if (string-eq (local room) "17")
+                                      (string-split-on "7 16 18" " ")
+                                      (if (string-eq (local room) "18")
+                                        (string-split-on "9 17 19" " ")
+                                        (if (string-eq (local room) "19")
+                                          (string-split-on "11 18 20" " ")
+                                          (string-split-on "13 16 19" " ")))))))))))))))))))))
+
+  (fn contains-room?
+    (params (room-list (Seq String)) (room String))
+    (returns Bool)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (loop ((remaining (local room-list)))
+      (if (seq-empty? (local remaining))
+        false
+        (if (string-eq (seq-first (local remaining)) (local room))
+          true
+          (recur (seq-rest (local remaining)))))))
+
+  (fn valid-room?
+    (params (room String))
+    (returns Bool)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (call (local contains-room?) (call (local rooms)) (local room)))
+
+  (fn adjacent?
+    (params (from String) (to String))
+    (returns Bool)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (call (local contains-room?) (call (local neighbors) (local from)) (local to)))
+
+  (fn pit?
+    (params (room String))
+    (returns Bool)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (bool-or
+      (string-eq (local room) "7")
+      (string-eq (local room) "14")))
+
+  (fn bat?
+    (params (room String))
+    (returns Bool)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (bool-or
+      (string-eq (local room) "3")
+      (string-eq (local room) "18")))
+
+  (fn warning-near?
+    (params (room String) (hazard String))
+    (returns Bool)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (call (local contains-room?) (call (local neighbors) (local room)) (local hazard)))
+
+  (fn any-pit-near?
+    (params (room String))
+    (returns Bool)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (bool-or
+      (call (local warning-near?) (local room) "7")
+      (call (local warning-near?) (local room) "14")))
+
+  (fn any-bat-near?
+    (params (room String))
+    (returns Bool)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (bool-or
+      (call (local warning-near?) (local room) "3")
+      (call (local warning-near?) (local room) "18")))
+
+  (fn neighbor-text
+    (params (room String))
+    (returns String)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (let ((adjacent-rooms (call (local neighbors) (local room))))
+      (string-concat
+        (string-concat
+          (string-concat
+            (string-concat
+              (string-concat "Tunnels lead to " (seq-get (local adjacent-rooms) 0))
+              ", ")
+            (seq-get (local adjacent-rooms) 1))
+          ", ")
+        (seq-get (local adjacent-rooms) 2))))
+
+  (fn prompt-text
+    (params (arrows Int))
+    (returns String)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (string-concat
+      (string-concat "Arrows: " (int->string (local arrows)))
+      " | command: move <room>, shoot <room>, quit"))
+
+  (fn trimmed-parts
+    (params (line String))
+    (returns (Seq String))
+    (effects ())
+    (requires true)
+    (ensures true)
+    (string-split-on (string-trim (local line)) " "))
+
+  (fn command-verb
+    (params (line String))
+    (returns String)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (let ((text (string-trim (local line))))
+      (if (string-empty? (local text))
+        ""
+        (seq-get (call (local trimmed-parts) (local text)) 0))))
+
+  (fn command-arg
+    (params (line String))
+    (returns String)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (let ((parts (call (local trimmed-parts) (local line))))
+      (if (int-gt (seq-length (local parts)) 1)
+        (seq-get (local parts) 1)
+        "")))
+
+  (fn random-room
+    (params (rng (Java java.util.Random)))
+    (returns String)
+    (effects (Foreign.Throw))
+    (requires true)
+    (ensures true)
+    (int->string
+      (int-add
+        (java/call (local rng) nextInt (signature (Int) Int) 20)
+        1)))
+
+  (fn moved-wumpus
+    (params (rng (Java java.util.Random)) (wumpus-room String))
+    (returns String)
+    (effects (Foreign.Throw))
+    (requires true)
+    (ensures true)
+    (let ((roll (java/call (local rng) nextInt (signature (Int) Int) 4)))
+      (if (int-eq (local roll) 0)
+        (local wumpus-room)
+        (seq-get
+          (call (local neighbors) (local wumpus-room))
+          (int-sub (local roll) 1)))))
+
+  (fn print-room
+    (params (player-room String) (wumpus-room String))
+    (returns Unit)
+    (effects (Stdout.Write))
+    (requires true)
+    (ensures true)
+    (seq
+      (io/println "")
+      (io/println (string-concat "You are in room " (local player-room)))
+      (io/println (call (local neighbor-text) (local player-room)))
+      (if (call (local warning-near?) (local player-room) (local wumpus-room))
+        (io/println "You smell a Wumpus.")
+        (io/println ""))
+      (if (call (local any-pit-near?) (local player-room))
+        (io/println "You feel a draft.")
+        (io/println ""))
+      (if (call (local any-bat-near?) (local player-room))
+        (io/println "You hear rustling bats.")
+        (io/println ""))))
+
+  (fn intro
+    (params)
+    (returns Unit)
+    (effects (Stdout.Write))
+    (requires true)
+    (ensures true)
+    (seq
+      (io/println "Hunt the Wumpus")
+      (io/println "Avoid the pits, dodge the bats, and shoot the Wumpus.")
+      (io/println "Rooms are numbered 1 through 20.")))
+
+  (fn game-loop
+    (params (rng (Java java.util.Random))
+            (player-room String)
+            (wumpus-room String)
+            (arrows Int))
+    (returns Int)
+    (effects (Foreign.Throw Stdin.Read Stdout.Write))
+    (requires true)
+    (ensures true)
+    (loop ((current-player (local player-room))
+           (current-wumpus (local wumpus-room))
+           (current-arrows (local arrows)))
+      (if (string-eq (local current-player) (local current-wumpus))
+        (seq
+          (io/println "You enter the Wumpus room. You lose.")
+          1)
+        (if (call (local pit?) (local current-player))
+          (seq
+            (io/println "You fall into a bottomless pit. You lose.")
+            1)
+          (if (call (local bat?) (local current-player))
+            (seq
+              (io/println "Super bats whisk you to another room!")
+              (recur (call (local random-room) (local rng))
+                     (local current-wumpus)
+                     (local current-arrows)))
+            (seq
+              (call (local print-room) (local current-player) (local current-wumpus))
+              (io/println (call (local prompt-text) (local current-arrows)))
+              (let ((line (io/read-line)))
+                (let ((verb (call (local command-verb) (local line))))
+                  (let ((arg (call (local command-arg) (local line))))
+                    (if (string-eq (local verb) "quit")
+                      (seq
+                        (io/println "Goodbye.")
+                        0)
+                      (if (string-eq (local verb) "move")
+                        (if (bool-and
+                              (call (local valid-room?) (local arg))
+                              (call (local adjacent?) (local current-player) (local arg)))
+                          (recur (local arg)
+                                 (local current-wumpus)
+                                 (local current-arrows))
+                          (seq
+                            (io/println "You can only move to an adjacent room.")
+                            (recur (local current-player)
+                                   (local current-wumpus)
+                                   (local current-arrows))))
+                        (if (string-eq (local verb) "shoot")
+                          (if (bool-and
+                                (call (local valid-room?) (local arg))
+                                (call (local adjacent?) (local current-player) (local arg)))
+                            (if (string-eq (local arg) (local current-wumpus))
+                              (seq
+                                (io/println "Your arrow strikes true. You win!")
+                                0)
+                              (let ((next-arrows (int-sub (local current-arrows) 1)))
+                                (let ((next-wumpus (call (local moved-wumpus) (local rng) (local current-wumpus))))
+                                  (if (int-eq (local next-arrows) 0)
+                                    (seq
+                                      (io/println "Your arrow misses.")
+                                      (io/println "You are out of arrows. You lose.")
+                                      1)
+                                    (seq
+                                      (io/println "Your arrow misses.")
+                                      (recur (local current-player)
+                                             (local next-wumpus)
+                                             (local next-arrows)))))))
+                            (seq
+                              (io/println "You can only shoot into an adjacent room.")
+                              (recur (local current-player)
+                                     (local current-wumpus)
+                                     (local current-arrows))))
+                          (seq
+                            (io/println "Unknown command.")
+                            (recur (local current-player)
+                                   (local current-wumpus)
+                                   (local current-arrows)))))))))))))))
+
+  (fn main
+    (params (args StringSeq))
+    (returns Int)
+    (effects (Foreign.Throw Stdin.Read Stdout.Write))
+    (requires true)
+    (ensures true)
+    (seq
+      (call (local intro))
+      (call (local game-loop)
+            (java/new java.util.Random)
+            "1"
+            "11"
+            5))))
