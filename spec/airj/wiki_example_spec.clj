@@ -2,6 +2,7 @@
   (:require [airj.compiler :as compiler]
             [clojure.data.json :as json]
             [clojure.java.io :as io]
+            [clojure.string :as str]
             [speclj.core :refer :all])
   (:import (java.net ServerSocket URI URLEncoder)
            (java.net.http HttpClient HttpRequest HttpRequest$BodyPublishers HttpResponse$BodyHandlers)
@@ -169,4 +170,33 @@
               (should= "# Persisted" (get-in file-json ["pages" 0 "body"]))
               @read-future)
             (finally
-              (.invoke @stop-server nil (object-array [second-server])))))))))
+              (.invoke @stop-server nil (object-array [second-server])))))))
+
+    (it "renders a create link for missing wiki pages"
+      (let [requested-port (free-port)
+            state-path (.toString (Files/createTempFile "airj-wiki-missing-link" ".json" (make-array java.nio.file.attribute.FileAttribute 0)))
+            server (.invoke @start-server
+                            nil
+                            (object-array [(into-array String [(str requested-port) state-path])]))
+            actual-port (.invoke @current-port nil (object-array [server]))
+            initial-wiki (.invoke @initial-state nil (object-array [state-path]))]
+        (try
+          (let [create-future (future (.invoke @serve-once nil (object-array [server initial-wiki state-path])))
+                create-response (post-form actual-port
+                                           "/create"
+                                           (encode-form [["title" "Docs"]
+                                                         ["body" "See [[Missing Guide]]"]]))
+                wiki-after-create @create-future
+                view-future (future (.invoke @serve-once nil (object-array [server wiki-after-create state-path])))
+                view-response (get-text actual-port "/view/Docs")
+                wiki-after-view @view-future
+                new-future (future (.invoke @serve-once nil (object-array [server wiki-after-view state-path])))
+                new-response (get-text actual-port "/new/Missing+Guide")
+                _ @new-future]
+            (should= 200 (.statusCode create-response))
+            (should= 200 (.statusCode view-response))
+            (should (str/includes? (.body view-response) "<a href=\"/new/Missing Guide\">?</a>"))
+            (should= 200 (.statusCode new-response))
+            (should (str/includes? (.body new-response) "value=\"Missing Guide\"")))
+          (finally
+            (.invoke @stop-server nil (object-array [server]))))))))

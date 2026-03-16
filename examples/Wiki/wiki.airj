@@ -393,7 +393,7 @@
   (fn render-link
     (params (wiki Wiki) (target String))
     (returns String)
-    (effects ())
+    (effects (Foreign.Throw))
     (requires true)
     (ensures true)
     (if (call (local page-exists?) (local wiki) (local target))
@@ -402,7 +402,13 @@
         (string-concat "\">" (string-concat (local target) "</a>")))
       (string-concat
         "<span class=\"missing-link\">"
-        (string-concat (local target) "</span>"))))
+        (string-concat
+          (local target)
+          (string-concat
+            " <a href=\"/new/"
+            (string-concat
+              (local target)
+              "\">?</a></span>"))))))
 
   (fn render-emphasis
     (params (text String))
@@ -741,11 +747,19 @@
     (effects (Foreign.Throw))
     (requires true)
     (ensures true)
-    (call (local string-contains?)
-          (local rendered)
-          (string-concat
-            "<span class=\"missing-link\">"
-            (string-concat (local target) "</span>"))))
+    (if (call (local string-contains?)
+              (local rendered)
+              (string-concat
+                "<span class=\"missing-link\">"
+                (string-concat (local target) " ")))
+      (call (local string-contains?)
+            (local rendered)
+            (string-concat
+              "<a href=\"/new/"
+              (string-concat
+                (local target)
+                "\">?</a></span>")))
+      false))
 
   (fn rendered-contains-heading?
     (params (rendered String) (text String))

@@ -276,6 +276,26 @@
     (ensures true)
     (call (local html-response) 200 (call (local html-layout) "AIR-J Wiki" (call (local home-body) (local wiki)))))
 
+  (fn create-form-response
+    (params (title String))
+    (returns HttpResponse)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (call
+      (local html-response)
+      200
+      (call
+        (local html-layout)
+        (string-concat "Create " (local title))
+        (string-concat
+          "<p><a href=\"/\">Home</a></p><h2>Create Page</h2><form method=\"POST\" action=\"/create\">"
+          (string-concat
+            "<p>Title<br/><input name=\"title\" value=\""
+            (string-concat
+              (local title)
+              "\"/></p><p>Body<br/><textarea name=\"body\" rows=\"10\" cols=\"60\"></textarea></p><p><button type=\"submit\">Create</button></p></form>"))))))
+
   (fn diagnostic-response
     (params (status Int) (diagnostic Diagnostic))
     (returns HttpResponse)
@@ -737,7 +757,12 @@
                   (call (local view-step)
                         (local wiki)
                         (call (local url-decode) (call (local drop-prefix) (local path) "/view/")))
-                  (call (local not-found-step) (local wiki))))))))))
+                  (if (call (local starts-with?) (local path) "/new/")
+                    (call (local step)
+                          (local wiki)
+                          (call (local create-form-response)
+                                (call (local url-decode) (call (local drop-prefix) (local path) "/new/"))))
+                    (call (local not-found-step) (local wiki)))))))))))
 
   (fn post-route-step
     (params (wiki Wiki) (path String) (request HttpRequest))
