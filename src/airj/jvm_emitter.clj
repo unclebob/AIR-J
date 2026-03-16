@@ -1,16 +1,15 @@
 (ns airj.jvm-emitter
   (:require [airj.jvm-cells :as jvm-cells]
-            [airj.jvm-class-writer :as jvm-class-writer]
             [airj.jvm-emit-data :as jvm-emit-data]
             [airj.jvm-emit-cells :as jvm-emit-cells]
             [airj.jvm-emit-closures :as jvm-emit-closures]
-            [airj.jvm-emit-entry :as jvm-emit-entry]
             [airj.jvm-emit-host :as jvm-emit-host]
             [airj.jvm-emit-json :as jvm-emit-json]
+            [airj.jvm-emit-module :as jvm-emit-module]
             [airj.jvm-emit-seq :as jvm-emit-seq]
             [airj.jvm-emit-text :as jvm-emit-text]
             [airj.jvm-emit-try :as jvm-emit-try])
-  (:import (clojure.asm ClassWriter Label MethodVisitor Opcodes)))
+  (:import (clojure.asm Label MethodVisitor Opcodes)))
 
 (declare emit-expr)
 (declare descriptor)
@@ -738,224 +737,35 @@
         (fail! "Unsupported JVM emission expression."
                {:expr expr}))))
 
-(defn- emit-default-constructor
-  ([^ClassWriter cw]
-   (emit-default-constructor cw "java/lang/Object"))
-  ([^ClassWriter cw super-name]
-   (let [mv (.visitMethod cw Opcodes/ACC_PUBLIC "<init>" "()V" nil nil)]
-    (.visitCode mv)
-    (.visitVarInsn mv Opcodes/ALOAD 0)
-    (.visitMethodInsn mv Opcodes/INVOKESPECIAL super-name "<init>" "()V" false)
-    (.visitInsn mv Opcodes/RETURN)
-    (.visitMaxs mv 0 0)
-    (.visitEnd mv))))
-
-(defn- field-slot
-  [fields]
-  (map-indexed (fn [index field]
-                 [(inc index) field])
-               fields))
-
-(defn- emit-record-constructor
-  [^ClassWriter cw record]
-  (let [mv (.visitMethod cw Opcodes/ACC_PUBLIC "<init>" (init-descriptor (:fields record)) nil nil)]
-    (.visitCode mv)
-    (.visitVarInsn mv Opcodes/ALOAD 0)
-    (.visitMethodInsn mv Opcodes/INVOKESPECIAL "java/lang/Object" "<init>" "()V" false)
-    (doseq [[slot field] (field-slot (:fields record))]
-      (.visitVarInsn mv Opcodes/ALOAD 0)
-      (.visitVarInsn mv (load-opcode (:jvm-type field)) slot)
-      (.visitFieldInsn mv
-                       Opcodes/PUTFIELD
-                       (:class-name record)
-                       (str (:name field))
-                       (descriptor (:jvm-type field))))
-    (.visitInsn mv Opcodes/RETURN)
-    (.visitMaxs mv 0 0)
-    (.visitEnd mv)))
-
-(defn- emit-record-class-bytes
-  [module record]
-  (let [^ClassWriter cw (jvm-class-writer/class-writer module)]
-    (.visit cw
-            Opcodes/V1_8
-            (+ Opcodes/ACC_PUBLIC Opcodes/ACC_SUPER)
-            (:class-name record)
-            nil
-            "java/lang/Object"
-            nil)
-    (doseq [field (:fields record)]
-      (.visitField cw
-                   (+ Opcodes/ACC_PUBLIC Opcodes/ACC_FINAL)
-                   (str (:name field))
-                   (descriptor (:jvm-type field))
-                   nil
-                   nil))
-    (emit-default-constructor cw)
-    (emit-record-constructor cw record)
-    (.visitEnd cw)
-    (.toByteArray cw)))
-
-(defn- emit-union-base-class-bytes
-  [module union]
-  (let [^ClassWriter cw (jvm-class-writer/class-writer module)]
-    (.visit cw
-            Opcodes/V1_8
-            (+ Opcodes/ACC_PUBLIC Opcodes/ACC_SUPER)
-            (:base-class union)
-            nil
-            "java/lang/Object"
-            nil)
-    (emit-default-constructor cw)
-    (.visitEnd cw)
-    (.toByteArray cw)))
-
-(defn- emit-union-variant-class-bytes
-  [module union variant]
-  (let [^ClassWriter cw (jvm-class-writer/class-writer module)]
-    (.visit cw
-            Opcodes/V1_8
-            (+ Opcodes/ACC_PUBLIC Opcodes/ACC_SUPER)
-            (:class-name variant)
-            nil
-            (:base-class union)
-            nil)
-    (doseq [field (:fields variant)]
-      (.visitField cw
-                   (+ Opcodes/ACC_PUBLIC Opcodes/ACC_FINAL)
-                   (str (:name field))
-                   (descriptor (:jvm-type field))
-                   nil
-                   nil))
-    (let [mv (.visitMethod cw Opcodes/ACC_PUBLIC "<init>" (init-descriptor (:fields variant)) nil nil)]
-      (.visitCode mv)
-      (.visitVarInsn mv Opcodes/ALOAD 0)
-      (.visitMethodInsn mv Opcodes/INVOKESPECIAL (:base-class union) "<init>" "()V" false)
-      (doseq [[slot field] (field-slot (:fields variant))]
-        (.visitVarInsn mv Opcodes/ALOAD 0)
-        (.visitVarInsn mv (load-opcode (:jvm-type field)) slot)
-        (.visitFieldInsn mv
-                         Opcodes/PUTFIELD
-                         (:class-name variant)
-                         (str (:name field))
-                         (descriptor (:jvm-type field))))
-      (.visitInsn mv Opcodes/RETURN)
-      (.visitMaxs mv 0 0)
-      (.visitEnd mv))
-    (.visitEnd cw)
-    (.toByteArray cw)))
-
-(defn- emit-method
-  [^ClassWriter cw method]
-  (let [descriptor (method-descriptor (:params method) (:return-type method))
-        mv (.visitMethod cw
-                         (+ Opcodes/ACC_PUBLIC Opcodes/ACC_STATIC)
-                         (method-name (:name method))
-                         descriptor
-                         nil
-                         nil)
-        env (local-slots (:params method))]
-    (.visitCode mv)
-    (emit-expr mv (:body method) env)
-    (emit-cast-or-unbox mv (:jvm-type (:body method)) (:return-type method))
-    (.visitInsn mv (return-opcode (:return-type method)))
-    (.visitMaxs mv 0 0)
-    (.visitEnd mv)))
-
-(defn- emit-instance-method
-  [^ClassWriter cw method]
-  (let [method-desc (method-descriptor (:params method) (:return-type method))
-        mv (.visitMethod cw
-                         Opcodes/ACC_PUBLIC
-                         (method-name (:name method))
-                         method-desc
-                         nil
-                         nil)]
-    (.visitCode mv)
-    (.visitVarInsn mv Opcodes/ALOAD 0)
-    (doseq [[index param] (map-indexed vector (:params method))]
-      (.visitVarInsn mv (load-opcode (:jvm-type param)) (inc index)))
-    (.visitMethodInsn mv
-                      Opcodes/INVOKESTATIC
-                      (get-in method [:target :owner])
-                      (method-name (get-in method [:target :name]))
-                      (str "("
-                           (apply str (map descriptor (get-in method [:target :parameter-types])))
-                           ")"
-                           (descriptor (get-in method [:target :return-type])))
-                      false)
-    (.visitInsn mv (return-opcode (:return-type method)))
-    (.visitMaxs mv 0 0)
-    (.visitEnd mv)))
+(defn- module-emit-opts
+  []
+  {:descriptor descriptor
+   :init-descriptor init-descriptor
+   :field-slot (fn [fields]
+                 (map-indexed (fn [index field]
+                                [(inc index) field])
+                              fields))
+   :load-opcode load-opcode
+   :store-opcode store-opcode
+   :method-descriptor method-descriptor
+   :instance-local-slots instance-local-slots
+   :bind-typed-slots bind-typed-slots
+   :emit-expr emit-expr
+   :return-opcode return-opcode
+   :emit-cast-or-unbox emit-cast-or-unbox
+   :method-name method-name
+   :pop-opcode pop-opcode
+   :local-slots local-slots})
 
 (defn emit-module-bytes
   [module]
-  (let [^ClassWriter cw (jvm-class-writer/class-writer module)]
-    (.visit cw
-            Opcodes/V1_8
-            (+ Opcodes/ACC_PUBLIC Opcodes/ACC_SUPER)
-            (:internal-name module)
-            nil
-            (or (get-in module [:host :class-name])
-                "java/lang/Object")
-            nil)
-    (emit-default-constructor cw (or (get-in module [:host :class-name])
-                                     "java/lang/Object"))
-    (doseq [method (:methods module)]
-      (emit-method cw method))
-    (doseq [method (:instance-methods module)]
-      (emit-instance-method cw method))
-    (jvm-emit-entry/emit-main-wrapper cw module
-                                      {:method-name method-name
-                                       :method-descriptor method-descriptor
-                                       :pop-opcode pop-opcode})
-    (.visitEnd cw)
-    (.toByteArray cw)))
+  (get (jvm-emit-module/emit-class-bytes module (module-emit-opts))
+       (:internal-name module)))
 
 (defn emit-class-bytes
   [module]
-  (merge {(:internal-name module) (emit-module-bytes module)}
-         (into {}
-               (map (fn [interface]
-                      [(:class-name interface)
-                       (let [^ClassWriter cw (jvm-class-writer/class-writer module)]
-                         (jvm-emit-closures/emit-closure-interface-bytes
-                          cw
-                          interface
-                          method-descriptor))]))
-               (:closure-interfaces module))
-         (into {}
-               (map (fn [closure]
-                      [(:class-name closure)
-                       (let [^ClassWriter cw (jvm-class-writer/class-writer module)]
-                         (jvm-emit-closures/emit-closure-class-bytes
-                          cw
-                          closure
-                          {:descriptor descriptor
-                           :init-descriptor init-descriptor
-                           :field-slot field-slot
-                           :load-opcode load-opcode
-                           :store-opcode store-opcode
-                           :method-descriptor method-descriptor
-                           :instance-local-slots instance-local-slots
-                           :bind-typed-slots bind-typed-slots
-                           :emit-expr emit-expr
-                           :return-opcode return-opcode}))]))
-               (:closures module))
-         (into {}
-               (map (fn [record]
-                      [(:class-name record) (emit-record-class-bytes module record)]))
-               (:records module))
-         (into {}
-               (mapcat
-                (fn [union]
-                  (concat [[(:base-class union) (emit-union-base-class-bytes module union)]]
-                          (map (fn [variant]
-                                 [(:class-name variant)
-                                  (emit-union-variant-class-bytes module union variant)])
-                               (:variants union))))
-               (:unions module)))))
+  (jvm-emit-module/emit-class-bytes module (module-emit-opts)))
 
 ;; clj-mutate-manifest-begin
-;; {:version 1, :tested-at "2026-03-16T07:44:29.102947-05:00", :module-hash "-249037087", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line 13, :hash "-2011074935"} {:id "form/1/declare", :kind "declare", :line 15, :end-line 15, :hash "-351869103"} {:id "form/2/declare", :kind "declare", :line 16, :end-line 16, :hash "1069961042"} {:id "form/3/declare", :kind "declare", :line 17, :end-line 17, :hash "-2053214757"} {:id "form/4/declare", :kind "declare", :line 18, :end-line 18, :hash "2098266977"} {:id "form/5/declare", :kind "declare", :line 19, :end-line 19, :hash "963731763"} {:id "form/6/declare", :kind "declare", :line 20, :end-line 20, :hash "-1905695466"} {:id "def/type-descriptors", :kind "def", :line 22, :end-line 27, :hash "-1275703727"} {:id "def/load-opcodes", :kind "def", :line 29, :end-line 33, :hash "700860168"} {:id "def/store-opcodes", :kind "def", :line 35, :end-line 39, :hash "656288957"} {:id "def/return-opcodes", :kind "def", :line 41, :end-line 46, :hash "1446178414"} {:id "def/boxed-types", :kind "def", :line 48, :end-line 52, :hash "-1247089229"} {:id "defn-/fail!", :kind "defn-", :line 54, :end-line 56, :hash "879938479"} {:id "defn-/method-name", :kind "defn-", :line 58, :end-line 62, :hash "1072728380"} {:id "defn-/init-descriptor", :kind "defn-", :line 64, :end-line 68, :hash "-591391110"} {:id "defn-/descriptor", :kind "defn-", :line 70, :end-line 72, :hash "799112538"} {:id "defn-/method-descriptor", :kind "defn-", :line 74, :end-line 79, :hash "-1082052598"} {:id "defn-/load-opcode", :kind "defn-", :line 81, :end-line 83, :hash "501460056"} {:id "defn-/store-opcode", :kind "defn-", :line 85, :end-line 87, :hash "234024341"} {:id "defn-/return-opcode", :kind "defn-", :line 89, :end-line 91, :hash "1071593654"} {:id "defn-/slot-width", :kind "defn-", :line 93, :end-line 97, :hash "644765418"} {:id "defn-/local-slots", :kind "defn-", :line 99, :end-line 109, :hash "1286710434"} {:id "defn-/instance-local-slots", :kind "defn-", :line 111, :end-line 121, :hash "-234993241"} {:id "defn-/emit-int", :kind "defn-", :line 123, :end-line 125, :hash "682918505"} {:id "defn-/emit-float", :kind "defn-", :line 127, :end-line 129, :hash "-404581045"} {:id "defn-/emit-double", :kind "defn-", :line 131, :end-line 133, :hash "-299228739"} {:id "defn-/emit-string", :kind "defn-", :line 135, :end-line 137, :hash "-364387159"} {:id "defn-/emit-boolean", :kind "defn-", :line 139, :end-line 141, :hash "-818404463"} {:id "defn-/box-descriptor", :kind "defn-", :line 143, :end-line 149, :hash "1143194916"} {:id "defn-/emit-box-if-needed", :kind "defn-", :line 151, :end-line 160, :hash "-177508175"} {:id "defn-/emit-primitive-unbox", :kind "defn-", :line 162, :end-line 170, :hash "-1739292644"} {:id "defn-/emit-object-cast-or-unbox", :kind "defn-", :line 172, :end-line 180, :hash "472309751"} {:id "defn-/emit-cast-or-unbox", :kind "defn-", :line 182, :end-line 188, :hash "-1711668189"} {:id "defn-/emit-local", :kind "defn-", :line 190, :end-line 195, :hash "435457023"} {:id "defn-/emit-invoke-static", :kind "defn-", :line 197, :end-line 210, :hash "842252415"} {:id "defn-/emit-java-static-call", :kind "defn-", :line 212, :end-line 224, :hash "-738935078"} {:id "defn-/emit-java-call", :kind "defn-", :line 226, :end-line 239, :hash "19941248"} {:id "defn-/emit-java-new", :kind "defn-", :line 241, :end-line 254, :hash "1581399000"} {:id "defn-/emit-if", :kind "defn-", :line 256, :end-line 269, :hash "918582782"} {:id "defn-/emit-primitive-binary", :kind "defn-", :line 271, :end-line 275, :hash "853246371"} {:id "defn-/emit-primitive-comparison", :kind "defn-", :line 277, :end-line 288, :hash "328881796"} {:id "defn-/emit-floating-comparison", :kind "defn-", :line 290, :end-line 302, :hash "-239382277"} {:id "defn-/emit-primitive-conversion", :kind "defn-", :line 304, :end-line 307, :hash "1990636722"} {:id "defn-/emit-bool-not", :kind "defn-", :line 309, :end-line 313, :hash "-644687160"} {:id "defn-/pop-opcode", :kind "defn-", :line 315, :end-line 320, :hash "391217719"} {:id "defn-/emit-discarded", :kind "defn-", :line 322, :end-line 326, :hash "-373415048"} {:id "defn-/emit-seq", :kind "defn-", :line 328, :end-line 341, :hash "1569148183"} {:id "defn-/bind-let-slots", :kind "defn-", :line 343, :end-line 351, :hash "-1742644809"} {:id "defn-/bind-typed-slots", :kind "defn-", :line 353, :end-line 361, :hash "-1647294951"} {:id "defn-/bind-var-slot", :kind "defn-", :line 363, :end-line 370, :hash "459677485"} {:id "defn-/emit-var", :kind "defn-", :line 372, :end-line 379, :hash "879920388"} {:id "defn-/emit-set", :kind "defn-", :line 381, :end-line 389, :hash "1326112789"} {:id "defn-/emit-let", :kind "defn-", :line 391, :end-line 403, :hash "1573725928"} {:id "defn-/constructor-descriptor", :kind "defn-", :line 405, :end-line 409, :hash "1030246641"} {:id "defn-/constructor-descriptor-for-types", :kind "defn-", :line 411, :end-line 415, :hash "410465"} {:id "defn-/emit-always-true", :kind "defn-", :line 417, :end-line 419, :hash "415683512"} {:id "defn-/bind-local-slots", :kind "defn-", :line 421, :end-line 429, :hash "844729401"} {:id "defn-/bind-loop-slots", :kind "defn-", :line 431, :end-line 433, :hash "-1190078791"} {:id "defn-/emit-binding", :kind "defn-", :line 435, :end-line 441, :hash "1197949831"} {:id "defn-/emit-match", :kind "defn-", :line 443, :end-line 460, :hash "1586201505"} {:id "defn-/recur-frame", :kind "defn-", :line 462, :end-line 466, :hash "-1921183736"} {:id "defn-/temp-slots", :kind "defn-", :line 468, :end-line 476, :hash "1830022320"} {:id "defn-/emit-recur", :kind "defn-", :line 478, :end-line 494, :hash "-640909028"} {:id "defn-/temp-slot", :kind "defn-", :line 496, :end-line 500, :hash "1829218103"} {:id "defn-/emit-raise", :kind "defn-", :line 502, :end-line 506, :hash "476518000"} {:id "defn-/emit-try", :kind "defn-", :line 508, :end-line 517, :hash "1119462693"} {:id "defn-/emit-loop", :kind "defn-", :line 519, :end-line 541, :hash "193454205"} {:id "def/literal-emitters", :kind "def", :line 543, :end-line 548, :hash "1324913079"} {:id "defn-/emit-literal", :kind "defn-", :line 550, :end-line 554, :hash "-1669064898"} {:id "def/emit-expr-handlers", :kind "def", :line 556, :end-line 731, :hash "-618850706"} {:id "defn-/emit-expr", :kind "defn-", :line 733, :end-line 739, :hash "749449684"} {:id "defn-/emit-default-constructor", :kind "defn-", :line 741, :end-line 751, :hash "240160418"} {:id "defn-/field-slot", :kind "defn-", :line 753, :end-line 757, :hash "-1567189554"} {:id "defn-/emit-record-constructor", :kind "defn-", :line 759, :end-line 775, :hash "-316497366"} {:id "defn-/emit-record-class-bytes", :kind "defn-", :line 777, :end-line 797, :hash "-382850934"} {:id "defn-/emit-union-base-class-bytes", :kind "defn-", :line 799, :end-line 811, :hash "861277052"} {:id "defn-/emit-union-variant-class-bytes", :kind "defn-", :line 813, :end-line 846, :hash "944748988"} {:id "defn-/emit-method", :kind "defn-", :line 848, :end-line 863, :hash "-1874159661"} {:id "defn-/emit-instance-method", :kind "defn-", :line 865, :end-line 889, :hash "-128623171"} {:id "defn/emit-module-bytes", :kind "defn", :line 891, :end-line 913, :hash "582395298"} {:id "defn/emit-class-bytes", :kind "defn", :line 915, :end-line 957, :hash "-1403240972"}]}
+;; {:version 1, :tested-at "2026-03-16T08:13:25.323138-05:00", :module-hash "1674898612", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line 12, :hash "2127196812"} {:id "form/1/declare", :kind "declare", :line 14, :end-line 14, :hash "-351869103"} {:id "form/2/declare", :kind "declare", :line 15, :end-line 15, :hash "1069961042"} {:id "form/3/declare", :kind "declare", :line 16, :end-line 16, :hash "-2053214757"} {:id "form/4/declare", :kind "declare", :line 17, :end-line 17, :hash "2098266977"} {:id "form/5/declare", :kind "declare", :line 18, :end-line 18, :hash "963731763"} {:id "form/6/declare", :kind "declare", :line 19, :end-line 19, :hash "-1905695466"} {:id "def/type-descriptors", :kind "def", :line 21, :end-line 26, :hash "-1275703727"} {:id "def/load-opcodes", :kind "def", :line 28, :end-line 32, :hash "700860168"} {:id "def/store-opcodes", :kind "def", :line 34, :end-line 38, :hash "656288957"} {:id "def/return-opcodes", :kind "def", :line 40, :end-line 45, :hash "1446178414"} {:id "def/boxed-types", :kind "def", :line 47, :end-line 51, :hash "-1247089229"} {:id "defn-/fail!", :kind "defn-", :line 53, :end-line 55, :hash "879938479"} {:id "defn-/method-name", :kind "defn-", :line 57, :end-line 61, :hash "1072728380"} {:id "defn-/init-descriptor", :kind "defn-", :line 63, :end-line 67, :hash "-591391110"} {:id "defn-/descriptor", :kind "defn-", :line 69, :end-line 71, :hash "799112538"} {:id "defn-/method-descriptor", :kind "defn-", :line 73, :end-line 78, :hash "-1082052598"} {:id "defn-/load-opcode", :kind "defn-", :line 80, :end-line 82, :hash "501460056"} {:id "defn-/store-opcode", :kind "defn-", :line 84, :end-line 86, :hash "234024341"} {:id "defn-/return-opcode", :kind "defn-", :line 88, :end-line 90, :hash "1071593654"} {:id "defn-/slot-width", :kind "defn-", :line 92, :end-line 96, :hash "644765418"} {:id "defn-/local-slots", :kind "defn-", :line 98, :end-line 108, :hash "1286710434"} {:id "defn-/instance-local-slots", :kind "defn-", :line 110, :end-line 120, :hash "-234993241"} {:id "defn-/emit-int", :kind "defn-", :line 122, :end-line 124, :hash "682918505"} {:id "defn-/emit-float", :kind "defn-", :line 126, :end-line 128, :hash "-404581045"} {:id "defn-/emit-double", :kind "defn-", :line 130, :end-line 132, :hash "-299228739"} {:id "defn-/emit-string", :kind "defn-", :line 134, :end-line 136, :hash "-364387159"} {:id "defn-/emit-boolean", :kind "defn-", :line 138, :end-line 140, :hash "-818404463"} {:id "defn-/box-descriptor", :kind "defn-", :line 142, :end-line 148, :hash "1143194916"} {:id "defn-/emit-box-if-needed", :kind "defn-", :line 150, :end-line 159, :hash "-177508175"} {:id "defn-/emit-primitive-unbox", :kind "defn-", :line 161, :end-line 169, :hash "-1739292644"} {:id "defn-/emit-object-cast-or-unbox", :kind "defn-", :line 171, :end-line 179, :hash "472309751"} {:id "defn-/emit-cast-or-unbox", :kind "defn-", :line 181, :end-line 187, :hash "-1711668189"} {:id "defn-/emit-local", :kind "defn-", :line 189, :end-line 194, :hash "435457023"} {:id "defn-/emit-invoke-static", :kind "defn-", :line 196, :end-line 209, :hash "842252415"} {:id "defn-/emit-java-static-call", :kind "defn-", :line 211, :end-line 223, :hash "-738935078"} {:id "defn-/emit-java-call", :kind "defn-", :line 225, :end-line 238, :hash "19941248"} {:id "defn-/emit-java-new", :kind "defn-", :line 240, :end-line 253, :hash "1581399000"} {:id "defn-/emit-if", :kind "defn-", :line 255, :end-line 268, :hash "918582782"} {:id "defn-/emit-primitive-binary", :kind "defn-", :line 270, :end-line 274, :hash "853246371"} {:id "defn-/emit-primitive-comparison", :kind "defn-", :line 276, :end-line 287, :hash "328881796"} {:id "defn-/emit-floating-comparison", :kind "defn-", :line 289, :end-line 301, :hash "-239382277"} {:id "defn-/emit-primitive-conversion", :kind "defn-", :line 303, :end-line 306, :hash "1990636722"} {:id "defn-/emit-bool-not", :kind "defn-", :line 308, :end-line 312, :hash "-644687160"} {:id "defn-/pop-opcode", :kind "defn-", :line 314, :end-line 319, :hash "391217719"} {:id "defn-/emit-discarded", :kind "defn-", :line 321, :end-line 325, :hash "-373415048"} {:id "defn-/emit-seq", :kind "defn-", :line 327, :end-line 340, :hash "1569148183"} {:id "defn-/bind-let-slots", :kind "defn-", :line 342, :end-line 350, :hash "-1742644809"} {:id "defn-/bind-typed-slots", :kind "defn-", :line 352, :end-line 360, :hash "-1647294951"} {:id "defn-/bind-var-slot", :kind "defn-", :line 362, :end-line 369, :hash "459677485"} {:id "defn-/emit-var", :kind "defn-", :line 371, :end-line 378, :hash "879920388"} {:id "defn-/emit-set", :kind "defn-", :line 380, :end-line 388, :hash "1326112789"} {:id "defn-/emit-let", :kind "defn-", :line 390, :end-line 402, :hash "1573725928"} {:id "defn-/constructor-descriptor", :kind "defn-", :line 404, :end-line 408, :hash "1030246641"} {:id "defn-/constructor-descriptor-for-types", :kind "defn-", :line 410, :end-line 414, :hash "410465"} {:id "defn-/emit-always-true", :kind "defn-", :line 416, :end-line 418, :hash "415683512"} {:id "defn-/bind-local-slots", :kind "defn-", :line 420, :end-line 428, :hash "844729401"} {:id "defn-/bind-loop-slots", :kind "defn-", :line 430, :end-line 432, :hash "-1190078791"} {:id "defn-/emit-binding", :kind "defn-", :line 434, :end-line 440, :hash "1197949831"} {:id "defn-/emit-match", :kind "defn-", :line 442, :end-line 459, :hash "1586201505"} {:id "defn-/recur-frame", :kind "defn-", :line 461, :end-line 465, :hash "-1921183736"} {:id "defn-/temp-slots", :kind "defn-", :line 467, :end-line 475, :hash "1830022320"} {:id "defn-/emit-recur", :kind "defn-", :line 477, :end-line 493, :hash "-640909028"} {:id "defn-/temp-slot", :kind "defn-", :line 495, :end-line 499, :hash "1829218103"} {:id "defn-/emit-raise", :kind "defn-", :line 501, :end-line 505, :hash "476518000"} {:id "defn-/emit-try", :kind "defn-", :line 507, :end-line 516, :hash "1119462693"} {:id "defn-/emit-loop", :kind "defn-", :line 518, :end-line 540, :hash "193454205"} {:id "def/literal-emitters", :kind "def", :line 542, :end-line 547, :hash "1324913079"} {:id "defn-/emit-literal", :kind "defn-", :line 549, :end-line 553, :hash "-1669064898"} {:id "def/emit-expr-handlers", :kind "def", :line 555, :end-line 730, :hash "-618850706"} {:id "defn-/emit-expr", :kind "defn-", :line 732, :end-line 738, :hash "749449684"} {:id "defn-/module-emit-opts", :kind "defn-", :line 740, :end-line 758, :hash "-1008400564"} {:id "defn/emit-module-bytes", :kind "defn", :line 760, :end-line 763, :hash "1361942363"} {:id "defn/emit-class-bytes", :kind "defn", :line 765, :end-line 767, :hash "-1828536027"}]}
 ;; clj-mutate-manifest-end
