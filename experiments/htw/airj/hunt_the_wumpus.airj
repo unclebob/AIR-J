@@ -1,0 +1,601 @@
+(module experiment/hunt_the_wumpus
+  (imports
+    (java experiment.htw.airj.RotatingDoubleTorus)
+    (java experiment.htw.airj.SeededRandomFactory)
+    (java java.util.Random))
+  (export main)
+
+  (data GameState
+    (field player-room String)
+    (field wumpus-room String)
+    (field arrows Int)
+    (field rotation Int))
+
+  (data TurnResult
+    (field status String)
+    (field message String)
+    (field state GameState))
+
+  (fn rooms
+    (params)
+    (returns (Seq String))
+    (effects (Foreign.Throw))
+    (requires true)
+    (ensures true)
+    (string-split-on
+      (java/static-call
+        experiment.htw.airj.RotatingDoubleTorus
+        allRooms
+        (signature () String))
+      " "))
+
+  (fn neighbors
+    (params (room String) (rotation Int))
+    (returns (Seq String))
+    (effects (Foreign.Throw))
+    (requires true)
+    (ensures true)
+    (string-split-on
+      (java/static-call
+        experiment.htw.airj.RotatingDoubleTorus
+        neighbors
+        (signature (String Int) String)
+        (local room)
+        (local rotation))
+      " "))
+
+  (fn contains-room?
+    (params (room-list (Seq String)) (room String))
+    (returns Bool)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (loop ((remaining (local room-list)))
+      (if (seq-empty? (local remaining))
+        false
+        (if (string-eq (seq-first (local remaining)) (local room))
+          true
+          (recur (seq-rest (local remaining)))))))
+
+  (fn valid-room?
+    (params (room String))
+    (returns Bool)
+    (effects (Foreign.Throw))
+    (requires true)
+    (ensures true)
+    (java/static-call
+      experiment.htw.airj.RotatingDoubleTorus
+      validRoom
+      (signature (String) Bool)
+      (local room)))
+
+  (fn adjacent?
+    (params (from String) (to String) (rotation Int))
+    (returns Bool)
+    (effects (Foreign.Throw))
+    (requires true)
+    (ensures true)
+    (call (local contains-room?) (call (local neighbors) (local from) (local rotation)) (local to)))
+
+  (fn pit?
+    (params (room String))
+    (returns Bool)
+    (effects (Foreign.Throw))
+    (requires true)
+    (ensures true)
+    (java/static-call
+      experiment.htw.airj.RotatingDoubleTorus
+      isPit
+      (signature (String) Bool)
+      (local room)))
+
+  (fn bat?
+    (params (room String))
+    (returns Bool)
+    (effects (Foreign.Throw))
+    (requires true)
+    (ensures true)
+    (java/static-call
+      experiment.htw.airj.RotatingDoubleTorus
+      isBat
+      (signature (String) Bool)
+      (local room)))
+
+  (fn warning-near?
+    (params (room String) (hazard String) (rotation Int))
+    (returns Bool)
+    (effects (Foreign.Throw))
+    (requires true)
+    (ensures true)
+    (call (local contains-room?) (call (local neighbors) (local room) (local rotation)) (local hazard)))
+
+  (fn any-pit-near?
+    (params (room String) (rotation Int))
+    (returns Bool)
+    (effects (Foreign.Throw))
+    (requires true)
+    (ensures true)
+    (loop ((remaining (call (local neighbors) (local room) (local rotation))))
+      (if (seq-empty? (local remaining))
+        false
+        (if (call (local pit?) (seq-first (local remaining)))
+          true
+          (recur (seq-rest (local remaining)))))))
+
+  (fn any-bat-near?
+    (params (room String) (rotation Int))
+    (returns Bool)
+    (effects (Foreign.Throw))
+    (requires true)
+    (ensures true)
+    (loop ((remaining (call (local neighbors) (local room) (local rotation))))
+      (if (seq-empty? (local remaining))
+        false
+        (if (call (local bat?) (seq-first (local remaining)))
+          true
+          (recur (seq-rest (local remaining)))))))
+
+  (fn neighbor-text
+    (params (room String) (rotation Int))
+    (returns String)
+    (effects (Foreign.Throw))
+    (requires true)
+    (ensures true)
+    (java/static-call
+      experiment.htw.airj.RotatingDoubleTorus
+      neighborText
+      (signature (String Int) String)
+      (local room)
+      (local rotation)))
+
+  (fn prompt-text
+    (params (arrows Int))
+    (returns String)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (string-concat
+      (string-concat "Arrows: " (int->string (local arrows)))
+      " | command: move <room>, shoot <r1> <r2> ... <r5>, status, help, quit"))
+
+  (fn help-text
+    (params)
+    (returns String)
+    (effects ())
+    (requires true)
+    (ensures true)
+    "Commands: move <room>, shoot <r1> <r2> ... <r5>, status, help, quit")
+
+  (fn status-text
+    (params (state GameState))
+    (returns String)
+    (effects (Foreign.Throw))
+    (requires true)
+    (ensures true)
+    (string-concat
+      (string-concat
+        (string-concat
+          (string-concat "Status: room=" (record-get (local state) player-room))
+          (string-concat ", arrows=" (int->string (record-get (local state) arrows))))
+        ", ")
+      (string-concat
+        (string-concat
+          "rotation="
+          (int->string (record-get (local state) rotation)))
+        (string-concat
+          ", "
+          (call (local neighbor-text)
+                (record-get (local state) player-room)
+                (record-get (local state) rotation))))))
+
+  (fn random-room
+    (params (rng (Java java.util.Random)))
+    (returns String)
+    (effects (Foreign.Throw))
+    (requires true)
+    (ensures true)
+    (java/static-call
+      experiment.htw.airj.RotatingDoubleTorus
+      randomRoom
+      (signature ((Java java.util.Random)) String)
+      (local rng)))
+
+  (fn random-neighbor
+    (params (rng (Java java.util.Random)) (room String) (rotation Int))
+    (returns String)
+    (effects (Foreign.Throw))
+    (requires true)
+    (ensures true)
+    (java/static-call
+      experiment.htw.airj.RotatingDoubleTorus
+      randomNeighbor
+      (signature ((Java java.util.Random) String Int) String)
+      (local rng)
+      (local room)
+      (local rotation)))
+
+  (fn moved-wumpus
+    (params (rng (Java java.util.Random)) (wumpus-room String) (rotation Int))
+    (returns String)
+    (effects (Foreign.Throw))
+    (requires true)
+    (ensures true)
+    (java/static-call
+      experiment.htw.airj.RotatingDoubleTorus
+      moveWumpus
+      (signature ((Java java.util.Random) String Int) String)
+      (local rng)
+      (local wumpus-room)
+      (local rotation)))
+
+  (fn command-parts
+    (params (line String))
+    (returns (Seq String))
+    (effects ())
+    (requires true)
+    (ensures true)
+    (let ((text (string-trim (local line))))
+      (if (string-empty? (local text))
+        (seq-empty String)
+        (string-split-on (local text) " "))))
+
+  (fn command-verb
+    (params (line String))
+    (returns String)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (let ((parts (call (local command-parts) (local line))))
+      (if (seq-empty? (local parts))
+        ""
+        (seq-first (local parts)))))
+
+  (fn command-destination
+    (params (line String))
+    (returns String)
+    (effects ())
+    (requires true)
+    (ensures true)
+    (let ((parts (call (local command-parts) (local line))))
+      (if (int-gt (seq-length (local parts)) 1)
+        (seq-get (local parts) 1)
+        "")))
+
+  (fn command-shot-path
+    (params (line String))
+    (returns (Seq String))
+    (effects ())
+    (requires true)
+    (ensures true)
+    (let ((parts (call (local command-parts) (local line))))
+      (if (int-gt (seq-length (local parts)) 1)
+        (seq-rest (local parts))
+        (seq-empty String))))
+
+  (fn limited-shot-path
+    (params (path (Seq String)))
+    (returns (Seq String))
+    (effects ())
+    (requires true)
+    (ensures true)
+    (loop ((remaining (local path))
+           (count 0)
+           (result (seq-empty String)))
+      (if (bool-or (seq-empty? (local remaining)) (int-ge (local count) 5))
+        (local result)
+        (recur
+          (seq-rest (local remaining))
+          (int-add (local count) 1)
+          (seq-append (local result) (seq-first (local remaining)))))))
+
+  (fn resolve-move
+    (params (rng (Java java.util.Random))
+            (state GameState)
+            (destination String))
+    (returns GameState)
+    (effects (Foreign.Throw))
+    (requires true)
+    (ensures true)
+    (let ((player-room (record-get (local state) player-room))
+          (wumpus-room (record-get (local state) wumpus-room))
+          (arrows (record-get (local state) arrows))
+          (rotation (record-get (local state) rotation)))
+      (if (call (local bat?) (local destination))
+        (construct GameState
+                   (call (local random-room) (local rng))
+                   (local wumpus-room)
+                   (local arrows)
+                   (local rotation))
+        (construct GameState
+                   (local destination)
+                   (local wumpus-room)
+                   (local arrows)
+                   (local rotation)))))
+
+  (fn advance-arrow-step
+    (params (rng (Java java.util.Random))
+            (current-room String)
+            (requested-room String)
+            (rotation Int))
+    (returns String)
+    (effects (Foreign.Throw))
+    (requires true)
+    (ensures true)
+    (if (call (local adjacent?) (local current-room) (local requested-room) (local rotation))
+      (local requested-room)
+      (call (local random-neighbor) (local rng) (local current-room) (local rotation))))
+
+  (fn shoot-flight
+    (params (rng (Java java.util.Random))
+            (player-room String)
+            (wumpus-room String)
+            (rotation Int)
+            (path (Seq String)))
+    (returns String)
+    (effects (Foreign.Throw))
+    (requires true)
+    (ensures true)
+    (loop ((current-room (local player-room))
+           (remaining (call (local limited-shot-path) (local path)))
+           (steps 0))
+      (if (bool-or (seq-empty? (local remaining)) (int-ge (local steps) 5))
+        "miss"
+        (let ((next-room
+                (call (local advance-arrow-step)
+                      (local rng)
+                      (local current-room)
+                      (seq-first (local remaining))
+                      (local rotation))))
+          (if (string-eq (local next-room) (local wumpus-room))
+            "won"
+            (if (string-eq (local next-room) (local player-room))
+              "lost-self"
+              (recur
+                (local next-room)
+                (seq-rest (local remaining))
+                (int-add (local steps) 1))))))))
+
+  (fn handle-move
+    (params (rng (Java java.util.Random))
+            (state GameState)
+            (destination String))
+    (returns TurnResult)
+    (effects (Foreign.Throw))
+    (requires true)
+    (ensures true)
+    (let ((player-room (record-get (local state) player-room)))
+      (if (bool-not
+            (bool-and
+              (call (local valid-room?) (local destination))
+              (call (local adjacent?) (local player-room) (local destination) (record-get (local state) rotation))))
+        (construct TurnResult
+                   "continue"
+                   "You can only move to an adjacent room."
+                   (local state))
+        (construct TurnResult
+                   "continue"
+                   (string-concat "You move to room " (local destination))
+                   (let ((next-state
+                           (call (local resolve-move)
+                                 (local rng)
+                                 (local state)
+                                 (local destination))))
+                     (construct GameState
+                                (record-get (local next-state) player-room)
+                                (record-get (local next-state) wumpus-room)
+                                (record-get (local next-state) arrows)
+                                (int-mod (int-add (record-get (local next-state) rotation) 10) 100)))))))
+
+  (fn handle-shot
+    (params (rng (Java java.util.Random))
+            (state GameState)
+            (path (Seq String)))
+    (returns TurnResult)
+    (effects (Foreign.Throw))
+    (requires true)
+    (ensures true)
+    (if (seq-empty? (local path))
+      (construct TurnResult
+                 "continue"
+                 "Provide one to five rooms for the arrow path."
+                 (local state))
+      (let ((player-room (record-get (local state) player-room))
+            (wumpus-room (record-get (local state) wumpus-room))
+            (arrows (record-get (local state) arrows))
+            (rotation (record-get (local state) rotation)))
+        (let ((outcome
+                (call (local shoot-flight)
+                      (local rng)
+                      (local player-room)
+                      (local wumpus-room)
+                      (int-mod (int-add (local rotation) 10) 100)
+                      (local path))))
+          (if (string-eq (local outcome) "won")
+            (construct TurnResult
+                       "won"
+                       "Your arrow strikes true. You win!"
+                       (local state))
+            (if (string-eq (local outcome) "lost-self")
+              (construct TurnResult
+                         "lost"
+                         "The crooked arrow returns to your room. You lose."
+                         (local state))
+              (let ((next-rotation (int-mod (int-add (local rotation) 10) 100))
+                    (next-arrows (int-sub (local arrows) 1))
+                    (next-wumpus (call (local moved-wumpus) (local rng) (local wumpus-room) (int-mod (int-add (local rotation) 10) 100))))
+                (if (string-eq (local next-wumpus) (local player-room))
+                  (construct TurnResult
+                             "lost"
+                             "The Wumpus wakes, moves, and eats you."
+                             (construct GameState
+                                        (local player-room)
+                                        (local next-wumpus)
+                                        (local next-arrows)
+                                        (local next-rotation)))
+                  (if (int-eq (local next-arrows) 0)
+                    (construct TurnResult
+                               "lost"
+                               "You are out of arrows. You lose."
+                               (construct GameState
+                                          (local player-room)
+                                          (local next-wumpus)
+                                          (local next-arrows)
+                                          (local next-rotation)))
+                    (construct TurnResult
+                               "continue"
+                               "Your arrow misses."
+                               (construct GameState
+                                          (local player-room)
+                                          (local next-wumpus)
+                                          (local next-arrows)
+                                          (local next-rotation))))))))))))
+
+  (fn handle-command
+    (params (rng (Java java.util.Random))
+            (state GameState)
+            (line String))
+    (returns TurnResult)
+    (effects (Foreign.Throw))
+    (requires true)
+    (ensures true)
+    (let ((verb (call (local command-verb) (local line))))
+      (if (string-eq (local verb) "quit")
+        (construct TurnResult
+                   "quit"
+                   "Goodbye."
+                   (local state))
+        (if (string-eq (local verb) "help")
+          (construct TurnResult
+                     "continue"
+                     (call (local help-text))
+                     (local state))
+          (if (string-eq (local verb) "status")
+            (construct TurnResult
+                       "continue"
+                       (call (local status-text) (local state))
+                       (local state))
+            (if (string-eq (local verb) "move")
+              (call (local handle-move)
+                    (local rng)
+                    (local state)
+                    (call (local command-destination) (local line)))
+              (if (string-eq (local verb) "shoot")
+                (call (local handle-shot)
+                      (local rng)
+                      (local state)
+                      (call (local command-shot-path) (local line)))
+                (construct TurnResult
+                           "continue"
+                           "Unknown command."
+                           (local state)))))))))
+
+  (fn make-rng
+    (params (args StringSeq))
+    (returns (Java java.util.Random))
+    (effects (Foreign.Throw))
+    (requires true)
+    (ensures true)
+    (let ((rng (java/new java.util.Random)))
+      (if (seq-empty? (local args))
+        (local rng)
+        (java/static-call
+          experiment.htw.airj.SeededRandomFactory
+          fromString
+          (signature (String) (Java java.util.Random))
+          (seq-first (local args))))))
+
+  (fn print-room
+    (params (player-room String) (wumpus-room String) (rotation Int))
+    (returns Unit)
+    (effects (Foreign.Throw Stdout.Write))
+    (requires true)
+    (ensures true)
+    (seq
+      (io/println "")
+      (io/println (string-concat "You are in room " (local player-room)))
+      (io/println (call (local neighbor-text) (local player-room) (local rotation)))
+      (if (call (local warning-near?) (local player-room) (local wumpus-room) (local rotation))
+        (io/println "You smell a Wumpus.")
+        (io/println ""))
+      (if (call (local any-pit-near?) (local player-room) (local rotation))
+        (io/println "You feel a draft.")
+        (io/println ""))
+      (if (call (local any-bat-near?) (local player-room) (local rotation))
+        (io/println "You hear rustling bats.")
+        (io/println ""))))
+
+  (fn intro
+    (params)
+    (returns Unit)
+    (effects (Stdout.Write))
+    (requires true)
+    (ensures true)
+    (seq
+      (io/println "Hunt the Wumpus")
+      (io/println "Double torus rules: O0..O99 and I0..I99 with a rotating inner bridge.")
+      (io/println "Move through tunnels or shoot a crooked arrow through up to 5 rooms.")
+      (io/println (call (local help-text)))))
+
+  (fn game-loop
+    (params (rng (Java java.util.Random))
+            (state GameState))
+    (returns Int)
+    (effects (Foreign.Throw Stdin.Read Stdout.Write))
+    (requires true)
+    (ensures true)
+    (loop ((current-state (local state)))
+      (let ((player-room (record-get (local current-state) player-room))
+            (wumpus-room (record-get (local current-state) wumpus-room))
+            (arrows (record-get (local current-state) arrows))
+            (rotation (record-get (local current-state) rotation)))
+        (if (string-eq (local player-room) (local wumpus-room))
+          (seq
+            (io/println "You enter the Wumpus room. You lose.")
+            1)
+          (if (call (local pit?) (local player-room))
+            (seq
+              (io/println "You fall into a bottomless pit. You lose.")
+              1)
+            (if (call (local bat?) (local player-room))
+              (seq
+                (io/println "Super bats whisk you to another room!")
+                (recur
+                  (construct GameState
+                             (call (local random-room) (local rng))
+                             (local wumpus-room)
+                             (local arrows)
+                             (local rotation))))
+              (seq
+                (call (local print-room) (local player-room) (local wumpus-room) (local rotation))
+                (io/println (call (local prompt-text) (local arrows)))
+                (let ((line (io/read-line)))
+                  (let ((result
+                          (call (local handle-command)
+                                (local rng)
+                                (local current-state)
+                                (local line))))
+                    (seq
+                      (io/println (record-get (local result) message))
+                      (if (string-eq (record-get (local result) status) "won")
+                        0
+                        (if (string-eq (record-get (local result) status) "lost")
+                          1
+                          (if (string-eq (record-get (local result) status) "quit")
+                            0
+                            (recur (record-get (local result) state)))))))))))))))
+
+  (fn main
+    (params (args StringSeq))
+    (returns Int)
+    (effects (Foreign.Throw Stdin.Read Stdout.Write))
+    (requires true)
+    (ensures true)
+    (seq
+      (call (local intro))
+      (call (local game-loop)
+            (call (local make-rng) (local args))
+            (construct GameState
+                       "O0"
+                       "O55"
+                       5
+                       0)))))
